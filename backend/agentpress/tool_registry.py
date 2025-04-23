@@ -21,6 +21,7 @@ class ToolRegistry:
         get_xml_examples: Get examples of XML tool usage
     """
     
+<<<<<<< HEAD
     _instance = None
     
     def __new__(cls):
@@ -31,6 +32,13 @@ class ToolRegistry:
             cls._instance.xml_tools = {}
             logger.debug("Initialized new ToolRegistry instance")
         return cls._instance
+=======
+    def __init__(self):
+        """Initialize a new ToolRegistry instance."""
+        self.tools = {}
+        self.xml_tools = {}
+        logger.debug("Initialized new ToolRegistry instance")
+>>>>>>> 63994f976006b80d9d59378dd5cb80e249e96891
     
     def register_tool(self, tool_class: Type[Tool], function_names: Optional[List[str]] = None, **kwargs):
         """Register a tool with optional function filtering.

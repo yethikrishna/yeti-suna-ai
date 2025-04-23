@@ -10,10 +10,16 @@ from utils.logger import logger
 class SandboxBrowserTool(SandboxToolsBase):
     """Tool for executing tasks in a Daytona sandbox with browser-use capabilities."""
     
+<<<<<<< HEAD
     def __init__(self, sandbox: Sandbox, thread_id: str, thread_manager: ThreadManager):
         super().__init__(sandbox)
         self.thread_id = thread_id
         self.thread_manager = thread_manager
+=======
+    def __init__(self, project_id: str, thread_id: str, thread_manager: ThreadManager):
+        super().__init__(project_id, thread_manager)
+        self.thread_id = thread_id
+>>>>>>> 63994f976006b80d9d59378dd5cb80e249e96891
 
     async def _execute_browser_action(self, endpoint: str, params: dict = None, method: str = "POST") -> ToolResult:
         """Execute a browser automation action through the API
@@ -27,6 +33,12 @@ class SandboxBrowserTool(SandboxToolsBase):
             ToolResult: Result of the execution
         """
         try:
+<<<<<<< HEAD
+=======
+            # Ensure sandbox is initialized
+            await self._ensure_sandbox()
+            
+>>>>>>> 63994f976006b80d9d59378dd5cb80e249e96891
             # Build the curl command
             url = f"http://localhost:8002/api/automation/{endpoint}"
             

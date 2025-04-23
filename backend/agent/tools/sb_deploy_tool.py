@@ -3,7 +3,11 @@ from dotenv import load_dotenv
 from agentpress.tool import ToolResult, openapi_schema, xml_schema
 from sandbox.sandbox import SandboxToolsBase, Sandbox
 from utils.files_utils import clean_path
+<<<<<<< HEAD
 from agent.tools.sb_shell_tool import SandboxShellTool
+=======
+from agentpress.thread_manager import ThreadManager
+>>>>>>> 63994f976006b80d9d59378dd5cb80e249e96891
 
 # Load environment variables
 load_dotenv()
@@ -11,11 +15,18 @@ load_dotenv()
 class SandboxDeployTool(SandboxToolsBase):
     """Tool for deploying static websites from a Daytona sandbox to Cloudflare Pages."""
 
+<<<<<<< HEAD
     def __init__(self, sandbox: Sandbox):
         super().__init__(sandbox)
         self.workspace_path = "/workspace"  # Ensure we're always operating in /workspace
         self.cloudflare_api_token = os.getenv("CLOUDFLARE_API_TOKEN")
         self.shell_tool = SandboxShellTool(sandbox)
+=======
+    def __init__(self, project_id: str, thread_manager: ThreadManager):
+        super().__init__(project_id, thread_manager)
+        self.workspace_path = "/workspace"  # Ensure we're always operating in /workspace
+        self.cloudflare_api_token = os.getenv("CLOUDFLARE_API_TOKEN")
+>>>>>>> 63994f976006b80d9d59378dd5cb80e249e96891
 
     def clean_path(self, path: str) -> str:
         """Clean and normalize a path to be relative to /workspace"""
@@ -76,6 +87,12 @@ class SandboxDeployTool(SandboxToolsBase):
             - Failure: Error message if deployment fails
         """
         try:
+<<<<<<< HEAD
+=======
+            # Ensure sandbox is initialized
+            await self._ensure_sandbox()
+            
+>>>>>>> 63994f976006b80d9d59378dd5cb80e249e96891
             directory_path = self.clean_path(directory_path)
             full_path = f"{self.workspace_path}/{directory_path}"
             
@@ -95,11 +112,16 @@ class SandboxDeployTool(SandboxToolsBase):
                     
                 # Single command that creates the project if it doesn't exist and then deploys
                 project_name = f"{self.sandbox_id}-{name}"
+<<<<<<< HEAD
                 deploy_cmd = f'''export CLOUDFLARE_API_TOKEN={self.cloudflare_api_token} && 
+=======
+                deploy_cmd = f'''cd {self.workspace_path} && export CLOUDFLARE_API_TOKEN={self.cloudflare_api_token} && 
+>>>>>>> 63994f976006b80d9d59378dd5cb80e249e96891
                     (npx wrangler pages deploy {full_path} --project-name {project_name} || 
                     (npx wrangler pages project create {project_name} --production-branch production && 
                     npx wrangler pages deploy {full_path} --project-name {project_name}))'''
 
+<<<<<<< HEAD
                 # Execute command using shell_tool.execute_command
                 response = await self.shell_tool.execute_command(
                     command=deploy_cmd,
@@ -116,6 +138,20 @@ class SandboxDeployTool(SandboxToolsBase):
                     })
                 else:
                     return self.fail_response(f"Deployment failed: {response.output}")
+=======
+                # Execute the command directly using the sandbox's process.exec method
+                response = self.sandbox.process.exec(deploy_cmd, timeout=300)
+                
+                print(f"Deployment command output: {response.result}")
+                
+                if response.exit_code == 0:
+                    return self.success_response({
+                        "message": f"Website deployed successfully",
+                        "output": response.result
+                    })
+                else:
+                    return self.fail_response(f"Deployment failed with exit code {response.exit_code}: {response.result}")
+>>>>>>> 63994f976006b80d9d59378dd5cb80e249e96891
             except Exception as e:
                 return self.fail_response(f"Error during deployment: {str(e)}")
         except Exception as e:

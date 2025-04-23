@@ -1,13 +1,22 @@
 from typing import Optional
 from agentpress.tool import ToolResult, openapi_schema, xml_schema
 from sandbox.sandbox import SandboxToolsBase, Sandbox
+<<<<<<< HEAD
+=======
+from agentpress.thread_manager import ThreadManager
+>>>>>>> 63994f976006b80d9d59378dd5cb80e249e96891
 
 class SandboxExposeTool(SandboxToolsBase):
     """Tool for exposing and retrieving preview URLs for sandbox ports."""
 
+<<<<<<< HEAD
     def __init__(self, sandbox: Sandbox):
         super().__init__(sandbox)
         self.workspace_path = "/workspace"
+=======
+    def __init__(self, project_id: str, thread_manager: ThreadManager):
+        super().__init__(project_id, thread_manager)
+>>>>>>> 63994f976006b80d9d59378dd5cb80e249e96891
 
     @openapi_schema({
         "type": "function",
@@ -61,6 +70,12 @@ class SandboxExposeTool(SandboxToolsBase):
     )
     async def expose_port(self, port: int) -> ToolResult:
         try:
+<<<<<<< HEAD
+=======
+            # Ensure sandbox is initialized
+            await self._ensure_sandbox()
+            
+>>>>>>> 63994f976006b80d9d59378dd5cb80e249e96891
             # Convert port to integer if it's a string
             port = int(port)
             

@@ -40,7 +40,7 @@ MODEL_NAME_ALIASES = {
 }
 
 class AgentStartRequest(BaseModel):
-    model_name: Optional[str] = "gemini-flash-2.5"
+    model_name: Optional[str] = "anthropic/claude-3-7-sonnet-latest"
     enable_thinking: Optional[bool] = False
     reasoning_effort: Optional[str] = 'low'
     stream: Optional[bool] = True
@@ -468,7 +468,10 @@ async def start_agent(
             thread_id=thread_id,
             instance_id=instance_id,
             project_id=project_id,
+<<<<<<< HEAD
             sandbox=sandbox,
+=======
+>>>>>>> 63994f976006b80d9d59378dd5cb80e249e96891
             model_name=MODEL_NAME_ALIASES.get(body.model_name, body.model_name), 
             enable_thinking=body.enable_thinking,
             reasoning_effort=body.reasoning_effort,
@@ -606,7 +609,10 @@ async def run_agent_background(
     thread_id: str,
     instance_id: str,
     project_id: str,
+<<<<<<< HEAD
     sandbox,
+=======
+>>>>>>> 63994f976006b80d9d59378dd5cb80e249e96891
     model_name: str,
     enable_thinking: Optional[bool],
     reasoning_effort: Optional[str],
@@ -737,7 +743,10 @@ async def run_agent_background(
             project_id=project_id,
             stream=stream,
             thread_manager=thread_manager,
+<<<<<<< HEAD
             sandbox=sandbox,
+=======
+>>>>>>> 63994f976006b80d9d59378dd5cb80e249e96891
             model_name=model_name,
             enable_thinking=enable_thinking,
             reasoning_effort=reasoning_effort,
@@ -914,7 +923,11 @@ async def generate_and_update_project_name(project_id: str, prompt: str):
 @router.post("/agent/initiate", response_model=InitiateAgentResponse)
 async def initiate_agent_with_files(
     prompt: str = Form(...),
+<<<<<<< HEAD
     model_name: Optional[str] = Form("gemini-flash-2.5"),  # default to GEMINI 2.5 Flash via OpenRouter
+=======
+    model_name: Optional[str] = Form("anthropic/claude-3-7-sonnet-latest"),
+>>>>>>> 63994f976006b80d9d59378dd5cb80e249e96891
     enable_thinking: Optional[bool] = Form(False),
     reasoning_effort: Optional[str] = Form("low"),
     stream: Optional[bool] = Form(True),
@@ -1118,7 +1131,7 @@ async def initiate_agent_with_files(
                 thread_id=thread_id,
                 instance_id=instance_id,
                 project_id=project_id,
-                sandbox=sandbox,
+                model_name=MODEL_NAME_ALIASES.get(model_name, model_name), 
                 model_name=MODEL_NAME_ALIASES.get(model_name, model_name), 
                 enable_thinking=enable_thinking,
                 reasoning_effort=reasoning_effort,

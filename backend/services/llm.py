@@ -135,12 +135,15 @@ def prepare_params(
     # Add OpenRouter-specific parameters
     if model_name.startswith("openrouter/"):
         logger.debug(f"Preparing OpenRouter parameters for model: {model_name}")
+<<<<<<< HEAD
         # Add OpenRouter authentication parameters
         if not params.get("api_key"):
             params["api_key"] = os.getenv("OPENROUTER_API_KEY")
         if not params.get("api_base"):
             params["api_base"] = os.getenv("OPENROUTER_API_BASE", "https://openrouter.ai/api/v1")
         logger.debug("Added OpenRouter API key and base to params")
+=======
+>>>>>>> 63994f976006b80d9d59378dd5cb80e249e96891
         
         # Add optional site URL and app name if set in environment
         site_url = os.environ.get("OR_SITE_URL")
@@ -236,7 +239,10 @@ def prepare_params(
 async def make_llm_api_call(
     messages: List[Dict[str, Any]],
     model_name: str,
+<<<<<<< HEAD
     # For OpenRouter models, support thinking variant
+=======
+>>>>>>> 63994f976006b80d9d59378dd5cb80e249e96891
     response_format: Optional[Any] = None,
     temperature: float = 0,
     max_tokens: Optional[int] = None,
