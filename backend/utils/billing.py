@@ -1,11 +1,12 @@
 from datetime import datetime, timezone
 from typing import Dict, Optional, Tuple
+import os
 
 # Define subscription tiers and their monthly limits (in minutes)
 SUBSCRIPTION_TIERS = {
-    'price_1RGJ9GG6l1KZGqIroxSqgphC': {'name': 'free', 'minutes': 100000},
-    'price_1RGJ9LG6l1KZGqIrd9pwzeNW': {'name': 'base', 'minutes': 300},  # 100 hours = 6000 minutes
-    'price_1RGJ9JG6l1KZGqIrVUU4ZRv6': {'name': 'extra', 'minutes': 2400}  # 100 hours = 6000 minutes
+    os.environ.get('STRIPE_PRICE_ID_FREE', 'price_1RGJ9GG6l1KZGqIroxSqgphC'): {'name': 'free', 'minutes': 100000},
+    os.environ.get('STRIPE_PRICE_ID_PRO', 'price_1RGJ9LG6l1KZGqIrd9pwzeNW'): {'name': 'base', 'minutes': 300},  # 100 hours = 6000 minutes
+    os.environ.get('STRIPE_PRICE_ID_ENTERPRISE', 'price_1RGJ9JG6l1KZGqIrVUU4ZRv6'): {'name': 'extra', 'minutes': 2400}  # 100 hours = 6000 minutes
 }
 
 async def get_account_subscription(client, account_id: str) -> Optional[Dict]:
