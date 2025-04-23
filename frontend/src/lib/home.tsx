@@ -90,7 +90,7 @@ export const siteConfig = {
         // "Single user",
         // "Standard response time",
       ],
-      stripePriceId: 'price_1RGJ9GG6l1KZGqIroxSqgphC',
+      stripePriceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_FREE || 'price_1RGJ9GG6l1KZGqIroxSqgphC',
     },
     {
       name: "Pro",
@@ -107,7 +107,7 @@ export const siteConfig = {
         // "5 team members",
         // "Custom integrations",
       ],
-      stripePriceId: 'price_1RGJ9LG6l1KZGqIrd9pwzeNW',
+      stripePriceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_PRO || 'price_1RGJ9LG6l1KZGqIrd9pwzeNW',
     },
     {
       name: "Enterprise",
@@ -126,7 +126,7 @@ export const siteConfig = {
         // "Custom AI model training",
       ],
       showContactSales: true,
-      stripePriceId: 'price_1RGJ9JG6l1KZGqIrVUU4ZRv6',
+      stripePriceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_ENTERPRISE || 'price_1RGJ9JG6l1KZGqIrVUU4ZRv6',
     },
   ],
   companyShowcase: {
