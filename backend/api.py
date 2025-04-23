@@ -11,6 +11,7 @@ from utils.logger import logger
 import uuid
 import time
 from collections import OrderedDict
+import os
 
 # Import the agent API module
 from agent import api as agent_api
@@ -137,5 +138,5 @@ async def health_check():
 
 if __name__ == "__main__":
     import uvicorn
-    logger.info("Starting server on 0.0.0.0:8000")
-    uvicorn.run(app, host="0.0.0.0", port=8000) 
+    logger.info("Starting server on 0.0.0.0:{}".format(os.getenv("PORT", 8000)))
+    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", 8000))) 
