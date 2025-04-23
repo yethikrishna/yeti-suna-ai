@@ -18,7 +18,6 @@ from agent.tools.sb_files_tool import SandboxFilesTool
 from agent.tools.sb_browser_tool import SandboxBrowserTool
 from agent.tools.data_providers_tool import DataProvidersTool
 from agent.prompt import get_system_prompt
-from sandbox.sandbox import create_sandbox, get_or_start_sandbox
 from utils import logger
 from utils.billing import check_billing_status, get_account_id_from_thread
 
@@ -27,7 +26,6 @@ load_dotenv()
 async def run_agent(
     thread_id: str,
     project_id: str,
-    sandbox,
     stream: bool,
     thread_manager: Optional[ThreadManager] = None,
     native_max_auto_continues: int = 25,
@@ -39,8 +37,8 @@ async def run_agent(
 ):
     """Run the development agent with specified configuration."""
     
-    if not thread_manager:
-        thread_manager = ThreadManager()
+    thread_manager = ThreadManager()
+
     client = await thread_manager.db.client
 
     # Get account ID from thread for billing checks
@@ -48,13 +46,23 @@ async def run_agent(
     if not account_id:
         raise ValueError("Could not determine account ID for thread")
 
-    # Note: Billing checks are now done in api.py before this function is called
+    # Get sandbox info from project
+    project = await client.table('projects').select('*').eq('project_id', project_id).execute()
+    if not project.data or len(project.data) == 0:
+        raise ValueError(f"Project {project_id} not found")
     
-    thread_manager.add_tool(SandboxShellTool, sandbox=sandbox)
-    thread_manager.add_tool(SandboxFilesTool, sandbox=sandbox)
-    thread_manager.add_tool(SandboxBrowserTool, sandbox=sandbox, thread_id=thread_id, thread_manager=thread_manager)
-    thread_manager.add_tool(SandboxDeployTool, sandbox=sandbox)
-    thread_manager.add_tool(SandboxExposeTool, sandbox=sandbox)
+    project_data = project.data[0]
+    sandbox_info = project_data.get('sandbox', {})
+    if not sandbox_info.get('id'):
+        raise ValueError(f"No sandbox found for project {project_id}")
+    
+    # Initialize tools with project_id instead of sandbox object
+    # This ensures each tool independently verifies it's operating on the correct project
+    thread_manager.add_tool(SandboxShellTool, project_id=project_id, thread_manager=thread_manager)
+    thread_manager.add_tool(SandboxFilesTool, project_id=project_id, thread_manager=thread_manager)
+    thread_manager.add_tool(SandboxBrowserTool, project_id=project_id, thread_id=thread_id, thread_manager=thread_manager)
+    thread_manager.add_tool(SandboxDeployTool, project_id=project_id, thread_manager=thread_manager)
+    thread_manager.add_tool(SandboxExposeTool, project_id=project_id, thread_manager=thread_manager)
     thread_manager.add_tool(MessageTool) # we are just doing this via prompt as there is no need to call it as a tool
  
     if os.getenv("TAVILY_API_KEY"):
