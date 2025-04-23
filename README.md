@@ -134,7 +134,7 @@ You'll need the following components:
    - While other providers should work via [LiteLLM](https://github.com/BerriAI/litellm), OpenAI and Anthropic are recommended
 
 5. **Search API Key** (Optional):
-   - For enhanced search capabilities, obtain an [Tavily API key](https://tavily.com/)
+   - For enhanced search capabilities, obtain a [Tavily API key](https://tavily.com/)
   
 6. **RapidAPI API Key** (Optional):
    - To enable API services like LinkedIn, and others, you'll need a RapidAPI key
