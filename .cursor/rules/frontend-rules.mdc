@@ -1,0 +1,18 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Frontend Structure
+
+This rule describes the frontend part of the project located in the `frontend/` directory.
+
+*   **Main directory:** `frontend/`
+*   **Key files/directories (Assumption - Please Verify/Update):**
+    *   Source code: Likely in `frontend/src/`.
+    *   Main component/entry point: Often `frontend/src/App.js`, `frontend/src/main.jsx`, or similar.
+    *   Components: Look for `frontend/src/components/`.
+    *   Styles: Potentially in `frontend/src/styles/` or `frontend/src/assets/`.
+    *   Routing: May be handled in `frontend/src/router/` or within main application files.
+
+Use `[filename](mdc:path/to/filename)` to link to specific files.

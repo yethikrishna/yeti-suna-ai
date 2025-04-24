@@ -1,0 +1,17 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Backend Structure
+
+This rule describes the backend part of the project located in the `backend/` directory.
+
+*   **Main directory:** `backend/`
+*   **Key files/directories (Assumption - Please Verify/Update):**
+    *   Entry point: Likely in `backend/main.py` or `backend/server.js` or similar.
+    *   Configuration: Potentially in `backend/config/` or `backend/settings.py`.
+    *   API Routes/Controllers: Maybe in `backend/routes/`, `backend/controllers/`, or `backend/api/`.
+    *   Models/Database: Look for `backend/models/` or `backend/db/`.
+
+Use `[filename](mdc:path/to/filename)` to link to specific files.
