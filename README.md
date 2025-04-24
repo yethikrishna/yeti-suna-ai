@@ -245,10 +245,38 @@ cd backend
 python api.py
 ```
 
+
 7. **Access Suna**:
    - Open your browser and navigate to `http://localhost:3000`
    - Sign up for an account using the Supabase authentication
    - Start using your self-hosted Suna instance!
+
+## 🛠️ Modifications apportées dans ce fork
+
+Ce fork introduit deux ajouts principaux pour simplifier le déploiement local :
+
+### 🔁 Variable d'environnement personnalisée
+
+Un nouveau champ `API_URL` a été ajouté pour spécifier l’URL du backend utilisé.  
+Assurez-vous de bien définir cette variable dans votre `.env.local` ou dans la configuration de votre environnement.
+
+```env
+API_URL=http://localhost:8000
+```
+
+### 🚀 Script de lancement avec venv
+
+Un script `run.sh` est fourni pour :
+
+- Créer un environnement virtuel Python (`venv`)
+- Installer automatiquement les dépendances (`fastapi`, `uvicorn`, etc.)
+- Lancer l’API backend avec `uvicorn`
+
+Exécution :
+```bash
+chmod +x run.sh
+./run.sh
+```
 
 ## License
 

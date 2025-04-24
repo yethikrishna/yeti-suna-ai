@@ -12,6 +12,7 @@ from utils.logger import logger
 import uuid
 import time
 from collections import OrderedDict
+import os
 
 # Import the agent API module
 from agent import api as agent_api
@@ -121,7 +122,7 @@ if config.ENV_MODE == EnvMode.STAGING:
     
 # Add local-specific origins
 if config.ENV_MODE == EnvMode.LOCAL:
-    allowed_origins.append("http://localhost:3000")
+    allowed_origins.append("http://localhost:3001")
 
 app.add_middleware(
     CORSMiddleware,
@@ -149,5 +150,6 @@ async def health_check():
 
 if __name__ == "__main__":
     import uvicorn
-    logger.info("Starting server on 0.0.0.0:8000")
-    uvicorn.run(app, host="0.0.0.0", port=8000) 
+    port = int(os.getenv('API_PORT', 8000))
+    logger.info(f"Starting server on 0.0.0.0:{port}")
+    uvicorn.run(app, host="0.0.0.0", port=port) 

@@ -10,7 +10,7 @@ primary_region = 'cdg'
   dockerfile = 'docker/Dockerfile'
 
 [http_service]
-  internal_port = 8000
+  internal_port = "${API_PORT}"
   force_https = true
   auto_stop_machines = 'stop'
   auto_start_machines = true
