@@ -2,7 +2,7 @@
 
 # Suna - Open Source Generalist AI Agent
 
-(that acts on your behalf)
+(which acts on your behalf)
 
 ![Suna Screenshot](frontend/public/banner.png)
 
@@ -43,7 +43,7 @@ Suna consists of four main components:
 Python/FastAPI service that handles REST endpoints, thread management, and LLM integration with Anthropic, and others via LiteLLM.
 
 ### Frontend
-Next.js/React application providing a responsive UI with chat interface, dashboard, etc.
+Next.js/React application providing a responsive UI with chat interface, dashboard, and other components.
 
 ### Agent Docker
 Isolated execution environment for every agent - with browser automation, code interpreter, file system access, tool integration, and security features.
