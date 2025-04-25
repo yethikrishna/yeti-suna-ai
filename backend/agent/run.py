@@ -19,7 +19,6 @@ from agent.tools.sb_files_tool import SandboxFilesTool
 from agent.tools.sb_browser_tool import SandboxBrowserTool
 from agent.tools.data_providers_tool import DataProvidersTool
 from agent.prompt import get_system_prompt
-from utils import logger
 from utils.billing import check_billing_status, get_account_id_from_thread
 
 load_dotenv()

@@ -1,6 +1,5 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 from agentpress.thread_manager import ThreadManager
 from services.supabase import DBConnection
@@ -9,7 +8,6 @@ from dotenv import load_dotenv
 from utils.config import config, EnvMode
 import asyncio
 from utils.logger import logger
-import uuid
 import time
 from collections import OrderedDict
 

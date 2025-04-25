@@ -1,6 +1,5 @@
 import sys
 import os
-from uuid import uuid4
 from dotenv import load_dotenv
 
 # Add the backend directory to the Python path

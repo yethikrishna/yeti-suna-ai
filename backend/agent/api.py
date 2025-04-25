@@ -5,10 +5,8 @@ import json
 import traceback
 from datetime import datetime, timezone
 import uuid
-from typing import Optional, List, Dict, Any
-import jwt
+from typing import Optional, List, Any
 from pydantic import BaseModel
-import tempfile
 import os
 
 from agentpress.thread_manager import ThreadManager
@@ -17,7 +15,7 @@ from services import redis
 from agent.run import run_agent
 from utils.auth_utils import get_current_user_id, get_user_id_from_stream_auth, verify_thread_access
 from utils.logger import logger
-from utils.billing import check_billing_status, get_account_id_from_thread
+from utils.billing import check_billing_status
 from sandbox.sandbox import create_sandbox, get_or_start_sandbox
 from services.llm import make_llm_api_call
 
