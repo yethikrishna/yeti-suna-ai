@@ -7,11 +7,11 @@ export function OpenSourceSection() {
   return (
     <section
       id="open-source"
-      className="flex flex-col items-center justify-center w-full relative pb-18"
+      className=" flex flex-col items-center justify-center w-full relative pb-18"
     >
-      <div className="w-full max-w-6xl mx-auto px-6">
-        <SectionHeader>
-          <h2 className="text-3xl md:text-4xl font-medium tracking-tighter text-center text-balance pb-1">
+      <div className=" w-full max-w-6xl mx-auto px-6">
+        <SectionHeader >
+          <h2 className=" text-3xl md:text-4xl font-medium tracking-tighter text-center text-balance pb-1">
             100% Open Source
           </h2>
           <p className="text-muted-foreground text-center text-balance font-medium">
@@ -19,7 +19,7 @@ export function OpenSourceSection() {
           </p>
         </SectionHeader>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-14">
           <div className="rounded-xl bg-[#F3F4F6] dark:bg-[#F9FAFB]/[0.02] border border-border p-6">
             <div className="flex flex-col gap-6">
               <div className="flex items-center gap-2 text-primary font-medium">
