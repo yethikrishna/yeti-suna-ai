@@ -338,6 +338,7 @@ export const ChatInput = forwardRef<ChatInputHandles, ChatInputProps>(({
     // { id: "sonnet-3.7-thinking", label: "Sonnet 3.7 (Thinking)" },
     // { id: "gpt-4.1", label: "GPT-4.1" },
     { id: "gemini-flash-2.5", label: "Gemini Flash 2.5" },
+    { id: "gemini-flash-2.0", label: "Gemini Flash 2.0" },
     // { id: "grok-3", label: "Grok 3" },
     // { id: "grok-3-fast", label: "Grok 3 Fast" },
     // { id: "grok-3-mini", label: "Grok 3 Mini" },

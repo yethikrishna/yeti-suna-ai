@@ -33,8 +33,11 @@ REDIS_RESPONSE_LIST_TTL = 3600 * 24
 MODEL_NAME_ALIASES = {
     "sonnet-3.7": "anthropic/claude-3-7-sonnet-latest",
     # "gpt-4.1": "openai/gpt-4.1-2025-04-14",
+    
+    # "gemini-flash-2.5": "openrouter/google/gemini-2.5-pro-preview-03-25",
 
     "gemini-flash-2.5": "openrouter/google/gemini-2.5-flash-preview", # openrouter
+    "gemini-flash-2.0": "openrouter/google/gemini-2.0-flash-001", # openrouter
     # "gemini-flash-2.5": "gemini/gemini-2.5-flash-preview-04-17", # google studio
     # "gemini-flash-2.5": "gemini/gemini-2.5-flash-preview", # google vertex
 

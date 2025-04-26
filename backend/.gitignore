@@ -174,3 +174,4 @@ state.json
 
 # SQLite
 *.db
+logs/
