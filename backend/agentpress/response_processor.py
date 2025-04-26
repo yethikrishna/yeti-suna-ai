@@ -12,6 +12,8 @@ import json
 import asyncio
 import re
 import uuid
+import os
+import time
 from typing import List, Dict, Any, Optional, Tuple, AsyncGenerator, Callable, Union, Literal
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -167,7 +169,7 @@ class ResponseProcessor:
                     # Process content chunk
                     if delta and hasattr(delta, 'content') and delta.content:
                         chunk_content = delta.content
-                        # print(chunk_content, end='', flush=True)
+                        print(chunk_content, end='', flush=True)
                         accumulated_content += chunk_content
                         current_xml_content += chunk_content
 
@@ -562,6 +564,26 @@ class ResponseProcessor:
             if err_msg_obj: yield err_msg_obj # Yield the saved error message
 
         finally:
+            # debug <timestamp>.json messages 
+            if os.getenv("DAT_DEV") == "true":
+                try:
+                    os.makedirs("logs", exist_ok=True) # Ensure logs directory exists
+                    full_messages = prompt_messages[:] # Start with prompt messages
+                    if 'last_assistant_message_object' in locals() and last_assistant_message_object:
+                        full_messages.append(last_assistant_message_object)
+                    if 'tool_result_message_objects' in locals() and tool_result_message_objects:
+                        # Sort results by tool index for logical order
+                        sorted_tool_results = sorted(tool_result_message_objects.items())
+                        full_messages.extend([msg for _, msg in sorted_tool_results])
+                    
+                    timestamp = time.strftime('%Y%m%d_%H%M%S')
+                    filename = f"logs/stream_{timestamp}_{thread_id}.json"
+                    with open(filename, "w") as f:
+                        json.dump(full_messages, f, indent=4, default=str) # Use default=str for non-serializable types like datetime
+                    logger.debug(f"Saved debug messages to {filename}")
+                except Exception as log_e:
+                    logger.error(f"Failed to write debug log: {log_e}")
+
             # Save and Yield the final thread_run_end status
             end_content = {"status_type": "thread_run_end"}
             end_msg_obj = await self.add_message(
@@ -765,7 +787,7 @@ class ResponseProcessor:
              if err_msg_obj: yield err_msg_obj
 
         finally:
-             # Save and Yield the final thread_run_end status
+            # Save and Yield the final thread_run_end status
             end_content = {"status_type": "thread_run_end"}
             end_msg_obj = await self.add_message(
                 thread_id=thread_id, type="status", content=end_content, 

@@ -18,10 +18,11 @@ from agentpress.tool_registry import ToolRegistry
 from agentpress.context_manager import ContextManager
 from agentpress.response_processor import (
     ResponseProcessor, 
-    ProcessorConfig    
+    ProcessorConfig
 )
 from services.supabase import DBConnection
 from utils.logger import logger
+from agent.gemini_prompt import GEMINI_SYSTEM_PROMPT
 
 # Type alias for tool choice
 ToolChoice = Literal["auto", "required", "none"]
@@ -198,12 +199,20 @@ class ThreadManager:
         # Apply max_xml_tool_calls if specified and not already set in config
         if max_xml_tool_calls > 0 and not processor_config.max_xml_tool_calls:
             processor_config.max_xml_tool_calls = max_xml_tool_calls
-            
         # Create a working copy of the system prompt to potentially modify
         working_system_prompt = system_prompt.copy()
 
-        # Add XML examples to system prompt if requested, do this only ONCE before the loop
+        # Check if Gemini model is used and replace the prompt if so
+        if "gemini" in llm_model.lower():
+            logger.info("Using Gemini-specific system prompt.")
+            # Ensure the Gemini prompt is in the correct format (dict with role/content)
+            working_system_prompt = {"role": "system", "content": GEMINI_SYSTEM_PROMPT}
+            llm_temperature=1
+            include_xml_examples=False
+
+        # el
         if include_xml_examples and processor_config.xml_tool_calling:
+            # Add XML examples to system prompt if requested (and not Gemini)
             xml_examples = self.tool_registry.get_xml_examples()
             if xml_examples:
                 examples_content = """

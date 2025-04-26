@@ -334,10 +334,14 @@ export const ChatInput = forwardRef<ChatInputHandles, ChatInputProps>(({
   };
 
   const modelOptions = [
-    { id: "sonnet-3.7", label: "Sonnet 3.7" },
-    { id: "sonnet-3.7-thinking", label: "Sonnet 3.7 (Thinking)" },
-    { id: "gpt-4.1", label: "GPT-4.1" },
-    { id: "gemini-flash-2.5", label: "Gemini Flash 2.5" }
+    { id: "sonnet-3.7", label: "Claude Sonnet 3.7" },
+    // { id: "sonnet-3.7-thinking", label: "Sonnet 3.7 (Thinking)" },
+    // { id: "gpt-4.1", label: "GPT-4.1" },
+    { id: "gemini-flash-2.5", label: "Gemini Flash 2.5" },
+    // { id: "grok-3", label: "Grok 3" },
+    // { id: "grok-3-fast", label: "Grok 3 Fast" },
+    // { id: "grok-3-mini", label: "Grok 3 Mini" },
+    // { id: "grok-3-mini-fast", label: "Grok 3 Mini Fast" }
   ];
 
   return (
@@ -416,7 +420,7 @@ export const ChatInput = forwardRef<ChatInputHandles, ChatInputProps>(({
         </div>
         
         <div className="flex items-center gap-2 pl-2 flex-shrink-0">
-          {/* {!isAgentRunning && (
+          {!isAgentRunning && (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -461,7 +465,7 @@ export const ChatInput = forwardRef<ChatInputHandles, ChatInputProps>(({
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
-          )} */}
+          )}
           
           {!hideAttachments && (
             <TooltipProvider>
