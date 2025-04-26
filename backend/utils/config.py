@@ -84,6 +84,9 @@ class Configuration:
     STRIPE_DEFAULT_TRIAL_DAYS: int = 14
     
     
+    # Cron Job API Key
+    CRON_API_KEY: Optional[str] = None
+    
     def __init__(self):
         """Initialize configuration by loading from environment variables."""
         # Load environment variables from .env file if it exists

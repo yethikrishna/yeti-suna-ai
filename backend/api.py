@@ -16,13 +16,14 @@ from collections import OrderedDict
 # Import the agent API module
 from agent import api as agent_api
 from sandbox import api as sandbox_api
+from utils import cron_api
 
 # Load environment variables (these will be available through config)
 load_dotenv()
 
 # Initialize managers
 db = DBConnection()
-thread_manager = None
+thread_manager = ThreadManager()
 instance_id = "single"
 
 # Rate limiter state
@@ -38,8 +39,7 @@ async def lifespan(app: FastAPI):
     try:
         # Initialize database
         await db.initialize()
-        thread_manager = ThreadManager()
-        
+
         # Initialize the agent API with shared resources
         agent_api.initialize(
             thread_manager,
@@ -50,6 +50,8 @@ async def lifespan(app: FastAPI):
         # Initialize the sandbox API with shared resources
         sandbox_api.initialize(db)
         
+        # Initialize the cron API with shared resources
+        cron_api.initialize(db)
         # Initialize Redis connection
         from services import redis
         try:
@@ -131,6 +133,9 @@ app.include_router(agent_api.router, prefix="/api")
 
 # Include the sandbox router with a prefix
 app.include_router(sandbox_api.router, prefix="/api")
+
+# Include the cron API router with a prefix
+app.include_router(cron_api.router, prefix="/api/cron")
 
 @app.get("/api/health")
 async def health_check():
