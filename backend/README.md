@@ -28,7 +28,8 @@ For local development, you might only need to run Redis while working on the API
 - You want to avoid rebuilding the API container on every change
 - You're running the API service directly on your machine
 
-To run just Redis for development:```bash
+To run just Redis for development:
+```bash
 docker compose up redis
 ```
 
