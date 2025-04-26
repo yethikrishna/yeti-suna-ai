@@ -293,4 +293,29 @@ The Docker Compose setup includes a Redis service that will be used by the backe
 ## License
 
 Kortix Suna is licensed under the Apache License, Version 2.0. See [LICENSE](./LICENSE) for the full license text.
-
+android.database.sqlite.SQLiteReadOnlyDatabaseException: attempt to write a readonly database (code 1032 SQLITE_READONLY_DBMOVED)
+	at android.database.sqlite.SQLiteConnection.nativeExecuteForLastInsertedRowId(Native Method)
+	at android.database.sqlite.SQLiteConnection.executeForLastInsertedRowId(SQLiteConnection.java:946)
+	at android.database.sqlite.SQLiteSession.executeForLastInsertedRowId(SQLiteSession.java:790)
+	at android.database.sqlite.SQLiteStatement.executeInsert(SQLiteStatement.java:89)
+	at android.database.sqlite.SQLiteDatabase.insertWithOnConflict(SQLiteDatabase.java:1702)
+	at android.database.sqlite.SQLiteDatabase.insertOrThrow(SQLiteDatabase.java:1597)
+	at oU.p(SourceFile:57)
+	at oU.m(SourceFile:13)
+	at hg0.b(SourceFile:5)
+	at Oi0.b(SourceFile:95)
+	at nC.p(SourceFile:46)
+	at nC.m(SourceFile:13)
+	at hg0.b(SourceFile:5)
+	at Oi0.b(SourceFile:95)
+	at gj.p(SourceFile:67)
+	at gj.m(SourceFile:13)
+	at hg0.b(SourceFile:5)
+	at Oi0.b(SourceFile:95)
+	at ij.p(SourceFile:110)
+	at Z7.k(SourceFile:9)
+	at Cm.run(SourceFile:97)
+	at Vt.run(SourceFile:533)
+	at w00.run(SourceFile:3)
+	at si.run(SourceFile:96)
+nonthawat100Q
