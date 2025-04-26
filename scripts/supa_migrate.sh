@@ -17,4 +17,4 @@ if [ $? -eq 0 ]; then
 else
     echo "❌ Migration failed"
     exit 1
-fi 
+fi
