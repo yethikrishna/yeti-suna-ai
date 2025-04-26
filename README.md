@@ -294,3 +294,4 @@ The Docker Compose setup includes a Redis service that will be used by the backe
 
 Kortix Suna is licensed under the Apache License, Version 2.0. See [LICENSE](./LICENSE) for the full license text.
 
+Sprememba v README filu
