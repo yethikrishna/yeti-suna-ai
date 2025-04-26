@@ -23,7 +23,7 @@ load_dotenv()
 
 # Initialize managers
 db = DBConnection()
-thread_manager = ThreadManager()
+thread_manager = None
 instance_id = "single"
 
 # Rate limiter state
