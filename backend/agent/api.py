@@ -36,9 +36,9 @@ MODEL_NAME_ALIASES = {
     
     # "gemini-flash-2.5": "openrouter/google/gemini-2.5-pro-preview-03-25",
 
-    "gemini-flash-2.5": "openrouter/google/gemini-2.5-flash-preview", # openrouter
-    "gemini-flash-2.0": "openrouter/google/gemini-2.0-flash-001", # openrouter
-    # "gemini-flash-2.5": "gemini/gemini-2.5-flash-preview-04-17", # google studio
+    # "gemini-flash-2.5": "openrouter/google/gemini-2.5-flash-preview", # openrouter
+    # "gemini-flash-2.0": "openrouter/google/gemini-2.0-flash-001", # openrouter
+    "gemini-flash-2.5": "gemini/gemini-2.5-flash-preview-04-17", # google studio
     # "gemini-flash-2.5": "gemini/gemini-2.5-flash-preview", # google vertex
 
     # "grok-3": "xai/grok-3-fast-latest",

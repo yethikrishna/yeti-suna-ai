@@ -205,9 +205,11 @@ class ThreadManager:
         # Check if Gemini model is used and replace the prompt if so
         if "gemini" in llm_model.lower():
             logger.info("Using Gemini-specific system prompt.")
+            import datetime
             # Ensure the Gemini prompt is in the correct format (dict with role/content)
-            working_system_prompt = {"role": "system", "content": GEMINI_SYSTEM_PROMPT}
+            working_system_prompt = {"role": "system", "content": GEMINI_SYSTEM_PROMPT.format(currentDateTime=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))}
             llm_temperature=1
+            llm_max_tokens=64000
             include_xml_examples=False
 
         # el

@@ -230,9 +230,11 @@ def prepare_params(
     use_thinking = enable_thinking if enable_thinking is not None else False
     is_anthropic = "anthropic" in effective_model_name.lower() or "claude" in effective_model_name.lower()
 
-    if is_anthropic and use_thinking:
+    if use_thinking:
         effort_level = reasoning_effort if reasoning_effort else 'low'
         params["reasoning_effort"] = effort_level
+
+    if is_anthropic and use_thinking:
         params["temperature"] = 1.0 # Required by Anthropic when reasoning_effort is used
         logger.info(f"Anthropic thinking enabled with reasoning_effort='{effort_level}'")
 

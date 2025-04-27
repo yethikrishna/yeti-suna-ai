@@ -125,7 +125,7 @@ class ResponseProcessor:
         finish_reason = None
         last_assistant_message_object = None # Store the final saved assistant message object
         tool_result_message_objects = {} # tool_index -> full saved message object
-        has_printed_thinking_prefix = False # Flag for printing thinking prefix only once
+        # has_printed_thinking_prefix = False # Flag for printing thinking prefix only once
 
         logger.info(f"Streaming Config: XML={config.xml_tool_calling}, Native={config.native_tool_calling}, "
                    f"Execute on stream={config.execute_on_stream}, Strategy={config.tool_execution_strategy}")
@@ -159,17 +159,16 @@ class ResponseProcessor:
                     
                     # Check for and log Anthropic thinking content
                     if delta and hasattr(delta, 'reasoning_content') and delta.reasoning_content:
-                        if not has_printed_thinking_prefix:
-                            # print("[THINKING]: ", end='', flush=True)
-                            has_printed_thinking_prefix = True
-                        # print(delta.reasoning_content, end='', flush=True)
+                        # if not has_printed_thinking_prefix:
+                            # has_printed_thinking_prefix = True
+                        # print(f"[THINKING]: {delta.reasoning_content}", flush=True)
                         # Append reasoning to main content to be saved in the final message
                         accumulated_content += delta.reasoning_content
 
                     # Process content chunk
                     if delta and hasattr(delta, 'content') and delta.content:
                         chunk_content = delta.content
-                        print(chunk_content, end='', flush=True)
+                        # print(chunk_content, end='', flush=True)
                         accumulated_content += chunk_content
                         current_xml_content += chunk_content
 
