@@ -160,7 +160,7 @@ def prepare_params(
     # Apply Anthropic prompt caching (minimal implementation)
     # Check model name *after* potential modifications (like adding bedrock/ prefix)
     effective_model_name = params.get("model", model_name) # Use model from params if set, else original
-    if "claude" in effective_model_name.lower() or "anthropic" in effective_model_name.lower():
+    if "claude" in effective_model_name.lower() or "anthropic" in effective_model_name.lower() or "gemini" in effective_model_name.lower():
         messages = params["messages"] # Direct reference, modification affects params
 
         # Ensure messages is a list
