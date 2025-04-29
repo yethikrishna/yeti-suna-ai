@@ -1,0 +1,112 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Método de Questionamento Estruturado para Decisões
+
+## Princípio Fundamental
+
+Para cada decisão de implementação, modificação ou alteração de código, aplique um **MÉTODO ESTRUTURADO DE QUESTIONAMENTO** que obriga a uma reflexão profunda e sistemática.
+
+## Processo de 5 Níveis de Questionamento
+
+### Nível 1: Necessidade Fundamental
+
+**Questione repetidamente**:
+- Esta alteração é **ABSOLUTAMENTE ESSENCIAL**?
+- Qual seria o impacto de **NÃO IMPLEMENTAR** esta alteração?
+- Este requisito resolve um problema **REAL E CONCRETO**?
+- Esta necessidade é **IMEDIATA E URGENTE** ou pode ser adiada?
+- Qual evidência **OBJETIVA** tenho de que esta alteração é necessária?
+
+**Ação**: Continue apenas se a necessidade for inequívoca e comprovada.
+
+### Nível 2: Alternativas Sem Código
+
+**Explore exaustivamente**:
+- Pode ser resolvido apenas com **CONFIGURAÇÃO** existente?
+- Existe uma solução usando **PROCESSOS MANUAIS** aceitáveis?
+- É possível resolver com **DOCUMENTAÇÃO** ou treinamento?
+- Pode ser resolvido **ALTERANDO EXPECTATIVAS** em vez de código?
+- Existe uma **LIMITAÇÃO DE DESIGN** que tornaria a solução desnecessária?
+
+**Ação**: Só prossiga se alternativas sem código forem comprovadamente inadequadas.
+
+### Nível 3: Alternativas de Código Mínimas
+
+**Investigue rigorosamente**:
+- É possível reutilizar **COMPONENTES EXISTENTES** de forma criativa?
+- Esta alteração pode ser implementada como uma **EXTENSÃO** não-intrusiva?
+- Podemos resolver com uma **COMPOSIÇÃO** de funcionalidades existentes?
+- Existe uma solução via **CONFIGURAÇÃO AVANÇADA** de componentes existentes?
+- Posso implementar como um **ADAPTADOR** fino sobre código existente?
+
+**Ação**: Continue apenas se todas estas abordagens forem inadequadas.
+
+### Nível 4: Escopo e Impacto
+
+**Analise minuciosamente**:
+- Qual o **ESCOPO EXATO** da alteração proposta?
+- Quais **INTERFACES EXISTENTES** serão afetadas?
+- Quais são os possíveis **EFEITOS COLATERAIS** em outras partes do sistema?
+- Como esta alteração afetará a **MANUTENIBILIDADE** futura?
+- A alteração introduz **NOVAS DEPENDÊNCIAS** ou complexidades?
+
+**Ação**: Reduza o escopo ao mínimo absoluto necessário.
+
+### Nível 5: Justificativa Final
+
+**Documente formalmente**:
+- Por que é **IMPOSSÍVEL** atender a esta necessidade sem esta alteração específica?
+- Por que **TODAS** as alternativas consideradas são inadequadas?
+- Como esta implementação representa a **SOLUÇÃO MÍNIMA**?
+- Como esta alteração mantém **TOTAL COMPATIBILIDADE** com o sistema existente?
+- Qual é o plano para **MITIGAR RISCOS** identificados?
+
+**Ação**: Só implemente após documentar completamente estas justificativas.
+
+## Técnica de Questionamento "5 Por Quês"
+
+Para cada alteração proposta, aplique a técnica dos "5 Por Quês":
+
+1. **Por que** esta alteração é necessária?
+2. **Por que** não podemos resolver sem alterar código?
+3. **Por que** a solução proposta é a melhor abordagem?
+4. **Por que** não podemos implementar de forma ainda mais simples?
+5. **Por que** temos certeza que esta é a solução ideal a longo prazo?
+
+## Matriz de Decisão
+
+Para qualquer alteração significativa, preencha a seguinte matriz:
+
+| Critério | Avaliação (1-10) | Justificativa |
+|----------|------------------|---------------|
+| Necessidade | ? | ? |
+| Urgência | ? | ? |
+| Impacto | ? | ? |
+| Simplicidade | ? | ? |
+| Manutenibilidade | ? | ? |
+| Compatibilidade | ? | ? |
+| Risco | ? | ? |
+
+**Regra**: Só implemente se a pontuação média for superior a 7 E nenhum critério individual for inferior a 5.
+
+## Lista de Verificação de Questionamento Final
+
+Antes de qualquer implementação, confirme que:
+
+- [ ] Utilizei o processo de **5 NÍVEIS DE QUESTIONAMENTO**?
+- [ ] Apliquei a técnica dos **5 POR QUÊS**?
+- [ ] Preenchi e analisei a **MATRIZ DE DECISÃO**?
+- [ ] Considerei **TODAS AS ALTERNATIVAS** possíveis?
+- [ ] Documentei completamente as **JUSTIFICATIVAS** para esta implementação?
+- [ ] Tenho **ABSOLUTA CERTEZA** que esta é a abordagem ideal?
+- [ ] Refleti sobre esta decisão por pelo menos **24 HORAS** (metaforicamente)?
+
+## Compromisso Filosófico
+
+Cada linha de código deve **JUSTIFICAR SUA EXISTÊNCIA** através deste rigoroso processo. Cultive uma cultura de **DELIBERAÇÃO PROFUNDA** e **CETICISMO SAUDÁVEL**. O código que você NÃO escreve é o código que nunca terá bugs, nunca precisará de manutenção e nunca causará problemas de compatibilidade.
+
+Lembre-se: A verdadeira expertise está em reconhecer quando **NÃO MODIFICAR** é a melhor decisão.
+

@@ -1,0 +1,90 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Avaliação Crítica de Novas Implementações
+
+## Princípio Orientador
+
+**QUESTIONE EXAUSTIVAMENTE** a necessidade de qualquer nova implementação. A adição de novo código deve ser tratada com **EXTREMO CETICISMO** e como último recurso.
+
+## Processo de Avaliação Rigorosa
+
+### 1. Questões Fundamentais Antes de Implementar
+
+Antes de adicionar qualquer novo código, pergunte **REPETIDAMENTE**:
+
+- Esta funcionalidade é **ABSOLUTAMENTE INDISPENSÁVEL**?
+- Existe alguma funcionalidade **JÁ IMPLEMENTADA** que pode ser adaptada?
+- É possível resolver isto usando apenas **CONFIGURAÇÃO** de componentes existentes?
+- Quais são os **CUSTOS DE MANUTENÇÃO** de longo prazo desta nova implementação?
+- Esta implementação está **COMPLETAMENTE ALINHADA** com a arquitetura existente?
+
+### 2. Avaliações Multicamadas Obrigatórias
+
+Realize **OBRIGATORIAMENTE** estas três camadas de avaliação:
+
+1. **Nível 1 - Avaliação de Necessidade**: Questione se a funcionalidade é realmente necessária ou apenas desejável
+2. **Nível 2 - Avaliação de Alternativas**: Identifique todas as possíveis alternativas sem código novo
+3. **Nível 3 - Avaliação de Impacto**: Analise profundamente todos os efeitos colaterais possíveis
+
+### 3. Abordagem "Zero New Code First"
+
+Adote o princípio de "Zero Código Novo como Primeira Opção":
+
+1. Busque primeiramente resolver **APENAS COM CONFIGURAÇÃO**
+2. Depois, tente resolver **AJUSTANDO USO** de componentes existentes
+3. Em seguida, considere **COMPOR SOLUÇÕES** com componentes existentes
+4. Só então considere **EXTENSÕES MÍNIMAS** de componentes existentes
+5. Como último recurso, considere **NOVOS COMPONENTES** integrados à arquitetura existente
+
+## Lista de Verificação para Novas Implementações
+
+Se, após rigoroso questionamento, a implementação for considerada inevitável:
+
+- [ ] Refleti **PELO MENOS CINCO VEZES** sobre a necessidade desta implementação?
+- [ ] Explorei **EXAUSTIVAMENTE** todas as alternativas possíveis?
+- [ ] Documentei claramente **POR QUE** as alternativas não são viáveis?
+- [ ] A implementação proposta é a **MAIS SIMPLES POSSÍVEL**?
+- [ ] A implementação segue **EXATAMENTE** os mesmos padrões do código existente?
+- [ ] A nova implementação tem um **ESCOPO ESTRITAMENTE LIMITADO**?
+- [ ] Documentei claramente **TODAS** as suposições e dependências?
+
+## Abordagens para Minimizar Novas Implementações
+
+### 1. Técnicas de Composição
+
+- Identificar componentes existentes que podem ser **COMBINADOS**
+- Criar adaptadores finos em torno de componentes existentes
+- Utilizar padrões de design que favoreçam extensão sem modificação
+
+### 2. Heurísticas para Avaliar Necessidade
+
+Questione criticamente:
+
+- "Este requisito é uma **NECESSIDADE REAL** ou apenas uma preferência?"
+- "Este problema ocorre com **FREQUÊNCIA SUFICIENTE** para justificar uma solução codificada?"
+- "A ausência desta funcionalidade **IMPEDE REALMENTE** o uso do sistema?"
+- "Existe uma **SOLUÇÃO MANUAL** ou workaround aceitável para este problema?"
+
+### 3. Processo de Documentação de Justificativa
+
+Para qualquer nova implementação, documente rigorosamente:
+
+1. **Necessidade**: Por que é absolutamente necessária
+2. **Alternativas**: Todas as alternativas consideradas e motivos de rejeição
+3. **Simplicidade**: Como a implementação foi reduzida ao mínimo possível
+4. **Integração**: Como se integra perfeitamente à arquitetura existente
+5. **Manutenção**: Análise dos custos de manutenção a longo prazo
+
+## Atitude Filosófica
+
+Cultive uma profunda **DESCONFIANÇA** em relação a novas implementações. Parta do princípio que a maioria das novas funcionalidades:
+
+- Raramente são tão necessárias quanto parecem inicialmente
+- Frequentemente podem ser resolvidas com uso mais criativo do código existente
+- Quase sempre introduzem complexidade e custos de manutenção que superam seus benefícios
+
+**LEMBRE-SE**: O código mais fácil de manter é aquele que nunca foi escrito. Cada nova linha de código é um compromisso de manutenção perpétuo e uma fonte potencial de bugs.
+
