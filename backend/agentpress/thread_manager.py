@@ -22,6 +22,7 @@ from agentpress.response_processor import (
 )
 from services.supabase import DBConnection
 from utils.logger import logger
+from utils.config import config # Import config for base URL
 
 # Type alias for tool choice
 ToolChoice = Literal["auto", "required", "none"]
@@ -323,6 +324,7 @@ Here are the XML tools available with examples:
                     llm_response = await make_llm_api_call(
                         prepared_messages, # Pass the potentially modified messages
                         llm_model,
+                        api_base=config.OPENAI_BASE_URL, # Pass the configured base URL
                         temperature=llm_temperature,
                         max_tokens=llm_max_tokens,
                         tools=openapi_tool_schemas,

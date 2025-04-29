@@ -15,7 +15,10 @@ export const generateThreadName = async (message: string): Promise<string> => {
       return defaultName;
     }
     
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const baseUrl = process.env.NEXT_PUBLIC_OPENAI_BASE_URL || 'https://api.openai.com'; // Default to OpenAI API if base URL is not set
+    const apiUrl = `${baseUrl}/v1/chat/completions`; // Append the path
+
+    const response = await fetch(apiUrl, { // Use the constructed URL
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

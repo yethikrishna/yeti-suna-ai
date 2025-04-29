@@ -115,7 +115,8 @@ class Configuration:
     OPENROUTER_API_KEY: Optional[str] = None
     OPENROUTER_API_BASE: Optional[str] = "https://openrouter.ai/api/v1"
     OR_SITE_URL: Optional[str] = None
-    OR_APP_NAME: Optional[str] = "Suna.so"    
+    OR_APP_NAME: Optional[str] = "Suna.so"
+    OPENAI_BASE_URL: Optional[str] = None # Add configuration for OpenAI compatible base URL
     
     # AWS Bedrock credentials
     AWS_ACCESS_KEY_ID: Optional[str] = None

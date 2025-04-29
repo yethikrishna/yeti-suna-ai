@@ -12,6 +12,7 @@ from litellm import token_counter, completion, completion_cost
 from services.supabase import DBConnection
 from services.llm import make_llm_api_call
 from utils.logger import logger
+from utils.config import config # Import config for base URL
 
 # Constants for token management
 DEFAULT_TOKEN_THRESHOLD = 120000  # 80k tokens threshold for summarization
@@ -193,7 +194,8 @@ THE CONVERSATION HISTORY TO SUMMARIZE IS AS FOLLOWS:
                 messages=[system_message, {"role": "user", "content": "PLEASE PROVIDE THE SUMMARY NOW."}],
                 temperature=0,
                 max_tokens=SUMMARY_TARGET_TOKENS,
-                stream=False
+                stream=False,
+                api_base=config.OPENAI_BASE_URL # Pass the configured base URL
             )
             
             if response and hasattr(response, 'choices') and response.choices:

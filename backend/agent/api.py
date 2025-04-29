@@ -20,6 +20,7 @@ from utils.logger import logger
 from services.billing import check_billing_status
 from sandbox.sandbox import create_sandbox, get_or_start_sandbox
 from services.llm import make_llm_api_call
+from utils.config import config # Import config for base URL
 
 # Initialize shared resources
 router = APIRouter()
@@ -821,7 +822,7 @@ async def generate_and_update_project_name(project_id: str, prompt: str):
         messages = [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_message}]
 
         logger.debug(f"Calling LLM ({model_name}) for project {project_id} naming.")
-        response = await make_llm_api_call(messages=messages, model_name=model_name, max_tokens=20, temperature=0.7)
+        response = await make_llm_api_call(messages=messages, model_name=model_name, max_tokens=20, temperature=0.7, api_base=config.OPENAI_BASE_URL)
 
         generated_name = None
         if response and response.get('choices') and response['choices'][0].get('message'):
