@@ -91,8 +91,7 @@ export const ChatInput = forwardRef<ChatInputHandles, ChatInputProps>(({
     { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro", provider: "gemini" },
     { id: "gemini-2.0-flash-lite", label: "Gemini 2.0 Flash Lite", provider: "gemini" },
     { id: "gemini-2.0-flash", label: "Gemini 2.0 Flash", provider: "gemini" },
-    { id: "gemini-2.0-flash-image-generation", label: "Gemini 2.0 Flash Image Generation", provider: "gemini" },
-    
+            
     // Other Models via OpenRouter
     { id: "gemini-flash-2.5", label: "Gemini Flash (OpenRouter)", provider: "openrouter" },
     { id: "grok-3", label: "Grok 3", provider: "openrouter" },

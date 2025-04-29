@@ -53,7 +53,6 @@ MODEL_NAME_ALIASES = {
     "gemini-2.5-flash": "gemini/gemini-2.5-flash-preview-04-17",
     "gemini-2.0-flash-lite": "gemini/gemini-2.0-flash-lite",
     "gemini-2.0-flash": "gemini/gemini-2.0-flash",
-    "gemini-2.0-flash-image-generation": "gemini/gemini-2.0-flash-image-generation",
 
     # Outros modelos via OpenRouter (requer OPENROUTER_API_KEY)
     "grok-3": "xai/grok-3-fast-latest",

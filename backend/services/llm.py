@@ -84,7 +84,6 @@ def setup_api_keys() -> None:
     if providers_status['gemini']:
         os.environ['GEMINI_API_KEY'] = config.GEMINI_API_KEY
         logger.debug(f"Set GEMINI_API_KEY in environment variables")
-        logger.info(f"Google Gemini models available: gemini-1.5-pro, gemini-1.5-flash, gemini-2.5-pro, gemini-2.5-flash")
     
     # Configuração específica para AWS Bedrock
     if providers_status['aws_bedrock']:
