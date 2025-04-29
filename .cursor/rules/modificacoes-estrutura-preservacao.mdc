@@ -1,0 +1,79 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Preservação de Estrutura e Ferramentas Context7
+
+## Princípios Primordiais
+
+- **Preservação Rigorosa da Estrutura**: Qualquer modificação DEVE manter intacta a arquitetura e organização geral do projeto.
+- **Alterações Cirúrgicas**: Realizar APENAS modificações extremamente específicas e limitadas ao escopo exato da solicitação.
+- **Uso de Context7**: Utilizar sempre as ferramentas context7 para entender a documentação atualizada das bibliotecas antes de implementar mudanças.
+- **Consistência Total**: Garantir que alterações mantenham absoluta consistência com o estilo, padrões e convenções existentes.
+
+## Regras Detalhadas para Preservação Estrutural
+
+### 1. Análise Preliminar Obrigatória
+
+- **Compreensão Profunda**: Antes de qualquer alteração, analisar detalhadamente o código existente, sua função e integração com o sistema
+- **Mapeamento de Impacto**: Identificar todas as partes do sistema que poderiam ser afetadas pela mudança
+- **Verificação de Padrões**: Estudar rigorosamente os padrões de código, nomenclatura e organização utilizados
+
+### 2. Guia de Modificações
+
+- **Confinamento Estrito**: Limitar alterações EXCLUSIVAMENTE aos arquivos e funções que precisam ser modificados
+- **Preservação Contextual**: Manter todos os comentários, espaçamentos e estilo do código original
+- **Continuidade de Design**: Seguir exatamente os mesmos padrões arquiteturais e de design já implementados
+- **Manutenção de Interfaces**: Não alterar assinaturas de funções ou interfaces de comunicação, a menos que explicitamente solicitado
+
+### 3. Uso Adequado de Context7
+
+- **Obrigatoriedade**: Sempre utilizar ferramentas context7 para obter documentação atualizada antes de implementar mudanças
+- **Resolução de Biblioteca**: Utilizar `mcp_context7_resolve-library-id` para identificar a biblioteca correta
+- **Obtenção de Documentação**: Utilizar `mcp_context7_get-library-docs` para acessar documentação atualizada
+- **Implementação Precisa**: Seguir rigorosamente as práticas recomendadas na documentação, mantendo a coerência com o código existente
+
+### 4. Regras por Componente do Sistema
+
+#### Backend (Componente Principal)
+
+- **Integridade dos Agentes**: Preservar a estrutura completa do sistema de agentes em `backend/agent`
+- **Manutenção de Serviços**: Não modificar a organização dos serviços em `backend/services`
+- **Consistência de APIs**: Manter rigorosamente as interfaces de API definidas em `backend/api.py`
+- **Integridade de Prompts**: Preservar a estrutura e formato de prompts definidos em `agent/prompt.py`
+- **Tools e Providers Inalterados**: Manter a estrutura de ferramentas e provedores de dados
+
+#### Frontend
+
+- **App Router Inalterado**: Não modificar a estrutura fundamental do App Router Next.js
+- **Hierarquia de Componentes**: Manter rigorosamente a organização de componentes conforme estabelecida
+- **Server Actions Inalteradas**: Preservar o padrão e estrutura das server actions
+- **Integridade de Rotas**: Não modificar o sistema de roteamento, a menos que explicitamente solicitado
+
+### 5. Lista de Verificação de Conformidade
+
+Antes de qualquer implementação, confirmar:
+
+- [ ] A modificação é absolutamente necessária para atender ao requisito?
+- [ ] A alteração está confinada ao menor escopo possível?
+- [ ] O código mantém exatamente o mesmo estilo e padrões existentes?
+- [ ] As interfaces e assinaturas permanecem inalteradas?
+- [ ] A modificação foi implementada seguindo a documentação correta via context7?
+- [ ] A estrutura de diretórios permanece exatamente a mesma?
+- [ ] A alteração preserva todos os comentários e documentação existentes?
+
+### 6. Verificação Final de Impacto
+
+Após implementar a modificação:
+
+- [ ] Verificar se apenas os arquivos necessários foram alterados
+- [ ] Confirmar que a arquitetura geral permanece intacta
+- [ ] Validar que as integrações entre componentes continuam funcionando como antes
+- [ ] Assegurar que não houve adição de dependências desnecessárias
+- [ ] Garantir que a solução implementada é a mais localizada e específica possível
+
+## Compromisso com Modificações Mínimas
+
+**NUNCA** realizar refatorações amplas, reorganizações de código ou "melhorias" não solicitadas. O foco absoluto deve ser implementar a solicitação específica com o MÍNIMO possível de alterações no código existente, preservando rigorosamente sua estrutura, organização e integridade.
+

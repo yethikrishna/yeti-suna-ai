@@ -1,0 +1,102 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Preservação Rigorosa da Implementação Existente
+
+## Princípio Fundamental
+
+O código existente **DEVE** ser tratado como a base imutável do projeto. Qualquer modificação necessária deve ser:
+- Mínima
+- Localizada 
+- Não-disruptiva
+- Consistente com o código existente
+- Respeitosa da estrutura implementada
+
+## Regras de Ouro para Preservação de Código
+
+### 1. Análise Antes da Ação
+
+**SEMPRE** antes de tocar em qualquer arquivo:
+- Ler completamente o código existente para entender sua função e propósito
+- Identificar padrões de implementação, estilos de código e convenções utilizadas
+- Compreender como o componente se integra ao resto do sistema
+- Mapear todas as dependências e relações do código a ser modificado
+
+### 2. Modificações Localizadas
+
+Ao implementar alterações:
+- Modificar **APENAS** as linhas de código estritamente necessárias
+- Nunca alterar a estrutura geral ou organização de funções/métodos
+- Preservar todas as assinaturas de funções/métodos existentes
+- Manter intactas as interfaces públicas dos componentes
+
+### 3. Preservação de Estilo e Padrões
+
+Todas as alterações devem:
+- Seguir **EXATAMENTE** o mesmo estilo de código do arquivo original
+- Usar as mesmas convenções de nomenclatura existentes
+- Manter o mesmo padrão de indentação, espaçamento e formatação
+- Preservar o estilo de comentários e documentação interna
+
+### 4. Regras Específicas por Componente
+
+#### Backend (Python)
+
+- **Funções e Métodos**: Preservar assinaturas, tipos de parâmetros e valores de retorno
+- **Classes**: Manter hierarquias de herança e interfaces existentes
+- **Imports**: Seguir exatamente o mesmo padrão de organização de imports
+- **Docstrings**: Manter o estilo e formato de documentação existente
+
+#### Frontend (Next.js)
+
+- **Componentes React**: Preservar estrutura de props, hooks e ciclo de vida
+- **Estilos**: Manter a abordagem existente (CSS Modules, Tailwind, etc.)
+- **Rotas**: Não alterar a estrutura de roteamento do App Router
+- **Integração Backend**: Preservar padrões de chamadas de API e gerenciamento de estado
+
+### 5. Lista de Verificação de Não-Disrupção
+
+Antes de implementar qualquer alteração:
+
+- [ ] A mudança respeita a arquitetura existente?
+- [ ] A implementação mantém as mesmas interfaces e contratos?
+- [ ] O estilo de código é idêntico ao existente?
+- [ ] A estrutura de arquivos permanece inalterada?
+- [ ] A alteração é realmente a mínima necessária?
+
+## Política de Não-Refatoração
+
+A menos que **EXPLICITAMENTE** solicitado:
+
+- **NÃO** reorganizar código para "melhorar legibilidade"
+- **NÃO** extrair funções ou componentes para "melhorar reuso"
+- **NÃO** modernizar sintaxe ou abordagens para "seguir melhores práticas"
+- **NÃO** adicionar novos padrões ou conceitos não presentes no código original
+- **NÃO** modificar bibliotecas ou dependências utilizadas
+
+## Técnicas para Modificações Não-Intrusivas
+
+### Para Adição de Funcionalidades
+
+- Implementar como extensão do código existente, não como substituição
+- Usar os mesmos padrões e abordagens já presentes no código
+- Integrar de forma que pareça que sempre foi parte do sistema
+
+### Para Correção de Bugs
+
+- Focar apenas na linha ou bloco específico que causa o problema
+- Não "aproveitar a oportunidade" para limpar código adjacente
+- Documentar a correção de forma consistente com o resto do código
+
+### Para Melhorias de Performance
+
+- Otimizar algoritmos específicos sem alterar suas interfaces
+- Preservar comportamento e resultados idênticos aos originais
+- Documentar otimizações de forma discreta e consistente
+
+## Compromisso Final
+
+**NUNCA** reorganizar, reescrever, refatorar ou "melhorar" código existente que funciona. O objetivo primordial é preservar a estabilidade, previsibilidade e consistência do sistema como um todo, realizando apenas as alterações estritamente necessárias para atender à solicitação específica.
+
