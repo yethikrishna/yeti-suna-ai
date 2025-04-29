@@ -32,7 +32,7 @@ instance_id = None # Global instance ID for this backend instance
 REDIS_RESPONSE_LIST_TTL = 3600 * 24
 
 MODEL_NAME_ALIASES = {
-    "sonnet-3.7": "gemini-2.5-flash-preview-04-17",
+    "sonnet-3.7": "openai/gemini-2.5-flash-preview-04-17",
     "gpt-4.1": "openai/gpt-4.1-2025-04-14",
     "gemini-flash-2.5": "openrouter/google/gemini-2.5-flash-preview",
     "grok-3": "xai/grok-3-fast-latest",
@@ -41,7 +41,7 @@ MODEL_NAME_ALIASES = {
 }
 
 class AgentStartRequest(BaseModel):
-    model_name: Optional[str] = "gemini-2.5-flash-preview-04-17"
+    model_name: Optional[str] = "openai/gemini-2.5-flash-preview-04-17"
     enable_thinking: Optional[bool] = False
     reasoning_effort: Optional[str] = 'low'
     stream: Optional[bool] = True
