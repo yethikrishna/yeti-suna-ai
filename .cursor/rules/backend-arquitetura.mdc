@@ -1,0 +1,25 @@
+---
+description: O backend é a parte principal da aplicação, implementado em Python, seguindo uma estrutura modular.
+globs: 
+alwaysApply: false
+---
+# Arquitetura do Backend
+
+O backend é a parte principal da aplicação, implementado em Python, seguindo uma estrutura modular.
+
+## Estrutura Principal
+- [api.py](mdc:backend/api.py) - Ponto de entrada principal da API FastAPI
+- [agent/](mdc:backend/agent) - Módulos relacionados aos agentes de IA
+- [services/](mdc:backend/services) - Serviços internos (LLM, billing, etc.)
+- [utils/](mdc:backend/utils) - Funções utilitárias
+- [sandbox/](mdc:backend/sandbox) - Ambiente isolado para execução segura
+- [supabase/](mdc:backend/supabase) - Integrações com banco de dados Supabase
+
+## Regras Importantes
+1. O backend é a parte PRINCIPAL da aplicação - contém a lógica de negócio
+2. Use Python 3.10+ para todos os novos módulos
+3. Mantenha uma separação clara entre camadas (API, lógica de negócios, acesso a dados)
+4. Documente funções complexas e APIs
+5. Todas as dependências devem ser listadas no pyproject.toml
+6. Os módulos devem ter responsabilidades únicas e bem definidas
+

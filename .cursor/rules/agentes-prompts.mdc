@@ -1,0 +1,74 @@
+---
+description: O sistema de prompts é responsável pela comunicação eficaz com os modelos de linguagem, definido em @agent/prompt.py.
+globs: 
+alwaysApply: false
+---
+# Sistema de Prompts dos Agentes
+
+O sistema de prompts é responsável pela comunicação eficaz com os modelos de linguagem, definido em [agent/prompt.py](mdc:backend/agent/prompt.py).
+
+## Estrutura de Prompts
+1. Os prompts são organizados em templates modulares e reutilizáveis
+2. Componentes principais:
+   - Instruções de sistema (system message)
+   - Contexto da conversa (histórico de mensagens)
+   - Instruções específicas para ferramentas
+   - Informações sobre o usuário e projeto atual
+   - Exemplos de uso (few-shot learning)
+
+## Tipos de Prompts
+1. **Prompts de Análise** - Para entender a intenção do usuário
+2. **Prompts de Raciocínio** - Para planejar ações e resolver problemas
+3. **Prompts de Ferramenta** - Para uso específico de ferramentas
+4. **Prompts de Resposta** - Para gerar respostas ao usuário
+5. **Prompts de Resumo** - Para condensar informações
+
+## Convenções de Implementação
+1. Use f-strings ou templates Jinja2 para parametrização:
+   ```python
+   SYSTEM_PROMPT = """
+   Você é um assistente AI chamado {assistant_name}.
+   Contexto do projeto: {project_context}
+   """
+   ```
+
+2. Estrutura modular com funções dedicadas:
+   ```python
+   def create_thread_prompt(thread_context, user_info, tools_available):
+       system_message = build_system_message(user_info)
+       tool_descriptions = build_tool_descriptions(tools_available)
+       return {
+           "system": system_message,
+           "tools": tool_descriptions,
+           "context": thread_context
+       }
+   ```
+
+3. Técnicas de otimização:
+   - Token windowing para histórico longo
+   - Compressão de contexto para longas conversas
+   - Chunking para documentos grandes
+   - Summarization para reduzir tamanho do contexto
+
+## Engenharia de Prompts
+1. Princípios para prompts eficazes:
+   - Seja específico e direto nas instruções
+   - Forneça exemplos claros (few-shot learning)
+   - Use marcadores e formatação para clareza
+   - Especifique o formato desejado da saída
+   - Inclua instruções de raciocínio passo-a-passo
+
+2. Estrutura para prompts de ferramentas:
+   - Nome e descrição clara da ferramenta
+   - Formato dos parâmetros esperados
+   - Exemplos de uso correto
+   - Cenários apropriados para uso
+   - Tratamento de erros comuns
+
+## Manutenção e Evolução
+1. Versionamento de prompts principais
+2. Teste A/B para comparar eficácia de diferentes prompts
+3. Reutilização de componentes comuns
+4. Documentação clara de cada template e seu propósito
+5. Adaptação dinâmica baseada no modelo de LLM utilizado
+

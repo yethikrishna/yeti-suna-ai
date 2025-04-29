@@ -1,0 +1,111 @@
+---
+description: O motor de execução dos agentes é responsável por orquestrar todo o ciclo de vida de interação com LLMs, implementado em @agent/run.py.
+globs: 
+alwaysApply: false
+---
+# Motor de Execução dos Agentes
+
+O motor de execução dos agentes é responsável por orquestrar todo o ciclo de vida de interação com LLMs, implementado em [agent/run.py](mdc:backend/agent/run.py).
+
+## Ciclo de Execução
+1. **Inicialização**
+   - Carregamento do contexto da conversa
+   - Preparação das ferramentas disponíveis
+   - Configuração do modelo LLM
+
+2. **Loop Principal**
+   - Envio do prompt para o LLM
+   - Análise da resposta e extração de ações
+   - Execução de ferramentas solicitadas
+   - Incorporação de resultados no contexto
+   - Iteração até conclusão ou timeout
+
+3. **Finalização**
+   - Geração da resposta final
+   - Armazenamento do histórico
+   - Limpeza de recursos
+
+## Componentes do Motor
+1. **Gerenciador de Contexto**
+   - Mantém histórico de mensagens
+   - Gerencia janela de tokens
+   - Incorpora resultados de ferramentas
+
+2. **Executor de Ferramentas**
+   - Valida permissões para uso de ferramentas
+   - Executa ferramentas solicitadas
+   - Formata resultados para o contexto
+
+3. **Gerenciador de LLM**
+   - Seleciona o modelo apropriado
+   - Implementa retry e fallback
+   - Monitora uso de tokens e custos
+
+## Implementação do Loop Principal
+```python
+async def run_agent(thread_id, message, user_info):
+    # Inicialização
+    context = load_thread_context(thread_id)
+    tools = load_available_tools(user_info)
+    
+    # Loop principal
+    for iteration in range(MAX_ITERATIONS):
+        # Preparar prompt
+        prompt = create_prompt(context, tools)
+        
+        # Chamar LLM
+        response = await call_llm(prompt)
+        
+        # Extrair ações
+        actions = extract_actions(response)
+        
+        # Se não há ações ou resposta final, concluir
+        if not actions or is_final_response(response):
+            break
+            
+        # Executar ferramentas
+        for action in actions:
+            tool_result = await execute_tool(action, tools)
+            context.add_tool_result(action, tool_result)
+    
+    # Finalização
+    final_response = generate_final_response(context, response)
+    save_thread(thread_id, context, final_response)
+    
+    return final_response
+```
+
+## Tratamento de Casos Especiais
+1. **Timeout de Execução**
+   - Limite máximo de tempo total
+   - Timeout por iteração
+   - Cancelamento seguro
+
+2. **Erros em Ferramentas**
+   - Tratamento de exceções
+   - Comunicação clara ao LLM
+   - Tentativas alternativas
+
+3. **Limitação de Recursos**
+   - Controle de tamanho de contexto
+   - Monitoramento de custos
+   - Interrupção em caso de excesso
+
+## Otimizações
+1. **Performance**
+   - Execução paralela quando possível
+   - Caching de resultados comuns
+   - Compressão de contexto
+
+2. **Qualidade**
+   - Instruções de raciocínio passo-a-passo
+   - Verificação de outputs antes de executar ferramentas
+   - Feedback loop para refinamento
+
+## Extensibilidade
+1. Arquitetura plugável para:
+   - Novos modelos de LLM
+   - Novas ferramentas
+   - Diferentes estratégias de execução
+   - Personalização por usuário/equipe
+

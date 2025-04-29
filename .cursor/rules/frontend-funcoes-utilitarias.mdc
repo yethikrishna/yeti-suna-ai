@@ -1,0 +1,84 @@
+---
+description: Funções utilitárias fornecem funcionalidades reutilizáveis de propósito geral, localizadas em @lib/utils.ts e @lib/utils/.
+globs: 
+alwaysApply: false
+---
+# Funções Utilitárias
+
+Funções utilitárias fornecem funcionalidades reutilizáveis de propósito geral, localizadas em [lib/utils.ts](mdc:frontend/src/lib/utils.ts) e [lib/utils/](mdc:frontend/src/lib/utils).
+
+## Organização
+1. Funções simples e gerais: [lib/utils.ts](mdc:frontend/src/lib/utils.ts)
+2. Funções específicas de domínio ou mais complexas: [lib/utils/](mdc:frontend/src/lib/utils)
+3. Funções podem ser agrupadas por funcionalidade em arquivos separados
+
+## Implementação
+1. Funções utilitárias devem ser puras quando possível
+2. Prefira funções pequenas e específicas em vez de grandes e genéricas
+3. Use tipagem explícita para parâmetros e retornos:
+   ```typescript
+   export function formatDate(date: Date | string, format: string = 'PP'): string {
+     // implementação
+   }
+   ```
+
+4. Funções complexas devem ter documentação JSDoc:
+   ```typescript
+   /**
+    * Formata um valor monetário com símbolo de moeda e casas decimais
+    * @param value - Valor a ser formatado
+    * @param currency - Código da moeda (padrão: 'USD')
+    * @param locale - Localização para formatação (padrão: 'en-US')
+    * @returns String formatada (ex: $10.99)
+    */
+   export function formatCurrency(
+     value: number, 
+     currency: string = 'USD', 
+     locale: string = 'en-US'
+   ): string {
+     // implementação
+   }
+   ```
+
+## Categorias de Funções Utilitárias
+1. **Formatação** - Funções para formatar dados (datas, números, moedas)
+2. **Validação** - Funções para validar inputs
+3. **Transformação** - Funções para transformar dados entre formatos
+4. **URL e Navegação** - Funções para manipular URLs e rotas
+5. **DOM e Browser** - Funções para interagir com o DOM e APIs do navegador
+
+## Exemplos de Implementação
+1. Composição de classes CSS com cn/clsx:
+   ```typescript
+   import { clsx, type ClassValue } from "clsx";
+   import { twMerge } from "tailwind-merge";
+   
+   export function cn(...inputs: ClassValue[]) {
+     return twMerge(clsx(inputs));
+   }
+   ```
+
+2. Formatação de data:
+   ```typescript
+   import { format, parseISO } from "date-fns";
+   
+   export function formatDate(date: Date | string, formatStr: string = "PP") {
+     const dateObj = typeof date === "string" ? parseISO(date) : date;
+     return format(dateObj, formatStr);
+   }
+   ```
+
+3. Validação:
+   ```typescript
+   export function isValidEmail(email: string): boolean {
+     return /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(email);
+   }
+   ```
+
+## Boas Práticas
+1. Teste funções utilitárias com testes unitários
+2. Mantenha a compatibilidade com SSR para funções que podem rodar no servidor
+3. Evite dependências desnecessárias
+4. Implemente tratamento adequado de erros e casos extremos
+5. Use nomes descritivos que indiquem claramente o propósito da função
+

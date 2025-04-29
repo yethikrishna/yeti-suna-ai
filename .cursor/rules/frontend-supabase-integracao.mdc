@@ -1,0 +1,102 @@
+---
+description: O frontend integra com o Supabase para autenticação e acesso ao banco de dados, através de clientes definidos em @lib/supabase.
+globs: 
+alwaysApply: false
+---
+# Integração com Supabase
+
+O frontend integra com o Supabase para autenticação e acesso ao banco de dados, através de clientes definidos em [lib/supabase](mdc:frontend/src/lib/supabase).
+
+## Estrutura dos Clientes
+1. Cliente para servidor: utilizado em Server Components e Server Actions
+2. Cliente para browser: utilizado em Client Components
+3. Configuração compartilhada para ambos os clientes
+
+## Implementação
+1. Cliente para servidor:
+   ```typescript
+   import { createServerClient } from "@supabase/ssr";
+   
+   export function createClient() {
+     return createServerClient(
+       process.env.NEXT_PUBLIC_SUPABASE_URL!,
+       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+       {
+         cookies: { /* configuração de cookies */ }
+       }
+     );
+   }
+   ```
+
+2. Cliente para browser:
+   ```typescript
+   import { createBrowserClient } from "@supabase/ssr";
+   
+   export function createClient() {
+     return createBrowserClient(
+       process.env.NEXT_PUBLIC_SUPABASE_URL!,
+       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+     );
+   }
+   ```
+
+## Autenticação
+1. Utilize os hooks de autenticação do Supabase:
+   ```typescript
+   const { data: { session } } = await supabase.auth.getSession();
+   ```
+
+2. Implemente fluxos de sign-in/sign-out em componentes dedicados:
+   ```typescript
+   // Sign-in
+   await supabase.auth.signInWithOAuth({
+     provider: 'google',
+     options: { redirectTo: `${origin}/auth/callback` }
+   });
+   
+   // Sign-out
+   await supabase.auth.signOut();
+   ```
+
+3. Utilize middleware para proteção de rotas:
+   ```typescript
+   // middleware.ts
+   const supabase = createMiddlewareClient({ req, res });
+   const { data: { session } } = await supabase.auth.getSession();
+   
+   if (!session && req.nextUrl.pathname.startsWith('/dashboard')) {
+     return NextResponse.redirect(new URL('/auth', req.url));
+   }
+   ```
+
+## Acesso ao Banco de Dados
+1. Acesso via Server Components ou Server Actions:
+   ```typescript
+   const supabase = createClient();
+   const { data, error } = await supabase
+     .from('threads')
+     .select('*')
+     .order('created_at', { ascending: false });
+   ```
+
+2. Utilize tipagem forte para dados retornados:
+   ```typescript
+   type Thread = Database['public']['Tables']['threads']['Row'];
+   
+   const { data } = await supabase
+     .from('threads')
+     .select('*')
+     .returns<Thread[]>();
+   ```
+
+## Regras de Segurança
+1. Nunca exponha chaves de serviço no frontend
+2. Utilize Row Level Security (RLS) no Supabase
+3. Consultas sensíveis devem ser feitas apenas em Server Components ou Server Actions
+4. Filtre sempre dados por usuário/equipe
+5. Implemente validação de permissões a nível de aplicação
+
+## Exemplos
+- [lib/supabase/server.ts](mdc:frontend/src/lib/supabase/server.ts) - Cliente Supabase para servidor
+- [lib/supabase/client.ts](mdc:frontend/src/lib/supabase/client.ts) - Cliente Supabase para browser
+

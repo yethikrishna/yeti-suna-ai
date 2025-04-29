@@ -1,0 +1,28 @@
+---
+description: # Estilo e Acessibilidade
+globs: 
+alwaysApply: false
+---
+# Estilo e Acessibilidade
+
+## Diretrizes de Estilo
+1. Utilize Tailwind CSS para estilização de componentes
+2. Mantenha consistência visual em toda a aplicação
+3. Prefira utilizar as classes utilitárias do Tailwind em vez de CSS personalizado
+4. Para estilos complexos ou reutilizáveis, crie componentes específicos
+5. Siga a paleta de cores, tipografia e espaçamento definidos no design system
+
+## Acessibilidade
+1. Todos os componentes devem seguir as diretrizes WCAG 2.1 nível AA
+2. Utilize atributos aria apropriados para componentes interativos
+3. Garanta que a navegação por teclado funcione corretamente
+4. Mantenha contraste adequado para texto e elementos visuais
+5. Todas as imagens devem ter texto alternativo apropriado
+6. Testes de acessibilidade devem ser realizados para componentes principais
+
+## Responsividade
+1. Todos os componentes devem ser responsivos para dispositivos móveis, tablets e desktop
+2. Utilize classes responsivas do Tailwind (sm:, md:, lg:, xl:)
+3. Teste a aplicação em diferentes tamanhos de tela
+4. Priorize a abordagem "mobile-first" para design
+

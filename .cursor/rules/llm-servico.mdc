@@ -1,0 +1,126 @@
+---
+description: O serviço LLM fornece uma interface unificada para comunicação com diferentes modelos de linguagem, implementado em @services/llm.py.
+globs: 
+alwaysApply: false
+---
+# Serviço LLM
+
+O serviço LLM fornece uma interface unificada para comunicação com diferentes modelos de linguagem, implementado em [services/llm.py](mdc:backend/services/llm.py).
+
+## Funcionalidades Principais
+
+1. **Interface Unificada para Múltiplos Provedores**
+   - Suporte para OpenAI, Anthropic (Claude), Groq, OpenRouter, AWS Bedrock
+   - Abstração via [LiteLLM](mdc:https:/github.com/BerriAI/litellm)
+   - Configuração específica para cada provedor
+
+2. **Chamada Assíncrona para Modelos**
+   - Método principal: `make_llm_api_call`
+   - Suporte a streaming e respostas síncronas
+   - Function calling / ferramentas
+
+3. **Tratamento Avançado de Erros**
+   - Retry automático com backoff exponencial
+   - Tratamento específico para rate limits
+   - Hierarquia de exceções personalizadas (`LLMError`, `LLMRetryError`)
+
+4. **Otimizações e Configurações**
+   - Cache de prompts para modelos Claude
+   - Formatação específica por modelo
+   - Gestão de tokens e limite de resposta
+
+## API Principal
+
+```python
+async def make_llm_api_call(
+    messages: List[Dict[str, Any]],
+    model_name: str,
+    response_format: Optional[Any] = None,
+    temperature: float = 0,
+    max_tokens: Optional[int] = None,
+    tools: Optional[List[Dict[str, Any]]] = None,
+    tool_choice: str = "auto",
+    api_key: Optional[str] = None,
+    api_base: Optional[str] = None,
+    stream: bool = False,
+    top_p: Optional[float] = None,
+    model_id: Optional[str] = None,
+    enable_thinking: Optional[bool] = False,
+    reasoning_effort: Optional[str] = 'low'
+) -> Union[Dict[str, Any], AsyncGenerator]:
+    """
+    Faz uma chamada de API para um modelo de linguagem.
+    """
+```
+
+## Configuração de Provedores
+
+1. **Parâmetros de Configuração**
+   - Armazenados em [utils/config.py](mdc:backend/utils/config.py)
+   - Chaves de API definidas como variáveis de ambiente
+   - `setup_api_keys()` para preparar provedores
+
+2. **Preparação de Parâmetros**
+   - Função `prepare_params()` adiciona configurações específicas por modelo
+   - Headers especiais para Claude
+   - Configurações para AWS Bedrock
+   - Otimizações para OpenRouter
+
+## Convenções de Uso
+
+1. **Recomendações de Modelos**
+   - Para geração de texto fluente: Claude 3 (Sonnet, Haiku)
+   - Para raciocínio estruturado: GPT-4 Turbo
+   - Para custo-benefício: Claude 3 Haiku ou GPT-3.5
+
+2. **Gerenciamento de Contexto**
+   - Estruture mensagens no formato correto para o LLM:
+     ```python
+     messages = [
+         {"role": "system", "content": "Instruções do sistema..."},
+         {"role": "user", "content": "Pergunta do usuário..."}
+     ]
+     ```
+   - Forneça sistema preciso e completo no primeiro prompt
+
+3. **Tratamento de Streaming**
+   - Use `stream=True` para respostas em tempo real
+   - Processe o resultado como um AsyncGenerator
+   - Implemente tratamento de chunks parciais
+
+## Tratamento de Erros
+
+1. **Erros Comuns**
+   - Rate limiting (muitas chamadas em curto período)
+   - Contexto muito grande (excesso de tokens)
+   - Falhas de rede ou timeout
+   - Erros específicos do provedor
+
+2. **Estratégia de Retry**
+   - Configurada com `MAX_RETRIES` (padrão: 3)
+   - Backoff exponencial para rate limits
+   - Logging detalhado de erros com traceback
+
+## Integração com o Sistema de Agentes
+
+1. **Uso em Agentes**
+   - Importado em [agent/api.py](mdc:backend/agent/api.py)
+   - Chamado durante execução de agentes
+   - Fornece resultados estruturados para processamento
+
+2. **Otimizações Específicas**
+   - Cache de prompts frequentes
+   - Reutilização de contexto para conversas longas
+   - Compressão de histórico para economizar tokens
+
+## Extensibilidade
+
+1. **Adicionando Novos Provedores**
+   - Adicione chaves de API em [utils/config.py](mdc:backend/utils/config.py)
+   - Configure o modelo no `prepare_params()`
+   - Documente qualquer comportamento específico do provedor
+
+2. **Otimizações por Modelo**
+   - Adapte as configurações específicas do modelo
+   - Implemente tratamento especial para formatos de resposta
+

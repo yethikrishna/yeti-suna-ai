@@ -1,0 +1,93 @@
+---
+description: Os componentes tool-views são integrados ao sistema de threads e mensagens para exibir ações e resultados gerados pelos agentes.
+globs: 
+alwaysApply: false
+---
+# Integração dos Tool Views com o Sistema de Threads
+
+Os componentes tool-views são integrados ao sistema de threads e mensagens para exibir ações e resultados gerados pelos agentes.
+
+## Arquitetura de Integração
+
+1. **Fluxo de Renderização**
+   ```
+   Thread UI
+     └─ Messages
+       └─ Agent Messages
+         └─ Tool Calls
+           └─ Tool Views (renderizado dinamicamente)
+   ```
+
+2. **Processo de Seleção de View**
+   - Quando um agente executa uma ferramenta, o tipo de ferramenta determina qual componente será renderizado
+   - A função `getToolComponent` em [utils.ts](mdc:frontend/src/components/thread/tool-views/utils.ts) faz o mapeamento entre nomes de ferramentas e componentes
+   - Se não existir um componente específico, o `GenericToolView` é utilizado como fallback
+
+## Comunicação de Dados
+
+1. **Formato de Dados para Tool Views**
+   ```typescript
+   {
+     name: "execute-command",            // Nome da ferramenta
+     assistantContent: "<comando aqui>", // Input para a ferramenta
+     toolContent: "<resultado aqui>",    // Output da ferramenta
+     isSuccess: true,                    // Status de execução
+     isStreaming: false,                 // Se está executando
+     assistantTimestamp: "2023-05-01T...", // Quando solicitou
+     toolTimestamp: "2023-05-01T..."      // Quando completou
+   }
+   ```
+
+2. **Renderização Condicional**
+   ```tsx
+   function renderToolComponent(tool) {
+     const ComponentToRender = getToolComponent(tool.name);
+     return <ComponentToRender {...tool} />;
+   }
+   ```
+
+## Conexão com o Backend
+
+1. **Modelo de Dados**
+   - Os dados das ferramentas vêm da API de agentes em [agent/api.py](mdc:backend/agent/api.py)
+   - A estrutura dos dados de resposta deve corresponder às expectativas dos componentes tool-views
+
+2. **Estados de Streaming**
+   - Mensagens em tempo real são entregues via WebSockets
+   - O estado `isStreaming` indica que a ferramenta está em execução
+   - Atualizações incrementais são exibidas durante a execução
+
+## Renderização em Diferentes Contextos
+
+1. **Na Timeline de Thread**
+   - Tool views aparecem como parte da linha do tempo da conversa
+   - Agrupados com a mensagem do agente relacionada
+   - Podem ser expandidos/colapsados
+
+2. **Em Exportações e Compartilhamentos**
+   - Representação simplificada para exportações de thread
+   - Mantém contexto suficiente para entender a ação e resultado
+
+## Componentes de UI Relacionados
+
+1. **Thread Components**
+   - [thread/MessageList.tsx](mdc:frontend/src/components/thread/MessageList.tsx) - Listagem de mensagens 
+   - [thread/Message.tsx](mdc:frontend/src/components/thread/Message.tsx) - Componente de mensagem individual
+
+2. **Integrações com Outros Componentes**
+   - O sistema de renderização de arquivos em [file-renderers](mdc:frontend/src/components/file-renderers) é usado em FileOperationToolView
+   - Componentes de navegação e URLs são usados em ferramentas de web
+
+## Extensibilidade
+
+1. **Adicionando Suporte para Novas Ferramentas**
+   - Crie um novo componente em `tool-views/`
+   - Atualize a função `getToolComponent` para mapear o nome da ferramenta para o componente
+   - Atualize `types.ts` se necessário para adicionar tipos específicos
+   - Adicione funções utilitárias em `utils.ts` conforme necessário
+
+2. **Implementando Novas Integrações**
+   - Para ferramentas que exibem conteúdo externo, implemente componentes específicos 
+   - Mantenha a consistência visual com o resto dos tool-views
+   - Reutilize a estrutura básica de layout sempre que possível
+

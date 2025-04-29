@@ -1,0 +1,52 @@
+---
+description: Layouts e páginas definem a estrutura e organização das diferentes rotas da aplicação, localizados em @app.
+globs: 
+alwaysApply: false
+---
+# Layouts e Páginas
+
+Layouts e páginas definem a estrutura e organização das diferentes rotas da aplicação, localizados em [app](mdc:frontend/src/app).
+
+## Estrutura de Layouts
+1. Use arquivos `layout.tsx` para definir estruturas compartilhadas entre múltiplas páginas
+2. Layouts podem ser aninhados seguindo a estrutura de pastas do App Router
+3. Exemplos de layouts:
+   - [app/(dashboard)/layout.tsx](mdc:frontend/src/app/(dashboard)/layout.tsx) - Layout para área logada
+   - [app/(home)/layout.tsx](mdc:frontend/src/app/(home)/layout.tsx) - Layout para área pública
+
+## Estrutura de Páginas
+1. Use arquivos `page.tsx` para implementar páginas específicas
+2. Páginas devem ser Server Components por padrão
+3. Páginas devem carregar seus próprios dados usando funções de busca de dados
+4. Para páginas dinâmicas, use pastas com parâmetros como [accountSlug]
+
+## Responsabilidades
+### Layouts:
+1. Definir estrutura compartilhada (sidebars, headers, footers)
+2. Implementar navegação específica do contexto
+3. Gerenciar autenticação e autorização de alto nível
+4. Fornecer contexto compartilhado para páginas filhas
+
+### Páginas:
+1. Buscar dados específicos da página
+2. Compor componentes para exibir conteúdo específico
+3. Implementar metadados (título, descrição) via export const metadata
+4. Implementar tratamento de erros e estados de carregamento específicos
+
+## Convenções
+1. Mantenha layouts simples e focados em estrutura
+2. Páginas devem ser compostas principalmente de componentes reutilizáveis
+3. Use objetos metadata para SEO:
+   ```typescript
+   export const metadata = {
+     title: "Título da Página",
+     description: "Descrição para SEO"
+   }
+   ```
+4. Implemente error.tsx e loading.tsx para tratamento de erros e estados de carregamento
+5. Use generateMetadata para metadados dinâmicos baseados em dados
+
+## Exemplos
+- [app/(dashboard)/dashboard/page.tsx](mdc:frontend/src/app/(dashboard)/dashboard/page.tsx) - Exemplo de página de dashboard
+- [app/(home)/page.tsx](mdc:frontend/src/app/(home)/page.tsx) - Exemplo de página pública
+

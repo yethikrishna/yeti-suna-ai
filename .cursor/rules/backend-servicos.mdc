@@ -1,0 +1,34 @@
+---
+description: Os serviços são componentes que encapsulam a lógica de interação com sistemas externos e funcionalidades principais, localizados em @backend/services.
+globs: 
+alwaysApply: false
+---
+# Serviços do Backend
+
+Os serviços são componentes que encapsulam a lógica de interação com sistemas externos e funcionalidades principais, localizados em [backend/services](mdc:backend/services).
+
+## Serviços Disponíveis
+- [services/llm.py](mdc:backend/services/llm.py) - Integração com provedores de LLM
+- [services/billing.py](mdc:backend/services/billing.py) - Gerenciamento de faturamento e planos
+- [services/redis.py](mdc:backend/services/redis.py) - Cache e armazenamento em Redis
+- [services/supabase.py](mdc:backend/services/supabase.py) - Integração com Supabase
+
+## Princípios para Serviços
+1. Cada serviço deve ter uma interface clara e bem documentada
+2. Implemente tratamento de erro adequado para falhas em serviços externos
+3. Use padrões de retry e circuit breaker para aumentar resiliência
+4. Configure timeouts adequados para todas as chamadas externas
+5. Serviços devem ser stateless sempre que possível
+6. Implemente métricas e logging para monitoramento
+
+## Serviço LLM
+1. Centralize toda interação com modelos de linguagem em [services/llm.py](mdc:backend/services/llm.py)
+2. Implemente abstração para diferentes provedores (OpenAI, Anthropic, etc.)
+3. Monitore uso de tokens e custos
+4. Configure caching de resposta quando apropriado
+
+## Serviço de Billing
+1. Toda lógica de cobrança deve estar em [services/billing.py](mdc:backend/services/billing.py)
+2. Implemente verificações de limite de uso e downgrade automático
+3. Mantenha registros detalhados de uso de recursos
+

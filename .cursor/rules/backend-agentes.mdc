@@ -1,0 +1,30 @@
+---
+description: O núcleo da aplicação é o sistema de agentes de IA, localizado em @backend/agent.
+globs: 
+alwaysApply: false
+---
+# Sistema de Agentes
+
+O núcleo da aplicação é o sistema de agentes de IA, localizado em [backend/agent](mdc:backend/agent).
+
+## Componentes Principais
+- [agent/run.py](mdc:backend/agent/run.py) - Orquestração e execução de agentes
+- [agent/api.py](mdc:backend/agent/api.py) - API específica para interação com agentes
+- [agent/prompt.py](mdc:backend/agent/prompt.py) - Templates e engenharia de prompts
+- [agent/tools/](mdc:backend/agent/tools) - Ferramentas disponíveis para os agentes
+
+## Convenções para o Sistema de Agentes
+1. Todos os agentes devem seguir uma interface consistente
+2. Prompts devem ser modularizados e parametrizados
+3. Mantenha as ferramentas (tools) isoladas e com interfaces bem definidas
+4. Implemente sistemas de retry e fallback para chamadas de LLM
+5. Documente todas as ferramentas com exemplos de uso
+6. Inclua validação extensiva para inputs e outputs de agentes
+7. Mantenha a separação entre definição de prompt e lógica de execução
+
+## Interação com LLMs
+1. Use o serviço LLM em [services/llm.py](mdc:backend/services/llm.py) para todas as chamadas de modelos
+2. Implemente caching adequado para reduzir custos e latência
+3. Monitore tokens e custos de chamadas de API
+4. Tenha fallbacks para diferentes provedores de LLM
+

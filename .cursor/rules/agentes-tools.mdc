@@ -1,0 +1,71 @@
+---
+description: As ferramentas permitem que os agentes interajam com o mundo exterior e executem ações específicas, localizadas em @backend/agent/tools.
+globs: 
+alwaysApply: false
+---
+# Ferramentas (Tools) dos Agentes
+
+As ferramentas permitem que os agentes interajam com o mundo exterior e executem ações específicas, localizadas em [backend/agent/tools](mdc:backend/agent/tools).
+
+## Tipos de Ferramentas
+1. **Ferramentas Básicas**
+   - [message_tool.py](mdc:backend/agent/tools/message_tool.py) - Gerencia mensagens e respostas
+   - [web_search_tool.py](mdc:backend/agent/tools/web_search_tool.py) - Realiza buscas na web
+
+2. **Ferramentas de Sistema**
+   - [computer_use_tool.py](mdc:backend/agent/tools/computer_use_tool.py) - Acesso a funcionalidades do sistema
+   - [sb_shell_tool.py](mdc:backend/agent/tools/sb_shell_tool.py) - Execução de comandos shell
+
+3. **Ferramentas de Arquivos**
+   - [sb_files_tool.py](mdc:backend/agent/tools/sb_files_tool.py) - Manipulação de arquivos
+
+4. **Ferramentas de Dados**
+   - [data_providers_tool.py](mdc:backend/agent/tools/data_providers_tool.py) - Acesso a provedores de dados
+   - [sb_browser_tool.py](mdc:backend/agent/tools/sb_browser_tool.py) - Navegação web
+
+5. **Ferramentas de Deploy**
+   - [sb_deploy_tool.py](mdc:backend/agent/tools/sb_deploy_tool.py) - Deploy de aplicações
+   - [sb_expose_tool.py](mdc:backend/agent/tools/sb_expose_tool.py) - Exposição de serviços
+
+6. **Ferramentas de Visão**
+   - [sb_vision_tool.py](mdc:backend/agent/tools/sb_vision_tool.py) - Processamento de imagens
+
+## Estrutura de uma Ferramenta
+1. Todas as ferramentas devem seguir um padrão comum:
+   ```python
+   class ExampleTool:
+       def __init__(self, config, ...):
+           # Inicialização e configuração
+           
+       @property
+       def spec(self):
+           # Retorna a especificação da ferramenta para o LLM
+           return {...}
+           
+       async def run(self, params, ...):
+           # Executa a ferramenta com os parâmetros fornecidos
+           # Retorna o resultado
+   ```
+
+2. Cada ferramenta deve definir:
+   - Especificação clara para o LLM (nome, descrição, parâmetros)
+   - Validação de parâmetros
+   - Lógica de execução
+   - Tratamento de erros
+   - Retorno padronizado
+
+## Convenções de Implementação
+1. Ferramentas devem ser assíncronas sempre que possível (`async def run`)
+2. Parâmetros devem ser validados com schemas do Pydantic
+3. Implemente timeout adequado para operações longas
+4. Adicione logging detalhado para depuração
+5. Documente a API da ferramenta com docstrings
+6. Mantenha controle de permissões por ferramenta
+
+## Integração de Novas Ferramentas
+1. Defina a especificação da ferramenta no formato esperado pelo LLM
+2. Implemente a lógica da ferramenta seguindo o padrão estabelecido
+3. Adicione a ferramenta ao registro em [agent/tools/__init__.py](mdc:backend/agent/tools/__init__.py)
+4. Configure permissões e acesso para diferentes tipos de usuários
+5. Documente exemplos de uso para o treinamento do LLM
+

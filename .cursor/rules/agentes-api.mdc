@@ -1,0 +1,94 @@
+---
+description: A API dos agentes define a interface de comunicação entre o frontend e o sistema de agentes, implementada em @agent/api.py.
+globs: 
+alwaysApply: false
+---
+# API dos Agentes
+
+A API dos agentes define a interface de comunicação entre o frontend e o sistema de agentes, implementada em [agent/api.py](mdc:backend/agent/api.py).
+
+## Endpoints Principais
+1. **Gerenciamento de Threads**
+   - Criação de novos threads
+   - Obtenção de histórico de mensagens
+   - Arquivamento/deleção de threads
+
+2. **Interação com Agentes**
+   - Envio de mensagens para o agente
+   - Monitoramento de progresso 
+   - Cancelamento de execuções
+
+3. **Gerenciamento de Ferramentas**
+   - Listagem de ferramentas disponíveis
+   - Configuração de permissões
+   - Status de ferramentas
+
+## Estrutura da API
+1. Endpoints principais:
+   ```python
+   @router.post("/threads")
+   async def create_thread(request: CreateThreadRequest):
+       # Cria um novo thread de conversa
+       
+   @router.post("/threads/{thread_id}/messages")
+   async def create_message(thread_id: str, request: CreateMessageRequest):
+       # Envia mensagem para um thread existente
+       
+   @router.get("/threads/{thread_id}/messages")
+   async def list_messages(thread_id: str):
+       # Lista mensagens de um thread
+   ```
+
+2. Modelos de dados (usando Pydantic):
+   ```python
+   class CreateThreadRequest(BaseModel):
+       title: Optional[str]
+       message: str
+       team_id: Optional[str]
+       
+   class CreateMessageRequest(BaseModel):
+       content: str
+       file_ids: Optional[List[str]]
+   ```
+
+## Convenções de Implementação
+1. Todos os endpoints devem:
+   - Validar inputs com Pydantic
+   - Implementar autenticação e autorização
+   - Seguir padrões REST
+   - Retornar códigos de status HTTP apropriados
+   - Documentar com OpenAPI/Swagger
+
+2. Padrões de resposta:
+   ```python
+   {
+       "success": bool,
+       "data": Any,  # Dados solicitados quando success=True
+       "error": Optional[str]  # Mensagem de erro quando success=False
+   }
+   ```
+
+3. Tratamento de operações assíncronas:
+   - Uso de websockets para atualizações em tempo real
+   - Padrão de polling para clientes mais simples
+   - Identificadores de operação para rastreamento
+
+## Segurança
+1. Autenticação via JWT
+2. Verificação de permissões por thread e ferramenta
+3. Rate limiting para prevenção de abuso
+4. Validação e sanitização de todos os inputs
+5. Logging de todas as operações sensíveis
+
+## Interação com Outros Sistemas
+1. Comunicação com o serviço LLM via [services/llm.py](mdc:backend/services/llm.py)
+2. Acesso ao banco de dados via [services/supabase.py](mdc:backend/services/supabase.py)
+3. Gerenciamento de arquivos e uploads
+4. Integração com sistema de billing para controle de uso
+
+## Versionamento e Evolução
+1. Versione a API explicitamente (/v1/, /v2/)
+2. Mantenha compatibilidade retroativa quando possível
+3. Documente mudanças breaking no CHANGELOG
+4. Implemente endpoints de deprecação com aviso
+

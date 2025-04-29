@@ -1,0 +1,22 @@
+---
+description: O frontend é uma aplicação Next.js que utiliza a estrutura App Router.
+globs: 
+alwaysApply: false
+---
+# Arquitetura do Frontend
+
+O frontend é uma aplicação Next.js que utiliza a estrutura App Router. A aplicação está organizada da seguinte forma:
+
+## Estrutura Principal
+- [src/app](mdc:frontend/src/app) - Contém todas as rotas da aplicação organizadas por grupos
+- [src/components](mdc:frontend/src/components) - Componentes reutilizáveis da UI
+- [src/hooks](mdc:frontend/src/hooks) - Custom hooks React
+- [src/lib](mdc:frontend/src/lib) - Funções utilitárias, ações e integração com backend
+
+## Regras Importantes
+1. O frontend deve se comunicar APENAS com o backend
+2. Os componentes devem ser compactos, minimalistas e elegantes
+3. A lógica de negócios deve ficar no backend, não no frontend
+4. Evite redundâncias e duplicações de código
+5. Utilize os hooks existentes em vez de criar novos para funcionalidades semelhantes
+

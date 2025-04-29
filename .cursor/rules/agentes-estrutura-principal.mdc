@@ -1,0 +1,43 @@
+---
+description: O sistema de agentes é a parte central da aplicação, localizado em @backend/agent, responsável por orquestrar as capacidades de IA.
+globs: 
+alwaysApply: false
+---
+# Estrutura Principal dos Agentes
+
+O sistema de agentes é a parte central da aplicação, localizado em [backend/agent](mdc:backend/agent), responsável por orquestrar as capacidades de IA.
+
+## Arquivos Principais
+- [agent/run.py](mdc:backend/agent/run.py) - Orquestração e execução dos agentes
+- [agent/api.py](mdc:backend/agent/api.py) - API para interação com os agentes
+- [agent/prompt.py](mdc:backend/agent/prompt.py) - Templates de prompts e instruções para os LLMs
+
+## Fluxo de Execução
+1. A API recebe solicitações de execução de agentes
+2. O módulo run.py gerencia o ciclo de vida do agente:
+   - Inicialização do contexto
+   - Carregamento das ferramentas apropriadas
+   - Iteração do loop de raciocínio do agente
+   - Execução de ferramentas
+   - Finalização e retorno de resultados
+
+## Convenções de Código
+1. Toda interação com os LLMs deve passar pelo sistema de agentes
+2. Os agentes devem seguir um padrão de interface consistente
+3. O acesso às ferramentas deve ser configurável e baseado em permissões
+4. Os prompts devem ser parametrizados e separados da lógica de execução
+5. Todas as entradas e saídas devem ser registradas para rastreabilidade
+
+## Integração com Outros Sistemas
+1. Os agentes devem se comunicar com o frontend apenas através da API REST
+2. Os serviços externos (LLM, banco de dados) são acessados através de serviços dedicados
+3. O sistema de sandbox protege a execução de código gerado pelos agentes
+
+## Ciclo de Vida de um Thread
+1. Criação do thread pelo usuário via frontend
+2. Envio de mensagem para o agente
+3. Agente determina as ações necessárias e utiliza ferramentas apropriadas
+4. Resultados das ações são incorporados ao contexto do agente
+5. Agente gera resposta final
+6. Resposta é armazenada no banco de dados e enviada ao frontend
+

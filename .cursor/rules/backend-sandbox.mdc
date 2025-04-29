@@ -1,0 +1,54 @@
+---
+description: O sistema de sandbox permite a execução segura de código em um ambiente isolado, fornecendo um mecanismo controlado para interação com navegadores web e sistemas externos.
+globs: 
+alwaysApply: false
+---
+# Sistema de Sandbox
+
+O sistema de sandbox permite a execução segura de código em um ambiente isolado, fornecendo um mecanismo controlado para interação com navegadores web e sistemas externos.
+
+## Localização e Arquitetura
+
+O sistema de sandbox está localizado em `@backend/sandbox` e utiliza o Daytona SDK para criar e gerenciar ambientes isolados de execução containerizados.
+
+## Componentes Principais
+
+### `sandbox.py`
+
+Este arquivo define as funções e classes principais para gerenciamento de sandboxes:
+
+- **Configuração do Daytona**: Inicializa o cliente Daytona utilizando variáveis de ambiente para API key, server URL e target.
+- **Gerenciamento de ciclo de vida**: Funções para criar, iniciar e gerenciar sandboxes.
+- **SandboxToolsBase**: Classe base para todas as ferramentas que necessitam acessar o ambiente sandbox, fornecendo métodos para garantir a existência de uma sandbox válida para cada projeto.
+
+### `api.py`
+
+Implementa a API REST para interação com o sistema de sandbox:
+
+- **Operações de arquivos**: Endpoints para listar, ler, criar e manipular arquivos dentro da sandbox.
+- **Gerenciamento de projeto**: Endpoints para garantir que uma sandbox esteja ativa para um projeto específico.
+- **Verificação de acesso**: Funções para verificar que um usuário tem autorização para acessar uma sandbox específica.
+
+### `docker/`
+
+Contém a configuração Docker para o ambiente sandbox:
+
+- **Dockerfile**: Define a imagem Docker utilizada para criar ambientes sandbox.
+- **supervisord.conf**: Configuração para gerenciamento de processos dentro do container.
+- **browser_api.py**: Implementação da API para interação com navegadores web.
+
+## Características
+
+- **Isolamento**: Executa código em ambientes containerizados isolados para segurança.
+- **Persistência**: Mantém sandboxes associadas a projetos específicos.
+- **Gerenciamento de estados**: Inicia, para e arquiva sandboxes conforme necessário.
+- **Automação**: Fornece APIs para automatizar tarefas dentro do ambiente isolado.
+- **Integração com navegadores**: Permite automação de navegadores web em um ambiente controlado.
+
+## Uso por Agentes
+
+As sandboxes são utilizadas pelos agentes de IA para executar código, interagir com sistemas externos e realizar tarefas que requerem isolamento e segurança.
+
+## Integração com Projetos
+
+Cada projeto pode ter uma sandbox associada, permitindo um ambiente consistente para execução de código relacionado ao projeto.

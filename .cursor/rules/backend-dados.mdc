@@ -1,0 +1,34 @@
+---
+description: O sistema utiliza Supabase como plataforma de banco de dados e autenticação, com migrações em @backend/supabase.
+globs: 
+alwaysApply: false
+---
+# Banco de Dados e Persistência
+
+O sistema utiliza Supabase como plataforma de banco de dados e autenticação, com migrações em [backend/supabase](mdc:backend/supabase).
+
+## Estrutura
+- [supabase/migrations](mdc:backend/supabase/migrations) - Migrações do banco de dados
+- [services/supabase.py](mdc:backend/services/supabase.py) - Cliente para acesso ao Supabase
+
+## Princípios para Gerenciamento de Dados
+1. Todas as alterações no esquema devem ser feitas através de migrações
+2. Use tipagem forte para modelos de dados
+3. Mantenha índices apropriados para queries frequentes
+4. Implemente validação de dados no nível do banco de dados
+5. Use transações para operações que modificam múltiplos registros
+6. Mantenha dados sensíveis criptografados no banco
+
+## Acesso a Dados
+1. Centralize o acesso ao banco de dados no serviço Supabase
+2. Implemente camada de abstração para operações comuns (CRUD)
+3. Use consultas parametrizadas para evitar injeção de SQL
+4. Implemente paginação para queries que retornam muitos registros
+5. Utilize Row Level Security (RLS) para controle de acesso granular
+
+## Caching
+1. Use Redis para caching através de [services/redis.py](mdc:backend/services/redis.py)
+2. Implemente estratégias de invalidação de cache apropriadas
+3. Cache resultados de operações custosas ou frequentes
+4. Configure TTL (Time-To-Live) adequado para diferentes tipos de dados
+

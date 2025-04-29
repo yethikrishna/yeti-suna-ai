@@ -1,0 +1,25 @@
+---
+description: O frontend utiliza o App Router do Next.js com grupos de rotas organizados:
+globs: 
+alwaysApply: false
+---
+# Estrutura de Rotas do Frontend
+
+O frontend utiliza o App Router do Next.js com grupos de rotas organizados:
+
+## Grupos Principais
+- [(home)](mdc:frontend/src/app/(home)) - Páginas públicas da aplicação (landing page)
+- [(dashboard)](mdc:frontend/src/app/(dashboard)) - Painel principal da aplicação (requer autenticação)
+  - [(personalAccount)](mdc:frontend/src/app/(dashboard)/(personalAccount)) - Rotas para conta pessoal
+  - [(teamAccount)](mdc:frontend/src/app/(dashboard)/(teamAccount)) - Rotas para contas de equipe
+  - [agents](mdc:frontend/src/app/(dashboard)/agents) - Funcionalidades relacionadas a agentes
+- [auth](mdc:frontend/src/app/auth) - Páginas de autenticação (login, registro, recuperação de senha)
+- [invitation](mdc:frontend/src/app/invitation) - Páginas para convites de equipe
+- [share](mdc:frontend/src/app/share) - Páginas para compartilhamento de recursos
+
+## Convenções
+1. Utilize grupos de rotas para organização
+2. Rotas que compartilham layouts devem estar no mesmo grupo
+3. Use parâmetros de rota para páginas dinâmicas com formato [paramName]
+4. Coloque a lógica de carregamento de dados nos arquivos page.tsx com server components quando possível
+

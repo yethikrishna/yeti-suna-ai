@@ -1,0 +1,27 @@
+---
+description: O frontend se comunica com o backend através de interfaces bem definidas em @src/lib.
+globs: 
+alwaysApply: false
+---
+# Integração com o Backend
+
+O frontend se comunica com o backend através de interfaces bem definidas em [src/lib](mdc:frontend/src/lib).
+
+## Estrutura
+- [lib/actions](mdc:frontend/src/lib/actions) - Server Actions do Next.js para operações no servidor
+- [lib/supabase](mdc:frontend/src/lib/supabase) - Integrações com o Supabase (banco de dados e autenticação)
+- [lib/utils](mdc:frontend/src/lib/utils) - Funções utilitárias para manipulação de dados
+
+## Regras para Integração
+1. O frontend NUNCA deve acessar diretamente o banco de dados - todas as operações devem passar pelo backend
+2. Use tipagem TypeScript para dados trafegados entre frontend e backend
+3. Implemente tratamento de erros adequado para falhas de comunicação
+4. Mantenha funções de API organizadas por domínio/funcionalidade
+5. Utilize caching e revalidação de dados de forma adequada
+6. As Server Actions devem ser utilizadas para operações que alteram dados
+
+## Autenticação
+1. Todo o gerenciamento de autenticação deve ser feito através da integração com Supabase
+2. Componentes que requerem autenticação devem usar proteção de rota adequada
+3. Tokens de autenticação devem ser gerenciados de forma segura
+

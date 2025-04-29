@@ -1,0 +1,35 @@
+---
+description: Funções utilitárias e configurações são componentes essenciais que garantem a consistência e facilidade de manutenção do backend.
+globs: 
+alwaysApply: false
+---
+# Utilidades e Configurações
+
+Funções utilitárias e configurações são componentes essenciais que garantem a consistência e facilidade de manutenção do backend.
+
+## Componentes Principais
+- [utils/config.py](mdc:backend/utils/config.py) - Gerenciamento de configurações
+- [utils/auth_utils.py](mdc:backend/utils/auth_utils.py) - Funcionalidades de autenticação
+- [utils/logger.py](mdc:backend/utils/logger.py) - Sistema de logging
+- [utils/files_utils.py](mdc:backend/utils/files_utils.py) - Manipulação de arquivos
+
+## Configurações
+1. Todas as configurações devem ser gerenciadas em [utils/config.py](mdc:backend/utils/config.py)
+2. Use variáveis de ambiente para configurações sensíveis ou específicas de ambiente
+3. Documente todas as opções de configuração
+4. Implemente validação de configuração na inicialização
+5. Forneça valores padrão sensatos para configurações opcionais
+
+## Logging
+1. Use o sistema de logging definido em [utils/logger.py](mdc:backend/utils/logger.py)
+2. Níveis de log devem ser usados consistentemente (DEBUG, INFO, WARNING, ERROR)
+3. Inclua contexto suficiente nas mensagens de log
+4. Configure formatação de log apropriada para diferentes ambientes
+5. Evite logging de informações sensíveis
+
+## Autenticação
+1. Centralize a lógica de autenticação em [utils/auth_utils.py](mdc:backend/utils/auth_utils.py)
+2. Implemente verificação de permissões baseada em funções
+3. Use tokens JWT para autenticação
+4. Garanta que todas as operações sensíveis tenham verificação de autenticação
+

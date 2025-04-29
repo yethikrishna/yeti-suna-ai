@@ -1,0 +1,181 @@
+---
+description: Os componentes de visualização de ferramentas (tool-views) possuem características específicas e utilizam um conjunto comum de utilidades e tipos, definidos em @components/thread/tool-views.
+globs: 
+alwaysApply: false
+---
+# Implementação dos Componentes Tool Views
+
+Os componentes de visualização de ferramentas (tool-views) possuem características específicas e utilizam um conjunto comum de utilidades e tipos, definidos em [components/thread/tool-views](mdc:frontend/src/components/thread/tool-views).
+
+## Interface Comum
+
+Todos os componentes tool-views devem implementar a interface `ToolViewProps` definida em [types.ts](mdc:frontend/src/components/thread/tool-views/types.ts):
+
+```typescript
+export interface ToolViewProps {
+  assistantContent?: string;  // Conteúdo enviado pelo assistente
+  toolContent?: string;       // Resultado da execução da ferramenta
+  assistantTimestamp?: string; // Timestamp do comando
+  toolTimestamp?: string;     // Timestamp do resultado
+  isSuccess?: boolean;        // Status de sucesso/falha
+  isStreaming?: boolean;      // Indica se está em execução
+  project?: Project;          // Informações do projeto
+  name?: string;              // Nome da ferramenta
+  messages?: any[];           // Mensagens adicionais
+  agentStatus?: string;       // Status do agente
+  currentIndex?: number;      // Índice atual (para sequências)
+  totalCalls?: number;        // Total de chamadas na sequência
+}
+```
+
+## Funções Utilitárias
+
+O arquivo [utils.ts](mdc:frontend/src/components/thread/tool-views/utils.ts) contém funções essenciais para processamento e exibição de conteúdo:
+
+1. **Formatação de Conteúdo**
+   - `formatTimestamp(isoString)` - Formata timestamps ISO em formato legível
+   - `getToolTitle(toolName)` - Converte nomes de ferramentas em títulos de exibição
+   - `processFileContent(content)` - Processa conteúdo de arquivos para exibição
+
+2. **Extração de Dados**
+   - `extractCommand(content)` - Extrai comandos de terminal
+   - `extractFilePath(content)` - Extrai caminhos de arquivos
+   - `extractBrowserUrl(content)` - Extrai URLs de navegação
+   - `extractSearchQuery(content)` - Extrai termos de busca
+   - `extractFileContent(content, toolType)` - Extrai conteúdo de arquivos
+
+3. **Processamento de Resultados**
+   - `extractUrlsAndTitles(content)` - Extrai URLs e títulos de resultados
+   - `extractWebpageContent(content)` - Extrai conteúdo de páginas web
+   - `extractSearchResults(content)` - Processa resultados de busca
+
+## Padrões de UI Consistentes
+
+1. **Layout Padrão**
+   ```tsx
+   <div className="flex flex-col h-full">
+     {/* Seção de Input (assistantContent) */}
+     <div className="space-y-1.5">
+       <div className="text-xs font-medium">Input</div>
+       <div className="rounded-md border p-3">
+         <Markdown>{formattedContent}</Markdown>
+       </div>
+     </div>
+     
+     {/* Seção de Output (toolContent) */}
+     <div className="space-y-1.5 mt-4">
+       <div className="text-xs font-medium">Output</div>
+       <div className="rounded-md border p-3">
+         <Markdown>{formattedResult}</Markdown>
+       </div>
+     </div>
+     
+     {/* Footer com status */}
+     <div className="p-4 border-t">
+       <div className="flex items-center justify-between">
+         <StatusIndicator isSuccess={isSuccess} isStreaming={isStreaming} />
+         <Timestamp timestamp={toolTimestamp} />
+       </div>
+     </div>
+   </div>
+   ```
+
+2. **Estados Visuais**
+   - Estado de sucesso: borda verde/neutral
+   - Estado de erro: borda vermelha
+   - Estado de carregamento: borda azul com animação
+
+## Implementação para Ferramentas Específicas
+
+1. **CommandToolView**
+   - Exibe comandos de terminal e sua saída
+   - Destaca o comando em sintaxe de código
+   - Mostra saída em formato monoespaçado
+   - Indica código de saída (sucesso/erro)
+
+2. **FileOperationToolView**
+   - Visualiza operações de arquivo (criar, editar, excluir)
+   - Destaca o caminho do arquivo
+   - Renderiza o conteúdo com highlighting de sintaxe
+   - Exibe diff para operações de edição
+
+3. **WebSearchToolView**
+   - Renderiza resultados de busca na web
+   - Exibe títulos, URLs e snippets
+   - Permite navegação para os resultados
+
+## Como Extender e Criar Novos Componentes
+
+1. **Criando um Novo Componente Tool View**
+
+   ```tsx
+   // NewToolView.tsx
+   import React from "react";
+   import { ToolViewProps } from "./types";
+   import { formatTimestamp, getToolTitle } from "./utils";
+   
+   export function NewToolView({
+     name = 'new-tool',
+     assistantContent,
+     toolContent,
+     isSuccess = true,
+     isStreaming = false,
+     assistantTimestamp,
+     toolTimestamp
+   }: ToolViewProps) {
+     // Processamento específico desta ferramenta
+     const processedContent = processToolSpecificContent(toolContent);
+     
+     return (
+       <div className="flex flex-col h-full">
+         {/* Conteúdo específico da ferramenta */}
+         <div className="flex-1 p-4 overflow-auto">
+           {/* Implementação específica */}
+         </div>
+         
+         {/* Footer padrão */}
+         <StatusFooter 
+           isSuccess={isSuccess} 
+           isStreaming={isStreaming} 
+           timestamp={toolTimestamp} 
+         />
+       </div>
+     );
+   }
+   ```
+
+2. **Registrando o Novo Componente**
+
+   Adicione o componente à função `getToolComponent` em [utils.ts](mdc:frontend/src/components/thread/tool-views/utils.ts):
+   
+   ```typescript
+   export function getToolComponent(toolName: string): string {
+     // Map tool names to component names
+     const toolComponents: Record<string, string> = {
+       // Existing mappings
+       'existing-tool': 'ExistingToolView',
+       // Add your new tool
+       'new-tool': 'NewToolView'
+     };
+     
+     return toolComponents[toolName] || 'GenericToolView';
+   }
+   ```
+
+## Boas Práticas
+
+1. **Performance**
+   - Use `React.useMemo` para processamento pesado de conteúdo
+   - Implemente renderização lazy para conteúdo extenso
+   - Utilize virtualização para listas longas de resultados
+
+2. **Experiência do Usuário**
+   - Forneça feedback visual claro para todos os estados
+   - Implemente ações úteis (copiar, abrir links)
+   - Mantenha a consistência visual com outros componentes
+
+3. **Manutenção**
+   - Extraia lógica complexa para funções em utils.ts
+   - Documente funções de processamento não-triviais
+   - Mantenha a modularidade separando UI de lógica
+
