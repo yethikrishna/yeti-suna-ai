@@ -30,12 +30,32 @@ instance_id = None # Global instance ID for this backend instance
 # TTL for Redis response lists (24 hours)
 REDIS_RESPONSE_LIST_TTL = 3600 * 24
 
+# Aliases de modelos para uso na interface
+# Formato: ID do modelo usado no frontend -> ID real do modelo LiteLLM
+# Este dicionário mapeia os nomes simplificados usados no frontend para os nomes completos do LiteLLM
+# Quando adicionar novos modelos, siga o padrão de nomenclatura do provedor específico:
+#  - Anthropic: "anthropic/claude-..."
+#  - OpenAI: "openai/gpt-..."
+#  - Google Gemini: "gemini/gemini-..."
+#  - OpenRouter: "openrouter/..."
 MODEL_NAME_ALIASES = {
+    # Anthropic Models (requer ANTHROPIC_API_KEY)
     "sonnet-3.7": "anthropic/claude-3-7-sonnet-latest",
+    
+    # OpenAI Models (requer OPENAI_API_KEY)
     "gpt-4.1": "openai/gpt-4.1-2025-04-14",
+    
+    # Gemini Models através do OpenRouter (requer OPENROUTER_API_KEY)
     "gemini-flash-2.5": "openrouter/google/gemini-2.5-flash-preview",
+    
+    # Google Gemini Models direto da API (requer GEMINI_API_KEY)
     "gemini-2.5-pro": "gemini/gemini-2.5-pro-preview-03-25",
     "gemini-2.5-flash": "gemini/gemini-2.5-flash-preview-04-17",
+    "gemini-2.0-flash-lite": "gemini/gemini-2.0-flash-lite",
+    "gemini-2.0-flash": "gemini/gemini-2.0-flash",
+    "gemini-2.0-flash-image-generation": "gemini/gemini-2.0-flash-image-generation",
+
+    # Outros modelos via OpenRouter (requer OPENROUTER_API_KEY)
     "grok-3": "xai/grok-3-fast-latest",
     "deepseek": "deepseek/deepseek-chat",
     "grok-3-mini": "xai/grok-3-mini-fast-beta",

@@ -79,10 +79,25 @@ export const ChatInput = forwardRef<ChatInputHandles, ChatInputProps>(({
 
   // Define model options array earlier so it can be used in useEffect
   const modelOptions = [
-    { id: "sonnet-3.7", label: "Sonnet 3.7" },
-    { id: "sonnet-3.7-thinking", label: "Sonnet 3.7 (Thinking)" },
-    { id: "gpt-4.1", label: "GPT-4.1" },
-    { id: "gemini-flash-2.5", label: "Gemini Flash 2.5" }
+    // Anthropic Models
+    { id: "sonnet-3.7", label: "Claude 3.7 Sonnet", provider: "anthropic" },
+    { id: "sonnet-3.7-thinking", label: "Claude 3.7 Sonnet (Thinking)", provider: "anthropic" },
+    
+    // OpenAI Models
+    { id: "gpt-4.1", label: "GPT-4.1", provider: "openai" },
+    
+    // Google Gemini Models
+    { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash", provider: "gemini" },
+    { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro", provider: "gemini" },
+    { id: "gemini-2.0-flash-lite", label: "Gemini 2.0 Flash Lite", provider: "gemini" },
+    { id: "gemini-2.0-flash", label: "Gemini 2.0 Flash", provider: "gemini" },
+    { id: "gemini-2.0-flash-image-generation", label: "Gemini 2.0 Flash Image Generation", provider: "gemini" },
+    
+    // Other Models via OpenRouter
+    { id: "gemini-flash-2.5", label: "Gemini Flash (OpenRouter)", provider: "openrouter" },
+    { id: "grok-3", label: "Grok 3", provider: "openrouter" },
+    { id: "deepseek", label: "DeepSeek", provider: "openrouter" },
+    { id: "grok-3-mini", label: "Grok 3 Mini", provider: "openrouter" }
   ];
 
   // Initialize state with the default model
@@ -442,23 +457,95 @@ export const ChatInput = forwardRef<ChatInputHandles, ChatInputProps>(({
                       <DialogHeader className="px-4 pt-4 pb-3 border-b">
                         <DialogTitle className="text-sm font-medium">Select Model</DialogTitle>
                       </DialogHeader>
-                      <div className="p-4">
+                      <div className="p-4 max-h-[400px] overflow-y-auto">
                         <RadioGroup 
                           defaultValue={selectedModel} 
                           onValueChange={handleModelChange}
-                          className="grid gap-2"
+                          className="grid gap-4"
                         >
-                          {modelOptions.map(option => (
-                            <div key={option.id} className="flex items-center space-x-2 rounded-md px-3 py-2 cursor-pointer hover:bg-accent">
-                              <RadioGroupItem value={option.id} id={option.id} />
-                              <Label htmlFor={option.id} className="flex-1 cursor-pointer text-sm font-normal">
-                                {option.label}
-                              </Label>
-                              {selectedModel === option.id && (
-                                <span className="text-xs text-muted-foreground">Active</span>
-                              )}
+                          {/* Grupo Anthropic */}
+                          <div>
+                            <h3 className="text-sm font-medium text-muted-foreground mb-2">Anthropic</h3>
+                            <div className="space-y-1.5">
+                              {modelOptions
+                                .filter(option => option.provider === "anthropic")
+                                .map(option => (
+                                  <div key={option.id} className="flex items-center space-x-2 rounded-md px-3 py-2 cursor-pointer hover:bg-accent">
+                                    <RadioGroupItem value={option.id} id={option.id} />
+                                    <Label htmlFor={option.id} className="flex-1 cursor-pointer text-sm font-normal">
+                                      {option.label}
+                                    </Label>
+                                    {selectedModel === option.id && (
+                                      <span className="text-xs text-muted-foreground">Active</span>
+                                    )}
+                                  </div>
+                                ))
+                              }
                             </div>
-                          ))}
+                          </div>
+
+                          {/* Grupo OpenAI */}
+                          <div>
+                            <h3 className="text-sm font-medium text-muted-foreground mb-2">OpenAI</h3>
+                            <div className="space-y-1.5">
+                              {modelOptions
+                                .filter(option => option.provider === "openai")
+                                .map(option => (
+                                  <div key={option.id} className="flex items-center space-x-2 rounded-md px-3 py-2 cursor-pointer hover:bg-accent">
+                                    <RadioGroupItem value={option.id} id={option.id} />
+                                    <Label htmlFor={option.id} className="flex-1 cursor-pointer text-sm font-normal">
+                                      {option.label}
+                                    </Label>
+                                    {selectedModel === option.id && (
+                                      <span className="text-xs text-muted-foreground">Active</span>
+                                    )}
+                                  </div>
+                                ))
+                              }
+                            </div>
+                          </div>
+
+                          {/* Grupo Google Gemini */}
+                          <div>
+                            <h3 className="text-sm font-medium text-muted-foreground mb-2">Google</h3>
+                            <div className="space-y-1.5">
+                              {modelOptions
+                                .filter(option => option.provider === "gemini")
+                                .map(option => (
+                                  <div key={option.id} className="flex items-center space-x-2 rounded-md px-3 py-2 cursor-pointer hover:bg-accent">
+                                    <RadioGroupItem value={option.id} id={option.id} />
+                                    <Label htmlFor={option.id} className="flex-1 cursor-pointer text-sm font-normal">
+                                      {option.label}
+                                    </Label>
+                                    {selectedModel === option.id && (
+                                      <span className="text-xs text-muted-foreground">Active</span>
+                                    )}
+                                  </div>
+                                ))
+                              }
+                            </div>
+                          </div>
+
+                          {/* Grupo OpenRouter (outros modelos) */}
+                          <div>
+                            <h3 className="text-sm font-medium text-muted-foreground mb-2">OpenRouter</h3>
+                            <div className="space-y-1.5">
+                              {modelOptions
+                                .filter(option => option.provider === "openrouter")
+                                .map(option => (
+                                  <div key={option.id} className="flex items-center space-x-2 rounded-md px-3 py-2 cursor-pointer hover:bg-accent">
+                                    <RadioGroupItem value={option.id} id={option.id} />
+                                    <Label htmlFor={option.id} className="flex-1 cursor-pointer text-sm font-normal">
+                                      {option.label}
+                                    </Label>
+                                    {selectedModel === option.id && (
+                                      <span className="text-xs text-muted-foreground">Active</span>
+                                    )}
+                                  </div>
+                                ))
+                              }
+                            </div>
+                          </div>
                         </RadioGroup>
                       </div>
                     </DialogContent>
