@@ -25,7 +25,7 @@ export const generateThreadName = async (message: string): Promise<string> => {
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gemini-2.0-flash-lite',
         messages: [
           {
             role: 'system',

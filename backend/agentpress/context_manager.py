@@ -144,7 +144,7 @@ class ContextManager:
         self, 
         thread_id: str, 
         messages: List[Dict[str, Any]], 
-        model: str = "gpt-4o-mini"
+        model: str = "gemini-2.0-flash-lite"
     ) -> Optional[Dict[str, Any]]:
         """Generate a summary of conversation messages.
         
@@ -239,7 +239,7 @@ The above is a summary of the conversation history. The conversation continues b
         self, 
         thread_id: str, 
         add_message_callback, 
-        model: str = "gpt-4o-mini",
+        model: str = "gemini-2.0-flash-lite",
         force: bool = False
     ) -> bool:
         """Check if thread needs summarization and summarize if so.
