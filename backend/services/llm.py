@@ -2,7 +2,7 @@
 LLM API interface for making calls to various language models.
 
 This module provides a unified interface for making API calls to different LLM providers
-(OpenAI, Anthropic, Groq, etc.) using LiteLLM. It includes support for:
+(OpenAI, Anthropic, Groq, Google Gemini, etc.) using LiteLLM. It includes support for:
 - Streaming responses
 - Tool calls and function calling
 - Retry logic with exponential backoff
@@ -39,7 +39,7 @@ class LLMRetryError(LLMError):
 
 def setup_api_keys() -> None:
     """Set up API keys from environment variables."""
-    providers = ['OPENAI', 'ANTHROPIC', 'GROQ', 'OPENROUTER']
+    providers = ['OPENAI', 'ANTHROPIC', 'GROQ', 'OPENROUTER', 'GEMINI']
     for provider in providers:
         key = getattr(config, f'{provider}_API_KEY')
         if key:
@@ -51,6 +51,11 @@ def setup_api_keys() -> None:
     if config.OPENROUTER_API_KEY and config.OPENROUTER_API_BASE:
         os.environ['OPENROUTER_API_BASE'] = config.OPENROUTER_API_BASE
         logger.debug(f"Set OPENROUTER_API_BASE to {config.OPENROUTER_API_BASE}")
+    
+    # Set up Gemini API key for LiteLLM
+    if config.GEMINI_API_KEY:
+        os.environ['GEMINI_API_KEY'] = config.GEMINI_API_KEY
+        logger.debug(f"Set GEMINI_API_KEY in environment")
     
     # Set up AWS Bedrock credentials
     aws_access_key = config.AWS_ACCESS_KEY_ID
@@ -156,6 +161,15 @@ def prepare_params(
         if not model_id and "anthropic.claude-3-7-sonnet" in model_name:
             params["model_id"] = "arn:aws:bedrock:us-west-2:935064898258:inference-profile/us.anthropic.claude-3-7-sonnet-20250219-v1:0"
             logger.debug(f"Auto-set model_id for Claude 3.7 Sonnet: {params['model_id']}")
+    
+    # Add Gemini-specific parameters
+    if "gemini" in model_name.lower():
+        logger.debug(f"Preparing Google Gemini parameters for model: {model_name}")
+        # If reasoning_effort parameter is set, pass it for Gemini models
+        # LiteLLM takes care of translating this to the appropriate parameter for Gemini
+        if enable_thinking and reasoning_effort:
+            params["reasoning_effort"] = reasoning_effort
+            logger.debug(f"Added reasoning_effort={reasoning_effort} for Gemini model")
 
     # Apply Anthropic prompt caching (minimal implementation)
     # Check model name *after* potential modifications (like adding bedrock/ prefix)
@@ -394,12 +408,51 @@ async def test_bedrock():
         print(f"Error testing Bedrock: {str(e)}")
         return False
 
+async def test_gemini():
+    """Test the Google Gemini integration with a simple query."""
+    test_messages = [
+        {"role": "user", "content": "Hello, can you give me a quick test response?"}
+    ]
+    
+    try:
+        # Test with Gemini Pro model
+        print("\n--- Testing Gemini Pro model ---")
+        response = await make_llm_api_call(
+            model_name="gemini/gemini-1.5-pro",
+            messages=test_messages,
+            temperature=0.7,
+            max_tokens=100
+        )
+        print(f"Response: {response.choices[0].message.content}")
+        print(f"Model used: {response.model}")
+        
+        # Test with Gemini Flash model with reasoning
+        print("\n--- Testing Gemini Flash model with reasoning ---")
+        response = await make_llm_api_call(
+            model_name="gemini/gemini-1.5-flash",
+            messages=test_messages,
+            temperature=0.7,
+            max_tokens=100,
+            enable_thinking=True,
+            reasoning_effort="medium"
+        )
+        print(f"Response: {response.choices[0].message.content}")
+        print(f"Model used: {response.model}")
+        
+        return True
+    except Exception as e:
+        print(f"Error testing Gemini: {str(e)}")
+        return False
+
 if __name__ == "__main__":
     import asyncio
         
-    test_success = asyncio.run(test_bedrock())
+    # Escolha qual teste executar comentando/descomentando as linhas abaixo
+    # test_success = asyncio.run(test_bedrock())
+    test_success = asyncio.run(test_gemini())
+    # test_success = asyncio.run(test_openrouter())
     
     if test_success:
         print("\n✅ integration test completed successfully!")
     else:
-        print("\n❌ Bedrock integration test failed!")
+        print("\n❌ Integration test failed!")
