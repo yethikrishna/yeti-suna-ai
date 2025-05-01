@@ -457,7 +457,7 @@ export const ChatInput = forwardRef<ChatInputHandles, ChatInputProps>(({
                         <RadioGroup 
                           defaultValue={selectedModel} 
                           onValueChange={handleModelChange}
-                          className="grid gap-4"
+                          className="grid gap-2"
                         >
                           {/* Grupo Anthropic */}
                           <div>

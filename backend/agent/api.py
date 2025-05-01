@@ -30,14 +30,14 @@ instance_id = None # Global instance ID for this backend instance
 # TTL for Redis response lists (24 hours)
 REDIS_RESPONSE_LIST_TTL = 3600 * 24
 
-# Aliases de modelos para uso na interface
-# Formato: ID do modelo usado no frontend -> ID real do modelo LiteLLM
-# Este dicionário mapeia os nomes simplificados usados no frontend para os nomes completos do LiteLLM
-# Quando adicionar novos modelos, siga o padrão de nomenclatura do provedor específico:
-#  - Anthropic: "anthropic/claude-..."
-#  - OpenAI: "openai/gpt-..."
-#  - Google Gemini: "gemini/gemini-..."
-#  - OpenRouter: "openrouter/..."
+# Model aliases for use in the frontend
+# Format: Model ID used in the frontend -> Actual LiteLLM Model ID
+# This dictionary maps the simplified names used in the frontend to the full LiteLLM names
+# When adding new models, follow the specific provider's naming pattern:
+# - Anthropic: "anthropic/claude-..."
+# - OpenAI: "openai/gpt-..."
+# - Google Gemini: "gemini/gemini-..."
+# - OpenRouter: "openrouter/..."
 MODEL_NAME_ALIASES = {
     # Anthropic Models (requer ANTHROPIC_API_KEY)
     "sonnet-3.7": "anthropic/claude-3-7-sonnet-latest",

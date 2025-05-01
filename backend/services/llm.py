@@ -45,7 +45,7 @@ def setup_api_keys() -> None:
     and configures the environment accordingly. It also provides detailed logging
     about which providers and models are available.
     """
-    # Verificar API keys por provedor
+    # Check API keys by provider
     providers_status = {
         'anthropic': bool(config.ANTHROPIC_API_KEY),
         'openai': bool(config.OPENAI_API_KEY),
@@ -55,7 +55,7 @@ def setup_api_keys() -> None:
         'aws_bedrock': bool(config.AWS_ACCESS_KEY_ID and config.AWS_SECRET_ACCESS_KEY and config.AWS_REGION_NAME)
     }
     
-    # Log de status por provedor
+    # Status log by provider
     available_providers = []
     for provider, available in providers_status.items():
         if available:
@@ -69,26 +69,26 @@ def setup_api_keys() -> None:
     else:
         logger.warning("No LLM providers configured with valid API keys")
     
-    # Configuração específica para OpenRouter
+    # OpenRouter specific configuration
     if providers_status['openrouter'] and config.OPENROUTER_API_BASE:
         os.environ['OPENROUTER_API_BASE'] = config.OPENROUTER_API_BASE
         logger.debug(f"Set OPENROUTER_API_BASE to {config.OPENROUTER_API_BASE}")
         
-        # Configurar site URL e app name para OpenRouter se disponíveis
+        # Configure site URL and app name for OpenRouter if available
         site_url = config.OR_SITE_URL
         app_name = config.OR_APP_NAME
         if site_url or app_name:
             logger.debug(f"OpenRouter configured with site URL: {bool(site_url)}, app name: {bool(app_name)}")
     
-    # Configuração específica para Google Gemini
+    # Specific configuration for Google Gemini
     if providers_status['gemini']:
         os.environ['GEMINI_API_KEY'] = config.GEMINI_API_KEY
         logger.debug(f"Set GEMINI_API_KEY in environment variables")
     
-    # Configuração específica para AWS Bedrock
+    # Specific configuration for AWS Bedrock
     if providers_status['aws_bedrock']:
         logger.debug(f"AWS credentials set for Bedrock in region: {config.AWS_REGION_NAME}")
-        # Configurar LiteLLM para usar credenciais AWS
+        # Configure LiteLLM to use AWS credentials
         os.environ['AWS_ACCESS_KEY_ID'] = config.AWS_ACCESS_KEY_ID
         os.environ['AWS_SECRET_ACCESS_KEY'] = config.AWS_SECRET_ACCESS_KEY
         os.environ['AWS_REGION_NAME'] = config.AWS_REGION_NAME
@@ -96,7 +96,7 @@ def setup_api_keys() -> None:
     else:
         logger.debug(f"AWS Bedrock integration not available (missing credentials)")
         
-    # Outras configurações específicas para cada provedor podem ser adicionadas aqui
+    # Other specific configurations for each provider can be added here
 
 async def handle_error(error: Exception, attempt: int, max_attempts: int) -> None:
     """Handle API errors with appropriate delays and logging."""
