@@ -194,16 +194,16 @@ def prepare_params(
     if "gemini" in model_name.lower():
         logger.debug(f"Preparing Google Gemini parameters for model: {model_name}")
         
-        # Gemini suporta 'thinking' com estrutura específica
+        # Gemini supports 'thinking' with specific structure
         if enable_thinking:
-            # Usar o formato correto para o thinking do Gemini através do LiteLLM
+            # Use the correct format for Gemini thinking through LiteLLM
             params["thinking"] = {
                 "type": "enabled",
-                "budget_tokens": 1024  # Ajustar conforme necessário
+                "budget_tokens": 1024  # Adjust as needed
             }
             logger.debug(f"Added thinking capability for Gemini model: {params['thinking']}")
             
-        # Nota: reasoning_effort não é necessário para Gemini quando usando thinking diretamente
+        # Note: reasoning_effort is not needed for Gemini when using thinking directly
 
     # Apply Anthropic prompt caching (minimal implementation)
     # Check model name *after* potential modifications (like adding bedrock/ prefix)
