@@ -34,7 +34,7 @@ import {
   TooltipContent,
   TooltipTrigger
 } from "@/components/ui/tooltip"
-import { getProjects, getThreads, Project } from "@/lib/api"
+import { getProjects, getThreads, Project, deleteThread } from "@/lib/api"
 import Link from "next/link"
 
 // Thread with associated project info for display in sidebar
@@ -180,6 +180,40 @@ export function NavAgents() {
     setLoadingThreadId(threadId)
     router.push(url)
   }
+  
+  // Function to handle thread deletion
+  const handleDeleteThread = async (threadId: string) => {
+    // Chiedere conferma prima di procedere
+    if (confirm("Sei sicuro di voler eliminare questa conversazione?")) {
+      try {
+        // Impostare stato di caricamento
+        setLoadingThreadId(threadId);
+        
+        // Eliminare il thread
+        await deleteThread(threadId);
+        
+        // Aggiornare la lista di thread
+        setThreads(prevThreads => prevThreads.filter(t => t.threadId !== threadId));
+        
+        // Mostrare un messaggio di successo
+        toast.success("Conversazione eliminata con successo");
+        
+        // Resettare lo stato di caricamento
+        setLoadingThreadId(null);
+        
+        // Se la conversazione corrente è stata eliminata, reindirizzare alla dashboard
+        if (pathname?.includes(threadId)) {
+          router.push('/dashboard');
+        }
+      } catch (error) {
+        console.error("Errore durante l'eliminazione:", error);
+        toast.error("Impossibile eliminare la conversazione");
+        
+        // Resettare lo stato di caricamento in caso di errore
+        setLoadingThreadId(null);
+      }
+    }
+  };
 
   return (
     <SidebarGroup>
@@ -293,7 +327,7 @@ export function NavAgents() {
                           </a>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDeleteThread(thread.threadId)}>
                           <Trash2 className="text-muted-foreground" />
                           <span>Delete</span>
                         </DropdownMenuItem>

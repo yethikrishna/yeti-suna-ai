@@ -1051,6 +1051,53 @@ export const toggleThreadPublicStatus = async (threadId: string, isPublic: boole
   return updateThread(threadId, { is_public: isPublic });
 };
 
+export const deleteThread = async (threadId: string): Promise<void> => {
+  try {
+    const supabase = createClient();
+    
+    // Prima eliminiamo tutte le esecuzioni dell'agente associate a questo thread
+    console.log(`Eliminazione di tutte le esecuzioni dell'agente per il thread ${threadId}`);
+    const { error: agentRunsError } = await supabase
+      .from('agent_runs')
+      .delete()
+      .eq('thread_id', threadId);
+    
+    if (agentRunsError) {
+      console.error('Errore durante l\'eliminazione delle esecuzioni dell\'agente:', agentRunsError);
+      throw new Error(`Errore durante l'eliminazione delle esecuzioni dell'agente: ${agentRunsError.message}`);
+    }
+    
+    // Poi eliminiamo tutti i messaggi associati al thread
+    console.log(`Eliminazione di tutti i messaggi per il thread ${threadId}`);
+    const { error: messagesError } = await supabase
+      .from('messages')
+      .delete()
+      .eq('thread_id', threadId);
+    
+    if (messagesError) {
+      console.error('Errore durante l\'eliminazione dei messaggi:', messagesError);
+      throw new Error(`Errore durante l'eliminazione dei messaggi: ${messagesError.message}`);
+    }
+    
+    // Infine, eliminiamo il thread
+    console.log(`Eliminazione del thread ${threadId}`);
+    const { error: threadError } = await supabase
+      .from('threads')
+      .delete()
+      .eq('thread_id', threadId);
+    
+    if (threadError) {
+      console.error('Errore durante l\'eliminazione del thread:', threadError);
+      throw new Error(`Errore durante l'eliminazione del thread: ${threadError.message}`);
+    }
+    
+    console.log(`Thread ${threadId} eliminato con successo, inclusi tutti gli elementi correlati`);
+  } catch (error) {
+    console.error('Errore durante l\'eliminazione del thread e degli elementi correlati:', error);
+    throw error;
+  }
+};
+
 // Function to get public projects
 export const getPublicProjects = async (): Promise<Project[]> => {
   try {
