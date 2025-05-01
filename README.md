@@ -1,14 +1,14 @@
 <div align="center">
 
-# Suna - Open Source Generalist AI Agent
+# Suna - Open Source Generalistický AI Agent
 
-(that acts on your behalf)
+(který jedná ve vašem zájmu)
 
 ![Suna Screenshot](frontend/public/banner.png)
 
-Suna is a fully open source AI assistant that helps you accomplish real-world tasks with ease. Through natural conversation, Suna becomes your digital companion for research, data analysis, and everyday challenges—combining powerful capabilities with an intuitive interface that understands what you need and delivers results.
+Suna je plně open source AI asistent, který vám pomáhá snadno plnit reálné úkoly. Prostřednictvím přirozené konverzace se Suna stává vaším digitálním společníkem pro výzkum, analýzu dat a každodenní výzvy—kombinuje výkonné schopnosti s intuitivním rozhraním, které rozumí vašim potřebám a přináší výsledky.
 
-Suna's powerful toolkit includes seamless browser automation to navigate the web and extract data, file management for document creation and editing, web crawling and extended search capabilities, command-line execution for system tasks, website deployment, and integration with various APIs and services. These capabilities work together harmoniously, allowing Suna to solve your complex problems and automate workflows through simple conversations!
+Výkonná sada nástrojů Suna zahrnuje bezproblémovou automatizaci prohlížeče pro navigaci na webu a extrakci dat, správu souborů pro vytváření a úpravu dokumentů, procházení webu a rozšířené vyhledávací schopnosti, spouštění příkazového řádku pro systémové úkoly, nasazení webových stránek a integraci s různými API a službami. Tyto schopnosti fungují harmonicky společně, což umožňuje Suně řešit vaše komplexní problémy a automatizovat pracovní postupy prostřednictvím jednoduchých konverzací!
 
 [![License](https://img.shields.io/badge/License-Apache--2.0-blue)](./license)
 [![Discord Follow](https://dcbadge.limes.pink/api/server/Py6pCBUUPw?style=flat)](https://discord.gg/Py6pCBUUPw)
@@ -19,53 +19,53 @@ Suna's powerful toolkit includes seamless browser automation to navigate the web
 </div>
 
 
-## Table of Contents
+## Obsah
 
-- [Suna Architecture](#project-architecture)
+- [Architektura Suna](#project-architecture)
   - [Backend API](#backend-api)
   - [Frontend](#frontend)
   - [Agent Docker](#agent-docker)
-  - [Supabase Database](#supabase-database)
-- [Run Locally / Self-Hosting](#run-locally--self-hosting)
-  - [Requirements](#requirements)
-  - [Prerequisites](#prerequisites)
-  - [Installation Steps](#installation-steps)
-- [Acknowledgements](#acknowledgements)
-- [License](#license)
+  - [Supabase Databáze](#supabase-database)
+- [Lokální spuštění / Self-Hosting](#run-locally--self-hosting)
+  - [Požadavky](#requirements)
+  - [Předpoklady](#prerequisites)
+  - [Instalační kroky](#installation-steps)
+- [Poděkování](#acknowledgements)
+- [Licence](#license)
 
-## Project Architecture
+## Architektura projektu
 
-![Architecture Diagram](docs/images/diagram.png)
+![Diagram architektury](docs/images/diagram.png)
 
-Suna consists of four main components:
+Suna se skládá ze čtyř hlavních komponent:
 
 ### Backend API
-Python/FastAPI service that handles REST endpoints, thread management, and LLM integration with Anthropic, and others via LiteLLM.
+Python/FastAPI služba, která zpracovává REST endpointy, správu vláken a integraci LLM s Anthropic a dalšími prostřednictvím LiteLLM.
 
 ### Frontend
-Next.js/React application providing a responsive UI with chat interface, dashboard, etc.
+Next.js/React aplikace poskytující responzivní UI s chatovacím rozhraním, dashboardem atd.
 
 ### Agent Docker
-Isolated execution environment for every agent - with browser automation, code interpreter, file system access, tool integration, and security features.
+Izolované prostředí pro každého agenta - s automatizací prohlížeče, interpretací kódu, přístupem k souborovému systému, integrací nástrojů a bezpečnostními funkcemi.
 
-### Supabase Database
-Handles data persistence with authentication, user management, conversation history, file storage, agent state, analytics, and real-time subscriptions.
+### Supabase Databáze
+Zajišťuje persistenci dat s autentizací, správou uživatelů, historií konverzací, ukládáním souborů, stavem agenta, analytikou a real-time odběry.
 
-## Use Cases
+## Případy použití
 
-1. **Competitor Analysis** ([Watch](https://www.suna.so/share/5ee791ac-e19c-4986-a61c-6d0659d0e5bc)) - *"Analyze the market for my next company in the healthcare industry, located in the UK. Give me the major players, their market size, strengths, and weaknesses, and add their website URLs. Once done, generate a PDF report."*
+1. **Analýza konkurence** ([Sledovat](https://www.suna.so/share/5ee791ac-e19c-4986-a61c-6d0659d0e5bc)) - *"Analyzuj trh pro mou příští společnost ve zdravotnickém průmyslu ve Velké Británii. Uveď hlavní hráče, velikost jejich trhu, silné a slabé stránky a přidej URL jejich webových stránek. Nakonec vygeneruj PDF zprávu."*
 
-2. **VC List** ([Watch](https://www.suna.so/share/804d20a3-cf1c-4adb-83bb-0e77cc6adeac)) - *"Give me the list of the most important VC Funds in the United States based on Assets Under Management. Give me website URLs, and if possible an email to reach them out."*
+2. **Seznam VC fondů** ([Sledovat](https://www.suna.so/share/804d20a3-cf1c-4adb-83bb-0e77cc6adeac)) - *"Dej mi seznam nejdůležitějších VC fondů ve Spojených státech podle spravovaných aktiv. Uveď URL jejich webových stránek a pokud možno e-mail pro kontakt."*
 
-3. **Looking for Candidates** ([Watch](https://www.suna.so/share/3ae581b0-2db8-4c63-b324-3b8d29762e74)) - *"Go on LinkedIn, and find me 10 profiles available - they are not working right now - for a junior software engineer position, who are located in Munich, Germany. They should have at least one bachelor's degree in Computer Science or anything related to it, and 1-year of experience in any field/role."*
+3. **Hledání kandidátů** ([Sledovat](https://www.suna.so/share/3ae581b0-2db8-4c63-b324-3b8d29762e74)) - *"Jdi na LinkedIn a najdi mi 10 dostupných profilů - momentálně nepracují - pro pozici junior software engineer, kteří se nacházejí v Mnichově, Německo. Měli by mít alespoň bakalářský titul v informatice nebo něčem podobném a 1 rok zkušeností v jakémkoli oboru/roli."*
 
-4. **Planning Company Trip** ([Watch](https://www.suna.so/share/725e64a0-f1e2-4bb6-8a1f-703c2833fd72)) - *"Generate me a route plan for my company. We should go to California. We'll be in 8 people. Compose the trip from the departure (Paris, France) to the activities we can do considering that the trip will be 7 days long - departure on the 21st of Apr 2025. Check the weather forecast and temperature for the upcoming days, and based on that, you can plan our activities (outdoor vs indoor)."*
+4. **Plánování firemního výletu** ([Sledovat](https://www.suna.so/share/725e64a0-f1e2-4bb6-8a1f-703c2833fd72)) - *"Vygeneruj mi plán cesty pro mou společnost. Měli bychom jet do Kalifornie. Bude nás 8 lidí. Sestav cestu od odjezdu (Paříž, Francie) po aktivity, které můžeme dělat, s ohledem na to, že cesta bude trvat 7 dní - odjezd 21. dubna 2025. Zkontroluj předpověď počasí a teplotu na nadcházející dny a na základě toho naplánuj naše aktivity (venkovní vs vnitřní)."*
 
-5. **Working on Excel** ([Watch](https://www.suna.so/share/128f23a4-51cd-42a6-97a0-0b458b32010e)) - *"My company asked me to set up an Excel spreadsheet with all the information about Italian lottery games (Lotto, 10eLotto, and Million Day). Based on that, generate and send me a spreadsheet with all the basic information (public ones)."*
+5. **Práce s Excelem** ([Sledovat](https://www.suna.so/share/128f23a4-51cd-42a6-97a0-0b458b32010e)) - *"Moje společnost mě požádala, abych vytvořil tabulku v Excelu se všemi informacemi o italských loteriových hrách (Lotto, 10eLotto a Million Day). Na základě toho vygeneruj a pošli mi tabulku se všemi základními informacemi (veřejnými)."*
 
-6. **Automate Event Speaker Prospecting** ([Watch](https://www.suna.so/share/7a7592ea-ed44-4c69-bcb5-5f9bb88c188c)) - *"Find 20 AI ethics speakers from Europe who've spoken at conferences in the past year. Scrapes conference sites, cross-references LinkedIn and YouTube, and outputs contact info + talk summaries."*
+6. **Automatizace vyhledávání řečníků na akce** ([Sledovat](https://www.suna.so/share/7a7592ea-ed44-4c69-bcb5-5f9bb88c188c)) - *"Najdi 20 řečníků o etice AI z Evropy, kteří vystoupili na konferencích v posledním roce. Prohledej stránky konferencí, porovnej s LinkedIn a YouTube a vytvoř výstup s kontaktními informacemi a shrnutími přednášek."*
 
-7. **Summarize and Cross-Reference Scientific Papers** ([Watch](https://www.suna.so/share/c2081b3c-786e-4e7c-9bf4-46e9b23bb662)) - *"Research and compare scientific papers talking about Alcohol effects on our bodies during the last 5 years. Generate a report about the most important scientific papers talking about the topic I wrote before."*
+7. **Shrnutí a křížové odkazy vědeckých článků** ([Sledovat](https://www.suna.so/share/c2081b3c-786e-4e7c-9bf4-46e9b23bb662)) - *"Prozkoumej a porovnej vědecké články o účincích alkoholu na naše těla za posledních 5 let. Vygeneruj zprávu o nejdůležitějších vědeckých článcích zabývajících se tímto tématem."*
 
 8. **Research + First Contact Draft** ([Watch](https://www.suna.so/share/6b6296a6-8683-49e5-9ad0-a32952d12c44)) - *"Research my potential customers (B2B) on LinkedIn. They should be in the clean tech industry. Find their websites and their email addresses. After that, based on the company profile, generate a personalized first contact email where I present my company which is offering consulting services to cleantech companies to maximize their profits and reduce their costs."*
 
@@ -288,6 +288,133 @@ The Docker Compose setup includes a Redis service that will be used by the backe
 - [Tavily](https://tavily.com/) - Search capabilities
 - [Firecrawl](https://firecrawl.dev/) - Web scraping capabilities
 - [RapidAPI](https://rapidapi.com/) - API services
+
+
+## License
+
+Kortix Suna is licensed under the Apache License, Version 2.0. See [LICENSE](./LICENSE) for the full license text.
+
+- [Marko Kraemer](https://twitter.com/markokraemer)
+
+### Technologies
+- [Daytona](https://daytona.io/) - Secure agent execution environment
+- [Supabase](https://supabase.com/) -
+- [Playwright](https://playwright.dev/) - Browser automation
+- [OpenAI](https://openai.com/) - LLM provider
+- [Anthropic](https://www.anthropic.com/) - LLM provider
+- [Tavily](https://tavily.com/) - Search capabilities
+- [Firecrawl](https://firecrawl.dev/) - Web scraping capabilities
+- [RapidAPI](https://rapidapi.com/) - API services
+
+
+## License
+
+Kortix Suna is licensed under the Apache License, Version 2.0. See [LICENSE](./LICENSE) for the full license text.
+
+### Technologies
+- [Daytona](https://daytona.io/) - Secure agent execution environment
+- [Supabase](https://supabase.com/) -
+- [Playwright](https://playwright.dev/) - Browser automation
+- [OpenAI](https://openai.com/) - LLM provider
+- [Anthropic](https://www.anthropic.com/) - LLM provider
+- [Tavily](https://tavily.com/) - Search capabilities
+- [Firecrawl](https://firecrawl.dev/) - Web scraping capabilities
+- [RapidAPI](https://rapidapi.com/) - API services
+
+
+## License
+
+Kortix Suna is licensed under the Apache License, Version 2.0. See [LICENSE](./LICENSE) for the full license text.
+
+- [Daytona](https://daytona.io/) - Secure agent execution environment
+- [Supabase](https://supabase.com/) -
+- [Playwright](https://playwright.dev/) - Browser automation
+- [OpenAI](https://openai.com/) - LLM provider
+- [Anthropic](https://www.anthropic.com/) - LLM provider
+- [Tavily](https://tavily.com/) - Search capabilities
+- [Firecrawl](https://firecrawl.dev/) - Web scraping capabilities
+- [RapidAPI](https://rapidapi.com/) - API services
+
+
+## License
+
+Kortix Suna is licensed under the Apache License, Version 2.0. See [LICENSE](./LICENSE) for the full license text.
+
+- [Supabase](https://supabase.com/) -
+- [Playwright](https://playwright.dev/) - Browser automation
+- [OpenAI](https://openai.com/) - LLM provider
+- [Anthropic](https://www.anthropic.com/) - LLM provider
+- [Tavily](https://tavily.com/) - Search capabilities
+- [Firecrawl](https://firecrawl.dev/) - Web scraping capabilities
+- [RapidAPI](https://rapidapi.com/) - API services
+
+
+## License
+
+Kortix Suna is licensed under the Apache License, Version 2.0. See [LICENSE](./LICENSE) for the full license text.
+
+- [Playwright](https://playwright.dev/) - Browser automation
+- [OpenAI](https://openai.com/) - LLM provider
+- [Anthropic](https://www.anthropic.com/) - LLM provider
+- [Tavily](https://tavily.com/) - Search capabilities
+- [Firecrawl](https://firecrawl.dev/) - Web scraping capabilities
+- [RapidAPI](https://rapidapi.com/) - API services
+
+
+## License
+
+Kortix Suna is licensed under the Apache License, Version 2.0. See [LICENSE](./LICENSE) for the full license text.
+
+- [OpenAI](https://openai.com/) - LLM provider
+- [Anthropic](https://www.anthropic.com/) - LLM provider
+- [Tavily](https://tavily.com/) - Search capabilities
+- [Firecrawl](https://firecrawl.dev/) - Web scraping capabilities
+- [RapidAPI](https://rapidapi.com/) - API services
+
+
+## License
+
+Kortix Suna is licensed under the Apache License, Version 2.0. See [LICENSE](./LICENSE) for the full license text.
+
+- [Anthropic](https://www.anthropic.com/) - LLM provider
+- [Tavily](https://tavily.com/) - Search capabilities
+- [Firecrawl](https://firecrawl.dev/) - Web scraping capabilities
+- [RapidAPI](https://rapidapi.com/) - API services
+
+
+## License
+
+Kortix Suna is licensed under the Apache License, Version 2.0. See [LICENSE](./LICENSE) for the full license text.
+
+- [Tavily](https://tavily.com/) - Search capabilities
+- [Firecrawl](https://firecrawl.dev/) - Web scraping capabilities
+- [RapidAPI](https://rapidapi.com/) - API services
+
+
+## License
+
+Kortix Suna is licensed under the Apache License, Version 2.0. See [LICENSE](./LICENSE) for the full license text.
+
+- [Firecrawl](https://firecrawl.dev/) - Web scraping capabilities
+- [RapidAPI](https://rapidapi.com/) - API services
+
+
+## License
+
+Kortix Suna is licensed under the Apache License, Version 2.0. See [LICENSE](./LICENSE) for the full license text.
+
+- [RapidAPI](https://rapidapi.com/) - API services
+
+
+## License
+
+Kortix Suna is licensed under the Apache License, Version 2.0. See [LICENSE](./LICENSE) for the full license text.
+
+
+
+## License
+
+Kortix Suna is licensed under the Apache License, Version 2.0. See [LICENSE](./LICENSE) for the full license text.
 
 
 ## License
