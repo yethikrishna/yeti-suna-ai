@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/tooltip"
 import { getProjects, getThreads, Project, deleteThread } from "@/lib/api"
 import Link from "next/link"
+import { DeleteConfirmationDialog } from "@/components/thread/DeleteConfirmationDialog"
 
 // Thread with associated project info for display in sidebar
 type ThreadWithProject = {
@@ -53,6 +54,9 @@ export function NavAgents() {
   const [loadingThreadId, setLoadingThreadId] = useState<string | null>(null)
   const pathname = usePathname()
   const router = useRouter()
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [threadToDelete, setThreadToDelete] = useState<{ id: string; name: string } | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   // Helper to sort threads by updated_at (most recent first)
   const sortThreads = (threadsList: ThreadWithProject[]): ThreadWithProject[] => {
@@ -182,36 +186,39 @@ export function NavAgents() {
   }
   
   // Function to handle thread deletion
-  const handleDeleteThread = async (threadId: string) => {
-    // Chiedere conferma prima di procedere
-    if (confirm("Sei sicuro di voler eliminare questa conversazione?")) {
-      try {
-        // Impostare stato di caricamento
-        setLoadingThreadId(threadId);
-        
-        // Eliminare il thread
-        await deleteThread(threadId);
-        
-        // Aggiornare la lista di thread
-        setThreads(prevThreads => prevThreads.filter(t => t.threadId !== threadId));
-        
-        // Mostrare un messaggio di successo
-        toast.success("Conversazione eliminata con successo");
-        
-        // Resettare lo stato di caricamento
-        setLoadingThreadId(null);
-        
-        // Se la conversazione corrente è stata eliminata, reindirizzare alla dashboard
-        if (pathname?.includes(threadId)) {
-          router.push('/dashboard');
-        }
-      } catch (error) {
-        console.error("Errore durante l'eliminazione:", error);
-        toast.error("Impossibile eliminare la conversazione");
-        
-        // Resettare lo stato di caricamento in caso di errore
-        setLoadingThreadId(null);
+  const handleDeleteThread = async (threadId: string, threadName: string) => {
+    setThreadToDelete({ id: threadId, name: threadName });
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!threadToDelete) return;
+    
+    try {
+      // Impostare stato di caricamento
+      setIsDeleting(true);
+      
+      // Eliminare il thread
+      await deleteThread(threadToDelete.id);
+      
+      // Aggiornare la lista di thread
+      setThreads(prevThreads => prevThreads.filter(t => t.threadId !== threadToDelete.id));
+      
+      // Mostrare un messaggio di successo
+      toast.success("Conversazione eliminata con successo");
+      
+      // Se la conversazione corrente è stata eliminata, reindirizzare alla dashboard
+      if (pathname?.includes(threadToDelete.id)) {
+        router.push('/dashboard');
       }
+    } catch (error) {
+      console.error("Errore durante l'eliminazione:", error);
+      toast.error("Impossibile eliminare la conversazione");
+    } finally {
+      // Resettare gli stati
+      setIsDeleting(false);
+      setIsDeleteDialogOpen(false);
+      setThreadToDelete(null);
     }
   };
 
@@ -327,7 +334,7 @@ export function NavAgents() {
                           </a>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => handleDeleteThread(thread.threadId)}>
+                        <DropdownMenuItem onClick={() => handleDeleteThread(thread.threadId, thread.projectName)}>
                           <Trash2 className="text-muted-foreground" />
                           <span>Delete</span>
                         </DropdownMenuItem>
@@ -348,6 +355,16 @@ export function NavAgents() {
           </SidebarMenuItem>
         )}
       </SidebarMenu>
+
+      {threadToDelete && (
+        <DeleteConfirmationDialog
+          isOpen={isDeleteDialogOpen}
+          onClose={() => setIsDeleteDialogOpen(false)}
+          onConfirm={confirmDelete}
+          threadName={threadToDelete.name}
+          isDeleting={isDeleting}
+        />
+      )}
     </SidebarGroup>
   )
 }
