@@ -2,7 +2,7 @@
 LLM API interface for making calls to various language models.
 
 This module provides a unified interface for making API calls to different LLM providers
-(OpenAI, Anthropic, Groq, etc.) using LiteLLM. It includes support for:
+(OpenAI, Anthropic, Groq, Google Gemini, etc.) using LiteLLM. It includes support for:
 - Streaming responses
 - Tool calls and function calling
 - Retry logic with exponential backoff
@@ -23,6 +23,7 @@ import traceback
 
 # litellm.set_verbose=True
 litellm.modify_params=True
+litellm.drop_params=True
 
 # Constants
 MAX_RETRIES = 3
@@ -38,33 +39,65 @@ class LLMRetryError(LLMError):
     pass
 
 def setup_api_keys() -> None:
-    """Set up API keys from environment variables."""
-    providers = ['OPENAI', 'ANTHROPIC', 'GROQ', 'OPENROUTER']
-    for provider in providers:
-        key = getattr(config, f'{provider}_API_KEY')
-        if key:
-            logger.debug(f"API key set for provider: {provider}")
-        else:
-            logger.warning(f"No API key found for provider: {provider}")
+    """
+    Set up API keys from environment variables for all supported LLM providers.
     
-    # Set up OpenRouter API base if not already set
-    if config.OPENROUTER_API_KEY and config.OPENROUTER_API_BASE:
+    This function checks for the presence of API keys for each supported provider
+    and configures the environment accordingly. It also provides detailed logging
+    about which providers and models are available.
+    """
+    # Check API keys by provider
+    providers_status = {
+        'anthropic': bool(config.ANTHROPIC_API_KEY),
+        'openai': bool(config.OPENAI_API_KEY),
+        'groq': bool(config.GROQ_API_KEY),
+        'openrouter': bool(config.OPENROUTER_API_KEY),
+        'gemini': bool(config.GEMINI_API_KEY),
+        'aws_bedrock': bool(config.AWS_ACCESS_KEY_ID and config.AWS_SECRET_ACCESS_KEY and config.AWS_REGION_NAME)
+    }
+    
+    # Status log by provider
+    available_providers = []
+    for provider, available in providers_status.items():
+        if available:
+            logger.debug(f"API key set for provider: {provider.upper()}")
+            available_providers.append(provider)
+        else:
+            logger.warning(f"No API key found for provider: {provider.upper()}")
+    
+    if available_providers:
+        logger.info(f"LLM providers available: {', '.join(available_providers).upper()}")
+    else:
+        logger.warning("No LLM providers configured with valid API keys")
+    
+    # OpenRouter specific configuration
+    if providers_status['openrouter'] and config.OPENROUTER_API_BASE:
         os.environ['OPENROUTER_API_BASE'] = config.OPENROUTER_API_BASE
         logger.debug(f"Set OPENROUTER_API_BASE to {config.OPENROUTER_API_BASE}")
+        
+        # Configure site URL and app name for OpenRouter if available
+        site_url = config.OR_SITE_URL
+        app_name = config.OR_APP_NAME
+        if site_url or app_name:
+            logger.debug(f"OpenRouter configured with site URL: {bool(site_url)}, app name: {bool(app_name)}")
     
-    # Set up AWS Bedrock credentials
-    aws_access_key = config.AWS_ACCESS_KEY_ID
-    aws_secret_key = config.AWS_SECRET_ACCESS_KEY
-    aws_region = config.AWS_REGION_NAME
+    # Specific configuration for Google Gemini
+    if providers_status['gemini']:
+        os.environ['GEMINI_API_KEY'] = config.GEMINI_API_KEY
+        logger.debug(f"Set GEMINI_API_KEY in environment variables")
     
-    if aws_access_key and aws_secret_key and aws_region:
-        logger.debug(f"AWS credentials set for Bedrock in region: {aws_region}")
+    # Specific configuration for AWS Bedrock
+    if providers_status['aws_bedrock']:
+        logger.debug(f"AWS credentials set for Bedrock in region: {config.AWS_REGION_NAME}")
         # Configure LiteLLM to use AWS credentials
-        os.environ['AWS_ACCESS_KEY_ID'] = aws_access_key
-        os.environ['AWS_SECRET_ACCESS_KEY'] = aws_secret_key
-        os.environ['AWS_REGION_NAME'] = aws_region
+        os.environ['AWS_ACCESS_KEY_ID'] = config.AWS_ACCESS_KEY_ID
+        os.environ['AWS_SECRET_ACCESS_KEY'] = config.AWS_SECRET_ACCESS_KEY
+        os.environ['AWS_REGION_NAME'] = config.AWS_REGION_NAME
+        logger.info(f"AWS Bedrock models available: claude-3-7-sonnet and others")
     else:
-        logger.warning(f"Missing AWS credentials for Bedrock integration - access_key: {bool(aws_access_key)}, secret_key: {bool(aws_secret_key)}, region: {aws_region}")
+        logger.debug(f"AWS Bedrock integration not available (missing credentials)")
+        
+    # Other specific configurations for each provider can be added here
 
 async def handle_error(error: Exception, attempt: int, max_attempts: int) -> None:
     """Handle API errors with appropriate delays and logging."""
@@ -156,6 +189,21 @@ def prepare_params(
         if not model_id and "anthropic.claude-3-7-sonnet" in model_name:
             params["model_id"] = "arn:aws:bedrock:us-west-2:935064898258:inference-profile/us.anthropic.claude-3-7-sonnet-20250219-v1:0"
             logger.debug(f"Auto-set model_id for Claude 3.7 Sonnet: {params['model_id']}")
+    
+    # Add Gemini-specific parameters
+    if "gemini" in model_name.lower():
+        logger.debug(f"Preparing Google Gemini parameters for model: {model_name}")
+        
+        # Gemini supports 'thinking' with specific structure
+        if enable_thinking:
+            # Use the correct format for Gemini thinking through LiteLLM
+            params["thinking"] = {
+                "type": "enabled",
+                "budget_tokens": 1024  # Adjust as needed
+            }
+            logger.debug(f"Added thinking capability for Gemini model: {params['thinking']}")
+            
+        # Note: reasoning_effort is not needed for Gemini when using thinking directly
 
     # Apply Anthropic prompt caching (minimal implementation)
     # Check model name *after* potential modifications (like adding bedrock/ prefix)
@@ -394,12 +442,51 @@ async def test_bedrock():
         print(f"Error testing Bedrock: {str(e)}")
         return False
 
+async def test_gemini():
+    """Test the Google Gemini integration with a simple query."""
+    test_messages = [
+        {"role": "user", "content": "Hello, can you give me a quick test response?"}
+    ]
+    
+    try:
+        # Test with Gemini Pro model
+        print("\n--- Testing Gemini Pro model ---")
+        response = await make_llm_api_call(
+            model_name="gemini/gemini-1.5-pro",
+            messages=test_messages,
+            temperature=0.7,
+            max_tokens=100
+        )
+        print(f"Response: {response.choices[0].message.content}")
+        print(f"Model used: {response.model}")
+        
+        # Test with Gemini Flash model with thinking
+        print("\n--- Testing Gemini Flash model with thinking ---")
+        response = await make_llm_api_call(
+            model_name="gemini/gemini-1.5-flash",
+            messages=test_messages,
+            temperature=0.7,
+            max_tokens=100,
+            enable_thinking=True  # Ativa o thinking usando o formato correto
+            # O parâmetro thinking será adicionado automaticamente no prepare_params
+        )
+        print(f"Response: {response.choices[0].message.content}")
+        print(f"Model used: {response.model}")
+        
+        return True
+    except Exception as e:
+        print(f"Error testing Gemini: {str(e)}")
+        return False
+
 if __name__ == "__main__":
     import asyncio
         
-    test_success = asyncio.run(test_bedrock())
+    # Escolha qual teste executar comentando/descomentando as linhas abaixo
+    # test_success = asyncio.run(test_bedrock())
+    test_success = asyncio.run(test_gemini())
+    # test_success = asyncio.run(test_openrouter())
     
     if test_success:
         print("\n✅ integration test completed successfully!")
     else:
-        print("\n❌ Bedrock integration test failed!")
+        print("\n❌ Integration test failed!")

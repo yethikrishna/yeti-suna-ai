@@ -109,13 +109,23 @@ class Configuration:
         return self.STRIPE_TIER_200_1000_ID_PROD
     
     # LLM API keys
-    ANTHROPIC_API_KEY: str = None
+    # Anthropic
+    ANTHROPIC_API_KEY: Optional[str] = None
+    
+    # OpenAI
     OPENAI_API_KEY: Optional[str] = None
+    
+    # Groq
     GROQ_API_KEY: Optional[str] = None
+    
+    # OpenRouter
     OPENROUTER_API_KEY: Optional[str] = None
     OPENROUTER_API_BASE: Optional[str] = "https://openrouter.ai/api/v1"
     OR_SITE_URL: Optional[str] = None
     OR_APP_NAME: Optional[str] = "Suna.so"    
+    
+    # Google Gemini
+    GEMINI_API_KEY: Optional[str] = None
     
     # AWS Bedrock credentials
     AWS_ACCESS_KEY_ID: Optional[str] = None
