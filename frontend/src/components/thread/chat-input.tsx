@@ -87,13 +87,10 @@ export const ChatInput = forwardRef<ChatInputHandles, ChatInputProps>(({
     { id: "gpt-4.1", label: "GPT-4.1", provider: "openai" },
     
     // Google Gemini Models
-    { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash", provider: "gemini" },
     { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro", provider: "gemini" },
-    { id: "gemini-2.0-flash-lite", label: "Gemini 2.0 Flash Lite", provider: "gemini" },
-    { id: "gemini-2.0-flash", label: "Gemini 2.0 Flash", provider: "gemini" },
             
     // Other Models via OpenRouter
-    { id: "gemini-flash-2.5", label: "Gemini Flash (OpenRouter)", provider: "openrouter" },
+    { id: "gemini-flash-2.5", label: "Gemini 2.5 Flash ", provider: "openrouter" },
     { id: "grok-3", label: "Grok 3", provider: "openrouter" },
     { id: "deepseek", label: "DeepSeek", provider: "openrouter" },
     { id: "grok-3-mini", label: "Grok 3 Mini", provider: "openrouter" }
