@@ -22,6 +22,7 @@ from agent.prompt import get_system_prompt  # 获取系统提示
 from utils import logger  # 日志工具
 from utils.auth_utils import get_account_id_from_thread  # 从线程获取账户ID
 from services.billing import check_billing_status  # 检查账单状态
+from agent.tools.sb_vision_tool import SandboxVisionTool  # 沙盒视觉工具
 
 # 加载环境变量
 load_dotenv()
@@ -69,8 +70,8 @@ async def run_agent(
     thread_manager.add_tool(SandboxDeployTool, project_id=project_id, thread_manager=thread_manager)  # 添加沙盒部署工具
     thread_manager.add_tool(SandboxExposeTool, project_id=project_id, thread_manager=thread_manager)  # 添加沙盒端口暴露工具
     thread_manager.add_tool(MessageTool)  # 添加消息工具，通过提示实现，无需作为工具调用
- 
     thread_manager.add_tool(WebSearchTool)  # 添加网络搜索工具
+    thread_manager.add_tool(SandboxVisionTool, project_id=project_id, thread_id=thread_id, thread_manager=thread_manager)  # 添加沙盒视觉工具
         
     # 如果有RapidAPI密钥，添加数据提供者工具
     if config.RAPID_API_KEY:
@@ -107,37 +108,74 @@ async def run_agent(
                 continue_execution = False
                 break
             
-        # Get the latest message from messages table that its type is browser_state
-        latest_browser_state = await client.table('messages').select('*').eq('thread_id', thread_id).eq('type', 'browser_state').order('created_at', desc=True).limit(1).execute()
+        # ---- Temporary Message Handling (Browser State & Image Context) ----
         temporary_message = None
-        if latest_browser_state.data and len(latest_browser_state.data) > 0:
+        temp_message_content_list = [] # List to hold text/image blocks
+
+        # Get the latest browser_state message
+        latest_browser_state_msg = await client.table('messages').select('*').eq('thread_id', thread_id).eq('type', 'browser_state').order('created_at', desc=True).limit(1).execute()
+        if latest_browser_state_msg.data and len(latest_browser_state_msg.data) > 0:
             try:
-                content = json.loads(latest_browser_state.data[0]["content"])
-                screenshot_base64 = content["screenshot_base64"]
+                browser_content = json.loads(latest_browser_state_msg.data[0]["content"])
+                screenshot_base64 = browser_content.get("screenshot_base64")
                 # Create a copy of the browser state without screenshot
-                browser_state = content.copy()
-                browser_state.pop('screenshot_base64', None)
-                browser_state.pop('screenshot_url', None) 
-                browser_state.pop('screenshot_url_base64', None)
-                temporary_message = { "role": "user", "content": [] }
-                if browser_state:
-                    temporary_message["content"].append({
+                browser_state_text = browser_content.copy()
+                browser_state_text.pop('screenshot_base64', None)
+                browser_state_text.pop('screenshot_url', None)
+                browser_state_text.pop('screenshot_url_base64', None)
+
+                if browser_state_text:
+                    temp_message_content_list.append({
                         "type": "text",
-                        "text": f"The following is the current state of the browser:\n{browser_state}"
+                        "text": f"The following is the current state of the browser:\n{json.dumps(browser_state_text, indent=2)}"
                     })
                 if screenshot_base64:
-                    temporary_message["content"].append({
+                    temp_message_content_list.append({
                         "type": "image_url",
-                            "image_url": {
-                                "url": f"data:image/jpeg;base64,{screenshot_base64}",
-                            }
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{screenshot_base64}",
+                        }
                     })
                 else:
-                    print("@@@@@ THIS TIME NO SCREENSHOT!!")
+                    logger.warning("Browser state found but no screenshot base64 data.")
+                
+                await client.table('messages').delete().eq('message_id', latest_browser_state_msg.data[0]["message_id"]).execute()
             except Exception as e:
-                print(f"Error parsing browser state: {e}")
-                # print(latest_browser_state.data[0])
-        
+                logger.error(f"Error parsing browser state: {e}")
+
+        # Get the latest image_context message (NEW)
+        latest_image_context_msg = await client.table('messages').select('*').eq('thread_id', thread_id).eq('type', 'image_context').order('created_at', desc=True).limit(1).execute()
+        if latest_image_context_msg.data and len(latest_image_context_msg.data) > 0:
+            try:
+                image_context_content = json.loads(latest_image_context_msg.data[0]["content"])
+                base64_image = image_context_content.get("base64")
+                mime_type = image_context_content.get("mime_type")
+                file_path = image_context_content.get("file_path", "unknown file")
+
+                if base64_image and mime_type:
+                    temp_message_content_list.append({
+                        "type": "text",
+                        "text": f"Here is the image you requested to see: '{file_path}'"
+                    })
+                    temp_message_content_list.append({
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:{mime_type};base64,{base64_image}",
+                        }
+                    })
+                else:
+                    logger.warning(f"Image context found for '{file_path}' but missing base64 or mime_type.")
+                
+                await client.table('messages').delete().eq('message_id', latest_image_context_msg.data[0]["message_id"]).execute()
+            except Exception as e:
+                logger.error(f"Error parsing image context: {e}")
+
+        # If we have any content, construct the temporary_message
+        if temp_message_content_list:
+            temporary_message = {"role": "user", "content": temp_message_content_list}
+            # logger.debug(f"Constructed temporary message with {len(temp_message_content_list)} content blocks.")
+        # ---- End Temporary Message Handling ----
+
         max_tokens = 64000 if "sonnet" in model_name.lower() else None
 
         response = await thread_manager.run_thread(
