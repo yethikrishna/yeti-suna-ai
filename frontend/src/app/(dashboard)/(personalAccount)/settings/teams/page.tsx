@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 
 import { useState, useEffect } from "react";
 import ManageTeams from "@/components/basejump/manage-teams";
-import { createClient } from "@/utils/supabase/client"; // Assuming this is the correct path
+import { createClient } from "@/lib/supabase/client"; // Assuming this is the correct path
 
 export default function PersonalAccountTeamsPage() {
   const [teams, setTeams] = useState<any[] | null>(null); // Use appropriate type for teams
