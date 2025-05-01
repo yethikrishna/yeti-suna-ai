@@ -49,9 +49,9 @@ export interface PricingTier {
 }
 
 export const siteConfig = {
-  name: "Kortix Suna",
+  name: "OoKoO",
   description: "The Generalist AI Agent that can act on your behalf.",
-  cta: "Hire Suna",
+  cta: "Hire OoKoO",
   url: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
   keywords: [
     "AI Agent",
@@ -61,17 +61,15 @@ export const siteConfig = {
   ],
   links: {
     email: "support@kortix.ai",
-    twitter: "https://x.com/kortixai",
-    discord: "https://discord.gg/kortixai",
-    github: "https://github.com/Kortix-ai/Suna",
-    instagram: "https://instagram.com/kortixai",
+    twitter: "",
+    discord: "",
+    github: "",
+    instagram: "",
   },
   nav: {
     links: [
       { id: 1, name: "Home", href: "#hero" },
       { id: 2, name: "Use Cases", href: "#use-cases" },
-      { id: 3, name: "Open Source", href: "#open-source" },
-      { id: 4, name: "Pricing", href: "#pricing" },
     ],
   },
   hero: {
@@ -91,16 +89,16 @@ export const siteConfig = {
     ),
     badge: "100% OPEN SOURCE",
     githubUrl: "https://github.com/kortix-ai/suna",
-    title: "Suna, the AI Employee.",
-    description: "Suna by Kortix – is a generalist AI Agent that acts on your behalf.",
-    inputPlaceholder: "Ask Suna to...",
+    title: "OoKoO, the AI Employee.",
+    description: "OoKoO – is a generalist AI Agent that acts on your behalf.",
+    inputPlaceholder: "Ask OoKoO to...",
   },
   cloudPricingItems: [
     {
       name: "Free",
       price: "$0",
       description: "Get started with",
-      buttonText: "Hire Suna",
+      buttonText: "Hire OoKoO",
       buttonColor: "bg-secondary text-white",
       isPopular: false,
       hours: "10 min",
@@ -114,7 +112,7 @@ export const siteConfig = {
       name: "Pro",
       price: "$20",
       description: "Everything in Free, plus:",
-      buttonText: "Hire Suna",
+      buttonText: "Hire OoKoO",
       buttonColor: "bg-primary text-white dark:text-black",
       isPopular: true,
       hours: "2 hours",
@@ -130,7 +128,7 @@ export const siteConfig = {
       name: "Custom",
       price: "$50",
       description: "Everything in Pro, plus:",
-      buttonText: "Hire Suna",
+      buttonText: "Hire OoKoO",
       buttonColor: "bg-secondary text-white",
       isPopular: false,
       hours: "6 hours",
@@ -350,9 +348,9 @@ export const siteConfig = {
     ],
   },
   featureSection: {
-    title: "How Kortix Suna Works",
+    title: "How OoKoK Works",
     description:
-      "Discover how Kortix Suna transforms your commands into action in four easy steps",
+      "Discover how OoKoO transforms your commands into action in four easy steps",
     items: [
       {
         id: 1,
@@ -389,16 +387,16 @@ export const siteConfig = {
     ],
   },
   bentoSection: {
-    title: "Empower Your Workflow with Kortix Suna",
+    title: "Empower Your Workflow with OoKoO",
     description:
-      "Let Kortix Suna act on your behalf with advanced AI capabilities, seamless integrations, and autonomous task execution.",
+      "Let OoKoO act on your behalf with advanced AI capabilities, seamless integrations, and autonomous task execution.",
     items: [
       {
         id: 1,
         content: <FirstBentoAnimation />,
         title: "Autonomous Task Execution",
         description:
-          "Experience true automation with Suna. Ask your AI Agent to complete tasks, research information, and handle complex workflows with minimal supervision.",
+          "Experience true automation with OoKoO. Ask your AI Agent to complete tasks, research information, and handle complex workflows with minimal supervision.",
       },
       {
         id: 2,
@@ -755,7 +753,7 @@ export const siteConfig = {
   },
   quoteSection: {
     quote:
-      "Kortix Suna has transformed how we approach everyday tasks. The level of automation it provides, combined with its open source nature, makes it an invaluable tool for our entire organization.",
+      "OoKoO has transformed how we approach everyday tasks. The level of automation it provides, combined with its open source nature, makes it an invaluable tool for our entire organization.",
     author: {
       name: "Alex Johnson",
       role: "CTO, Innovatech",
@@ -765,7 +763,7 @@ export const siteConfig = {
   pricing: {
     title: "Open Source & Free Forever",
     description:
-      "Kortix Suna is 100% open source and free to use. No hidden fees, no premium features locked behind paywalls.",
+      "OoKoO is 100% open source and free to use. No hidden fees, no premium features locked behind paywalls.",
     pricingItems: [
       {
         name: "Community",
@@ -780,7 +778,7 @@ export const siteConfig = {
           "Community support",
         ],
         description: "Perfect for individual users and developers",
-        buttonText: "Hire Suna",
+        buttonText: "Hire OoKoO",
         buttonColor: "bg-accent text-primary",
         isPopular: false,
       },
@@ -1072,17 +1070,17 @@ export const siteConfig = {
   },
   ctaSection: {
     id: "cta",
-    title: "Start Using Kortix Suna Today",
+    title: "Start Using OoKoO Today",
     backgroundImage: "/holo.png",
     button: {
-      text: "Hire Suna today",
+      text: "Hire OoKoO today",
       href: "/auth",
     },
     subtext: "The generalist AI Agent that acts on your behalf",
   },
   footerLinks: [
     {
-      title: "Kortix",
+      title: "OoKoO",
       links: [
         { id: 1, title: "About", url: "https://kortix.ai" },
         { id: 3, title: "Contact", url: "mailto:hey@kortix.ai" },

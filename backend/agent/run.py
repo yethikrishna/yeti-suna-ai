@@ -4,77 +4,82 @@ import re
 from uuid import uuid4
 from typing import Optional
 
-# from agent.tools.message_tool import MessageTool
-from agent.tools.message_tool import MessageTool
-from agent.tools.sb_deploy_tool import SandboxDeployTool
-from agent.tools.sb_expose_tool import SandboxExposeTool
-from agent.tools.web_search_tool import WebSearchTool
-from dotenv import load_dotenv
-from utils.config import config
+# 导入代理工具
+from agent.tools.message_tool import MessageTool  # 消息工具，用于代理发送消息
+from agent.tools.sb_deploy_tool import SandboxDeployTool  # 沙盒部署工具
+from agent.tools.sb_expose_tool import SandboxExposeTool  # 沙盒端口暴露工具
+from agent.tools.web_search_tool import WebSearchTool  # 网络搜索工具
+from dotenv import load_dotenv  # 环境变量加载
+from utils.config import config  # 配置管理
 
-from agentpress.thread_manager import ThreadManager
-from agentpress.response_processor import ProcessorConfig
-from agent.tools.sb_shell_tool import SandboxShellTool
-from agent.tools.sb_files_tool import SandboxFilesTool
-from agent.tools.sb_browser_tool import SandboxBrowserTool
-from agent.tools.data_providers_tool import DataProvidersTool
-from agent.prompt import get_system_prompt
-from utils import logger
-from utils.auth_utils import get_account_id_from_thread
-from services.billing import check_billing_status
+from agentpress.thread_manager import ThreadManager  # 线程管理器
+from agentpress.response_processor import ProcessorConfig  # 响应处理器配置
+from agent.tools.sb_shell_tool import SandboxShellTool  # 沙盒Shell工具
+from agent.tools.sb_files_tool import SandboxFilesTool  # 沙盒文件工具
+from agent.tools.sb_browser_tool import SandboxBrowserTool  # 沙盒浏览器工具
+from agent.tools.data_providers_tool import DataProvidersTool  # 数据提供者工具
+from agent.prompt import get_system_prompt  # 获取系统提示
+from utils import logger  # 日志工具
+from utils.auth_utils import get_account_id_from_thread  # 从线程获取账户ID
+from services.billing import check_billing_status  # 检查账单状态
 
+# 加载环境变量
 load_dotenv()
 
 async def run_agent(
-    thread_id: str,
-    project_id: str,
-    stream: bool,
-    thread_manager: Optional[ThreadManager] = None,
-    native_max_auto_continues: int = 25,
-    max_iterations: int = 150,
-    model_name: str = "anthropic/claude-3-7-sonnet-latest",
-    enable_thinking: Optional[bool] = False,
-    reasoning_effort: Optional[str] = 'low',
-    enable_context_manager: bool = True
+    thread_id: str,  # 对话线程ID
+    project_id: str,  # 项目ID
+    stream: bool,  # 是否使用流式响应
+    thread_manager: Optional[ThreadManager] = None,  # 线程管理器实例
+    native_max_auto_continues: int = 25,  # 最大自动继续次数
+    max_iterations: int = 150,  # 最大迭代次数
+    model_name: str = "openrouter/google/gemini-2.0-flash-exp:free",  # 使用的LLM模型
+    enable_thinking: Optional[bool] = False,  # 是否启用思考模式
+    reasoning_effort: Optional[str] = 'low',  # 推理努力程度
+    enable_context_manager: bool = True  # 是否启用上下文管理器
 ):
-    """Run the development agent with specified configuration."""
+    """运行开发代理，使用指定的配置。"""
     
+    # 初始化线程管理器
     thread_manager = ThreadManager()
 
+    # 获取数据库客户端
     client = await thread_manager.db.client
 
-    # Get account ID from thread for billing checks
+    # 从线程获取账户ID，用于账单检查
     account_id = await get_account_id_from_thread(client, thread_id)
     if not account_id:
-        raise ValueError("Could not determine account ID for thread")
+        raise ValueError("无法确定线程的账户ID")
 
-    # Get sandbox info from project
+    # 从项目获取沙盒信息
     project = await client.table('projects').select('*').eq('project_id', project_id).execute()
     if not project.data or len(project.data) == 0:
-        raise ValueError(f"Project {project_id} not found")
+        raise ValueError(f"找不到项目 {project_id}")
     
     project_data = project.data[0]
     sandbox_info = project_data.get('sandbox', {})
     if not sandbox_info.get('id'):
-        raise ValueError(f"No sandbox found for project {project_id}")
+        raise ValueError(f"项目 {project_id} 没有找到沙盒")
     
-    # Initialize tools with project_id instead of sandbox object
-    # This ensures each tool independently verifies it's operating on the correct project
-    thread_manager.add_tool(SandboxShellTool, project_id=project_id, thread_manager=thread_manager)
-    thread_manager.add_tool(SandboxFilesTool, project_id=project_id, thread_manager=thread_manager)
-    thread_manager.add_tool(SandboxBrowserTool, project_id=project_id, thread_id=thread_id, thread_manager=thread_manager)
-    thread_manager.add_tool(SandboxDeployTool, project_id=project_id, thread_manager=thread_manager)
-    thread_manager.add_tool(SandboxExposeTool, project_id=project_id, thread_manager=thread_manager)
-    thread_manager.add_tool(MessageTool) # we are just doing this via prompt as there is no need to call it as a tool
+    # 使用project_id初始化工具，而不是沙盒对象
+    # 这确保每个工具独立验证它是否在正确的项目上操作
+    thread_manager.add_tool(SandboxShellTool, project_id=project_id, thread_manager=thread_manager)  # 添加沙盒Shell工具
+    thread_manager.add_tool(SandboxFilesTool, project_id=project_id, thread_manager=thread_manager)  # 添加沙盒文件工具
+    thread_manager.add_tool(SandboxBrowserTool, project_id=project_id, thread_id=thread_id, thread_manager=thread_manager)  # 添加沙盒浏览器工具
+    thread_manager.add_tool(SandboxDeployTool, project_id=project_id, thread_manager=thread_manager)  # 添加沙盒部署工具
+    thread_manager.add_tool(SandboxExposeTool, project_id=project_id, thread_manager=thread_manager)  # 添加沙盒端口暴露工具
+    thread_manager.add_tool(MessageTool)  # 添加消息工具，通过提示实现，无需作为工具调用
  
-    thread_manager.add_tool(WebSearchTool)
+    thread_manager.add_tool(WebSearchTool)  # 添加网络搜索工具
         
-    # Add data providers tool if RapidAPI key is available
+    # 如果有RapidAPI密钥，添加数据提供者工具
     if config.RAPID_API_KEY:
         thread_manager.add_tool(DataProvidersTool)
 
+    # 设置系统消息，包含系统提示
     system_message = { "role": "system", "content": get_system_prompt() }
 
+    # 初始化迭代计数和执行控制
     iteration_count = 0
     continue_execution = True
     

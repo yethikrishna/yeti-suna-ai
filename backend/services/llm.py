@@ -1,13 +1,13 @@
 """
-LLM API interface for making calls to various language models.
+LLM API接口，用于调用各种语言模型。
 
-This module provides a unified interface for making API calls to different LLM providers
-(OpenAI, Anthropic, Groq, etc.) using LiteLLM. It includes support for:
-- Streaming responses
-- Tool calls and function calling
-- Retry logic with exponential backoff
-- Model-specific configurations
-- Comprehensive error handling and logging
+本模块提供了一个统一的接口，用于使用LiteLLM向不同的LLM提供商
+(OpenAI, Anthropic, Groq等)发起API调用。它支持以下功能：
+- 流式响应
+- 工具调用和函数调用
+- 带指数退避的重试逻辑
+- 特定模型的配置
+- 全面的错误处理和日志记录
 """
 
 from typing import Union, Dict, Any, Optional, AsyncGenerator, List
@@ -21,36 +21,38 @@ from utils.config import config
 from datetime import datetime
 import traceback
 
-# litellm.set_verbose=True
-litellm.modify_params=True
+# 设置LiteLLM参数
+# litellm.set_verbose=True  # 详细日志，当前已注释
+litellm.modify_params=True  # 允许修改参数
 
-# Constants
-MAX_RETRIES = 3
-RATE_LIMIT_DELAY = 30
-RETRY_DELAY = 5
+# 常量定义
+MAX_RETRIES = 3  # 最大重试次数
+RATE_LIMIT_DELAY = 30  # 速率限制延迟（秒）
+RETRY_DELAY = 5  # 重试延迟（秒）
 
 class LLMError(Exception):
-    """Base exception for LLM-related errors."""
+    """LLM相关错误的基础异常类。"""
     pass
 
 class LLMRetryError(LLMError):
-    """Exception raised when retries are exhausted."""
+    """当重试次数用尽时抛出的异常。"""
     pass
 
 def setup_api_keys() -> None:
-    """Set up API keys from environment variables."""
+    """从环境变量设置API密钥。"""
+    # 支持的LLM提供商列表
     providers = ['OPENAI', 'ANTHROPIC', 'GROQ', 'OPENROUTER']
     for provider in providers:
         key = getattr(config, f'{provider}_API_KEY')
         if key:
-            logger.debug(f"API key set for provider: {provider}")
+            logger.debug(f"已为提供商设置API密钥: {provider}")
         else:
-            logger.warning(f"No API key found for provider: {provider}")
+            logger.warning(f"未找到提供商的API密钥: {provider}")
     
-    # Set up OpenRouter API base if not already set
+    # 如果尚未设置，则设置OpenRouter API基础URL
     if config.OPENROUTER_API_KEY and config.OPENROUTER_API_BASE:
         os.environ['OPENROUTER_API_BASE'] = config.OPENROUTER_API_BASE
-        logger.debug(f"Set OPENROUTER_API_BASE to {config.OPENROUTER_API_BASE}")
+        logger.debug(f"设置OPENROUTER_API_BASE为 {config.OPENROUTER_API_BASE}")
     
     # Set up AWS Bedrock credentials
     aws_access_key = config.AWS_ACCESS_KEY_ID
@@ -67,10 +69,17 @@ def setup_api_keys() -> None:
         logger.warning(f"Missing AWS credentials for Bedrock integration - access_key: {bool(aws_access_key)}, secret_key: {bool(aws_secret_key)}, region: {aws_region}")
 
 async def handle_error(error: Exception, attempt: int, max_attempts: int) -> None:
-    """Handle API errors with appropriate delays and logging."""
+    """处理API错误，使用适当的延迟和日志记录。
+    
+    Args:
+        error: 发生的异常
+        attempt: 当前尝试次数
+        max_attempts: 最大尝试次数
+    """
+    # 如果是速率限制错误，使用更长的延迟时间
     delay = RATE_LIMIT_DELAY if isinstance(error, litellm.exceptions.RateLimitError) else RETRY_DELAY
-    logger.warning(f"Error on attempt {attempt + 1}/{max_attempts}: {str(error)}")
-    logger.debug(f"Waiting {delay} seconds before retry...")
+    logger.warning(f"尝试 {attempt + 1}/{max_attempts} 出错: {str(error)}")
+    logger.debug(f"等待 {delay} 秒后重试...")
     await asyncio.sleep(delay)
 
 def prepare_params(
@@ -110,7 +119,7 @@ def prepare_params(
     if max_tokens is not None:
         # For Claude 3.7 in Bedrock, do not set max_tokens or max_tokens_to_sample
         # as it causes errors with inference profiles
-        if model_name.startswith("bedrock/") and "claude-3-7" in model_name:
+        if model_name.startswith("bedrock/") and "Claude 3.7 model" in model_name:
             logger.debug(f"Skipping max_tokens for Claude 3.7 model: {model_name}")
             # Do not add any max_tokens parameter for Claude 3.7
         else:

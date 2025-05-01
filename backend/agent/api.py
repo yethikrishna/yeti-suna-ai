@@ -11,6 +11,9 @@ from pydantic import BaseModel
 import tempfile
 import os
 
+# 导入项目内部模块
+# 导入线程管理器，用于管理代理的对话线程
+
 from agentpress.thread_manager import ThreadManager
 from services.supabase import DBConnection
 from services import redis
@@ -21,83 +24,86 @@ from services.billing import check_billing_status
 from sandbox.sandbox import create_sandbox, get_or_start_sandbox
 from services.llm import make_llm_api_call
 
-# Initialize shared resources
+# 初始化共享资源
 router = APIRouter()
-thread_manager = None
-db = None
-instance_id = None # Global instance ID for this backend instance
+thread_manager = None  # 线程管理器实例
+db = None  # 数据库连接实例
+instance_id = None  # 后端实例的全局ID
 
-# TTL for Redis response lists (24 hours)
+# Redis响应列表的生存时间（24小时）
 REDIS_RESPONSE_LIST_TTL = 3600 * 24
 
+# 模型名称别名映射，将简短名称映射到完整的模型标识符
 MODEL_NAME_ALIASES = {
-    "sonnet-3.7": "anthropic/claude-3-7-sonnet-latest",
+    "deepseek": "openrouter/deepseek/deepseek-chat-v3-0324:free",
+    "sonnet-3.7": "openrouter/anthropic/claude-3-7-sonnet",
     "gpt-4.1": "openai/gpt-4.1-2025-04-14",
-    "gemini-flash-2.5": "openrouter/google/gemini-2.5-flash-preview",
-    "grok-3": "xai/grok-3-fast-latest",
-    "deepseek": "deepseek/deepseek-chat",
+    "gemini-flash-2.0": "openrouter/google/gemini-2.0-flash-exp:free",
+    "grok-3": "xai/grok-3-fast-latest",    
     "grok-3-mini": "xai/grok-3-mini-fast-beta",
 }
 
+# 代理启动请求模型，定义启动代理所需的参数
 class AgentStartRequest(BaseModel):
-    model_name: Optional[str] = "anthropic/claude-3-7-sonnet-latest"
-    enable_thinking: Optional[bool] = False
-    reasoning_effort: Optional[str] = 'low'
-    stream: Optional[bool] = True
-    enable_context_manager: Optional[bool] = False
+    model_name: Optional[str] = "openrouter/google/gemini-2.0-flash-exp:free"  # 使用的LLM模型名称
+    enable_thinking: Optional[bool] = False  # 是否启用思考模式
+    reasoning_effort: Optional[str] = 'low'  # 推理努力程度
+    stream: Optional[bool] = True  # 是否使用流式响应
+    enable_context_manager: Optional[bool] = False  # 是否启用上下文管理器
 
+# 代理启动响应模型，包含线程ID和代理运行ID
 class InitiateAgentResponse(BaseModel):
-    thread_id: str
-    agent_run_id: Optional[str] = None
+    thread_id: str  # 对话线程ID
+    agent_run_id: Optional[str] = None  # 代理运行ID
 
 def initialize(
     _thread_manager: ThreadManager,
     _db: DBConnection,
     _instance_id: str = None
 ):
-    """Initialize the agent API with resources from the main API."""
+    """使用主API中的资源初始化代理API。"""
     global thread_manager, db, instance_id
     thread_manager = _thread_manager
     db = _db
 
-    # Use provided instance_id or generate a new one
+    # 使用提供的实例ID或生成一个新的
     if _instance_id:
         instance_id = _instance_id
     else:
-        # Generate instance ID
+        # 生成实例ID
         instance_id = str(uuid.uuid4())[:8]
 
-    logger.info(f"Initialized agent API with instance ID: {instance_id}")
+    logger.info(f"使用实例ID初始化代理API: {instance_id}")
 
-    # Note: Redis will be initialized in the lifespan function in api.py
+    # 注意: Redis将在api.py的lifespan函数中初始化
 
 async def cleanup():
-    """Clean up resources and stop running agents on shutdown."""
-    logger.info("Starting cleanup of agent API resources")
+    """在关闭时清理资源并停止运行中的代理。"""
+    logger.info("开始清理代理API资源")
 
-    # Use the instance_id to find and clean up this instance's keys
+    # 使用实例ID查找并清理此实例的键
     try:
-        if instance_id: # Ensure instance_id is set
+        if instance_id: # 确保实例ID已设置
             running_keys = await redis.keys(f"active_run:{instance_id}:*")
-            logger.info(f"Found {len(running_keys)} running agent runs for instance {instance_id} to clean up")
+            logger.info(f"找到{len(running_keys)}个需要清理的实例{instance_id}的运行中代理")
 
             for key in running_keys:
-                # Key format: active_run:{instance_id}:{agent_run_id}
+                # 键格式: active_run:{instance_id}:{agent_run_id}
                 parts = key.split(":")
                 if len(parts) == 3:
                     agent_run_id = parts[2]
-                    await stop_agent_run(agent_run_id, error_message=f"Instance {instance_id} shutting down")
+                    await stop_agent_run(agent_run_id, error_message=f"实例{instance_id}正在关闭")
                 else:
-                    logger.warning(f"Unexpected key format found: {key}")
+                    logger.warning(f"发现意外的键格式: {key}")
         else:
-            logger.warning("Instance ID not set, cannot clean up instance-specific agent runs.")
+            logger.warning("实例ID未设置，无法清理特定实例的代理运行。")
 
     except Exception as e:
-        logger.error(f"Failed to clean up running agent runs: {str(e)}")
+        logger.error(f"清理运行中的代理失败: {str(e)}")
 
-    # Close Redis connection
+    # 关闭Redis连接
     await redis.close()
-    logger.info("Completed cleanup of agent API resources")
+    logger.info("完成代理API资源的清理")
 
 async def update_agent_run_status(
     client,
@@ -853,7 +859,7 @@ async def generate_and_update_project_name(project_id: str, prompt: str):
 @router.post("/agent/initiate", response_model=InitiateAgentResponse)
 async def initiate_agent_with_files(
     prompt: str = Form(...),
-    model_name: Optional[str] = Form("anthropic/claude-3-7-sonnet-latest"),
+    model_name: Optional[str] = Form("openrouter/google/gemini-2.0-flash-exp:free"),
     enable_thinking: Optional[bool] = Form(False),
     reasoning_effort: Optional[str] = Form("low"),
     stream: Optional[bool] = Form(True),

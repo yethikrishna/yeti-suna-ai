@@ -28,7 +28,7 @@ import { cn } from "@/lib/utils";
 const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || '';
 
 // Local storage keys
-const STORAGE_KEY_MODEL = 'suna-preferred-model';
+const STORAGE_KEY_MODEL = 'OoKoO-preferred-model';
 
 interface ChatInputProps {
   onSubmit: (message: string, options?: { model_name?: string; enable_thinking?: boolean }) => void;
@@ -76,7 +76,7 @@ export const ChatInput = forwardRef<ChatInputHandles, ChatInputProps>(({
   const [uncontrolledValue, setUncontrolledValue] = useState('');
   const value = isControlled ? controlledValue : uncontrolledValue;
 
-  const [selectedModel, setSelectedModel] = useState("sonnet-3.7");
+  const [selectedModel, setSelectedModel] = useState("gemini-flash-2.0");
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
@@ -541,7 +541,7 @@ export const ChatInput = forwardRef<ChatInputHandles, ChatInputProps>(({
         >
           <div className="text-xs text-muted-foreground flex items-center gap-2">
             <Loader2 className="h-3 w-3 animate-spin" />
-            <span>Kortix Suna is working...</span>
+            <span>OoKoO is working...</span>
           </div>
         </motion.div>
       )}
@@ -550,4 +550,4 @@ export const ChatInput = forwardRef<ChatInputHandles, ChatInputProps>(({
 });
 
 // Set display name for the component
-ChatInput.displayName = 'ChatInput'; 
+ChatInput.displayName = 'ChatInput';

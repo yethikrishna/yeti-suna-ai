@@ -1,96 +1,96 @@
 import { createClient } from '@/lib/supabase/client';
 
-// Get backend URL from environment variables
+// 从环境变量获取后端URL
 const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || '';
 
-// Set to keep track of agent runs that are known to be non-running
+// 用于跟踪已知非运行状态的代理运行的集合
 const nonRunningAgentRuns = new Set<string>();
-// Map to keep track of active EventSource streams
+// 用于跟踪活动的EventSource流的映射
 const activeStreams = new Map<string, EventSource>();
 
-// Custom error for billing issues
+// 账单问题的自定义错误类
 export class BillingError extends Error {
-  status: number;
-  detail: { message: string; [key: string]: any }; // Allow other properties in detail
+  status: number;  // 错误状态码
+  detail: { message: string; [key: string]: any };  // 允许detail中包含其他属性
 
   constructor(status: number, detail: { message: string; [key: string]: any }, message?: string) {
-    super(message || detail.message || `Billing Error: ${status}`);
-    this.name = 'BillingError';
-    this.status = status;
-    this.detail = detail;
+    super(message || detail.message || `账单错误: ${status}`);
+    this.name = 'BillingError';  // 错误名称
+    this.status = status;  // 设置状态码
+    this.detail = detail;  // 设置详细信息
     
-    // Set the prototype explicitly.
+    // 显式设置原型
     Object.setPrototypeOf(this, BillingError.prototype);
   }
 }
 
-// Type Definitions (moved from potential separate file for clarity)
+// 类型定义（为清晰起见从潜在的单独文件移动过来）
 export type Project = {
-  id: string;
-  name: string;
-  description: string;
-  account_id: string;
-  created_at: string;
-  updated_at?: string;
-  sandbox: {
-    vnc_preview?: string;
-    sandbox_url?: string;
-    id?: string;
-    pass?: string;
+  id: string;  // 项目ID
+  name: string;  // 项目名称
+  description: string;  // 项目描述
+  account_id: string;  // 账户ID
+  created_at: string;  // 创建时间
+  updated_at?: string;  // 更新时间
+  sandbox: {  // 沙盒信息
+    vnc_preview?: string;  // VNC预览URL
+    sandbox_url?: string;  // 沙盒URL
+    id?: string;  // 沙盒ID
+    pass?: string;  // 沙盒密码
   };
-  is_public?: boolean; // Flag to indicate if the project is public
-  [key: string]: any; // Allow additional properties to handle database fields
+  is_public?: boolean;  // 标志，指示项目是否公开
+  [key: string]: any;  // 允许额外的属性以处理数据库字段
 }
 
 export type Thread = {
-  thread_id: string;
-  account_id: string | null;
-  project_id?: string | null;
-  is_public?: boolean;
-  created_at: string;
-  updated_at: string;
-  [key: string]: any; // Allow additional properties to handle database fields
+  thread_id: string;  // 线程ID
+  account_id: string | null;  // 账户ID
+  project_id?: string | null;  // 项目ID
+  is_public?: boolean;  // 是否公开
+  created_at: string;  // 创建时间
+  updated_at: string;  // 更新时间
+  [key: string]: any;  // 允许额外的属性以处理数据库字段
 }
 
 export type Message = {
-  role: string;
-  content: string;
-  type: string;
+  role: string;  // 消息角色（用户、助手、系统等）
+  content: string;  // 消息内容
+  type: string;  // 消息类型
 }
 
 export type AgentRun = {
-  id: string;
-  thread_id: string;
-  status: 'running' | 'completed' | 'stopped' | 'error';
-  started_at: string;
-  completed_at: string | null;
-  responses: Message[];
-  error: string | null;
+  id: string;  // 代理运行ID
+  thread_id: string;  // 线程ID
+  status: 'running' | 'completed' | 'stopped' | 'error';  // 运行状态
+  started_at: string;  // 开始时间
+  completed_at: string | null;  // 完成时间
+  responses: Message[];  // 响应消息数组
+  error: string | null;  // 错误信息
 }
 
 export type ToolCall = {
-  name: string;
-  arguments: Record<string, unknown>;
+  name: string;  // 工具名称
+  arguments: Record<string, unknown>;  // 工具参数
 }
 
 export interface InitiateAgentResponse {
-  thread_id: string;
-  agent_run_id: string;
+  thread_id: string;  // 线程ID
+  agent_run_id: string;  // 代理运行ID
 }
 
 export interface HealthCheckResponse {
-  status: string;
-  timestamp: string;
-  instance_id: string;
+  status: string;  // 健康状态
+  timestamp: string;  // 时间戳
+  instance_id: string;  // 实例ID
 }
 
 export interface FileInfo {
-  name: string;
-  path: string;
-  is_dir: boolean;
-  size: number;
-  mod_time: string;
-  permissions?: string;
+  name: string;  // 文件名
+  path: string;  // 文件路径
+  is_dir: boolean;  // 是否是目录
+  size: number;  // 文件大小
+  mod_time: string;  // 修改时间
+  permissions?: string;  // 文件权限
 }
 
 // Project APIs

@@ -1,29 +1,42 @@
 import traceback
 import json
 
+# 导入工具结果类和模式定义
 from agentpress.tool import ToolResult, openapi_schema, xml_schema
+# 导入线程管理器
 from agentpress.thread_manager import ThreadManager
+# 导入沙盒工具基类和沙盒类
 from sandbox.sandbox import SandboxToolsBase, Sandbox
+# 导入日志工具
 from utils.logger import logger
 
 
 class SandboxBrowserTool(SandboxToolsBase):
-    """Tool for executing tasks in a Daytona sandbox with browser-use capabilities."""
+    """用于在Daytona沙盒中执行带有浏览器功能的任务的工具。
+    该工具允许代理在沙盒环境中使用浏览器进行网页浏览、交互和自动化操作。
+    """
     
     def __init__(self, project_id: str, thread_id: str, thread_manager: ThreadManager):
-        super().__init__(project_id, thread_manager)
-        self.thread_id = thread_id
-
-    async def _execute_browser_action(self, endpoint: str, params: dict = None, method: str = "POST") -> ToolResult:
-        """Execute a browser automation action through the API
+        """初始化沙盒浏览器工具
         
         Args:
-            endpoint (str): The API endpoint to call
-            params (dict, optional): Parameters to send. Defaults to None.
-            method (str, optional): HTTP method to use. Defaults to "POST".
+            project_id: 项目ID
+            thread_id: 线程ID
+            thread_manager: 线程管理器实例
+        """
+        super().__init__(project_id, thread_manager)
+        self.thread_id = thread_id  # 存储线程ID，用于消息追踪
+
+    async def _execute_browser_action(self, endpoint: str, params: dict = None, method: str = "POST") -> ToolResult:
+        """通过API执行浏览器自动化操作
+        
+        Args:
+            endpoint (str): 要调用的API端点
+            params (dict, optional): 要发送的参数。默认为None。
+            method (str, optional): 使用的HTTP方法。默认为"POST"。
             
         Returns:
-            ToolResult: Result of the execution
+            ToolResult: 执行结果
         """
         try:
             # Ensure sandbox is initialized

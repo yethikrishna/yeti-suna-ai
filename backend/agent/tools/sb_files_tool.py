@@ -1,31 +1,65 @@
 from daytona_sdk.process import SessionExecuteRequest
 from typing import Optional
 
+# 导入工具结果类和模式定义
 from agentpress.tool import ToolResult, openapi_schema, xml_schema
+# 导入沙盒工具基类和沙盒类
 from sandbox.sandbox import SandboxToolsBase, Sandbox, get_or_start_sandbox
+# 导入文件工具辅助函数
 from utils.files_utils import EXCLUDED_FILES, EXCLUDED_DIRS, EXCLUDED_EXT, should_exclude_file, clean_path
+# 导入线程管理器
 from agentpress.thread_manager import ThreadManager
+# 导入日志工具
 from utils.logger import logger
 import os
 
 class SandboxFilesTool(SandboxToolsBase):
-    """Tool for executing file system operations in a Daytona sandbox. All operations are performed relative to the /workspace directory."""
+    """用于在Daytona沙盒中执行文件系统操作的工具。所有操作都相对于/workspace目录执行。
+    该工具允许代理在沙盒环境中创建、读取、更新和删除文件，以及执行其他文件系统操作。
+    """
 
     def __init__(self, project_id: str, thread_manager: ThreadManager):
+        """初始化沙盒文件工具
+        
+        Args:
+            project_id: 项目ID
+            thread_manager: 线程管理器实例
+        """
         super().__init__(project_id, thread_manager)
-        self.SNIPPET_LINES = 4  # Number of context lines to show around edits
-        self.workspace_path = "/workspace"  # Ensure we're always operating in /workspace
+        self.SNIPPET_LINES = 4  # 编辑周围显示的上下文行数
+        self.workspace_path = "/workspace"  # 确保我们始终在/workspace中操作
 
     def clean_path(self, path: str) -> str:
-        """Clean and normalize a path to be relative to /workspace"""
+        """清理并规范化路径，使其相对于/workspace
+        
+        Args:
+            path: 要清理的路径
+            
+        Returns:
+            规范化后的路径
+        """
         return clean_path(path, self.workspace_path)
 
     def _should_exclude_file(self, rel_path: str) -> bool:
-        """Check if a file should be excluded based on path, name, or extension"""
+        """检查是否应该根据路径、名称或扩展名排除文件
+        
+        Args:
+            rel_path: 相对路径
+            
+        Returns:
+            如果应该排除文件则为True，否则为False
+        """
         return should_exclude_file(rel_path)
 
     def _file_exists(self, path: str) -> bool:
-        """Check if a file exists in the sandbox"""
+        """检查沙盒中是否存在文件
+        
+        Args:
+            path: 文件路径
+            
+        Returns:
+            如果文件存在则为True，否则为False
+        """
         try:
             self.sandbox.fs.get_file_info(path)
             return True

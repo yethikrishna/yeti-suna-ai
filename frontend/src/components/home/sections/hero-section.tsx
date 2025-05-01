@@ -210,10 +210,10 @@ export function HeroSection() {
   };
 
   return (
-    <section id="hero" className="w-full relative overflow-hidden">
-      <div className="relative flex flex-col items-center w-full px-6">
+    <section id="hero" className="w-full relative overflow-hidden min-h-screen flex items-center justify-center">
+      <div className="relative flex flex-col items-center w-full px-6 py-16">
         {/* Left side flickering grid with gradient fades */}
-        <div className="absolute left-0 top-0 h-[600px] md:h-[800px] w-1/3 -z-10 overflow-hidden">
+        <div className="absolute left-0 top-0 bottom-0 w-1/3 -z-10 overflow-hidden">
           {/* Horizontal fade from left to right */}
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-background z-10" />
           
@@ -234,7 +234,7 @@ export function HeroSection() {
         </div>
         
         {/* Right side flickering grid with gradient fades */}
-        <div className="absolute right-0 top-0 h-[600px] md:h-[800px] w-1/3 -z-10 overflow-hidden">
+        <div className="absolute right-0 top-0 bottom-0 w-1/3 -z-10 overflow-hidden">
           {/* Horizontal fade from right to left */}
           <div className="absolute inset-0 bg-gradient-to-l from-transparent via-transparent to-background z-10" />
           
@@ -255,9 +255,9 @@ export function HeroSection() {
         </div>
         
         {/* Center content background with rounded bottom */}
-        <div className="absolute inset-x-1/4 top-0 h-[600px] md:h-[800px] -z-20 bg-background rounded-b-xl"></div>
+        <div className="absolute inset-x-1/4 top-0 bottom-0 -z-20 bg-background rounded-b-xl"></div>
         
-        <div className="relative z-10 pt-32 max-w-3xl mx-auto h-full w-full flex flex-col gap-10 items-center justify-center">
+        <div className="relative z-10 max-w-3xl mx-auto w-full flex flex-col gap-10 items-center justify-center">
                     {/* <p className="border border-border bg-accent rounded-full text-sm h-8 px-3 flex items-center gap-2">
             {hero.badgeIcon}
             {hero.badge}
@@ -279,7 +279,7 @@ export function HeroSection() {
           </Link>
           <div className="flex flex-col items-center justify-center gap-5">
             <h1 className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-medium tracking-tighter text-balance text-center">
-              <span className="text-secondary">Suna</span><span className="text-primary">, your AI Employee.</span>
+              <span className="text-secondary">OoKoO</span><span className="text-primary">, 您的AI智能员工.</span>
             </h1>
             <p className="text-base md:text-lg text-center text-muted-foreground font-medium text-balance leading-relaxed tracking-tight">
               {hero.description}
@@ -324,7 +324,6 @@ export function HeroSection() {
         </div>
       </div>
       <div className="mb-10 max-w-4xl mx-auto">
-        <HeroVideoSection />
       </div>
 
       {/* Auth Dialog */}
@@ -342,7 +341,7 @@ export function HeroSection() {
               </button> */}
             </div>
             <DialogDescription className="text-muted-foreground">
-              Sign in or create an account to talk with Suna
+              Sign in or create an account to talk with OoKoO
             </DialogDescription>
           </DialogHeader>
           

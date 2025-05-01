@@ -1,11 +1,11 @@
 export const siteConfig = {
-  name: "Kortix Suna",
-  url: "https://suna.so/",
-  description: "Kortix AI",
+  name: "OoKoO",
+  url: "https://panasonic.cn/pissh/",
+  description: "PISSH",
   links: {
-    twitter: "https://x.com/kortixai",
-    github: "https://github.com/kortix-ai/",
-    linkedin: "https://www.linkedin.com/company/kortix/",
+    twitter: "",
+    github: "",
+    linkedin: "",
   },
 };
 

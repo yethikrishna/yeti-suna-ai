@@ -5,17 +5,17 @@ export const metadata: Metadata = {
   title: siteConfig.name,
   description: siteConfig.description,
   keywords: [
-    "Kortix Suna",
+    "OoKoO",
     "AI",
     "Agent",
   ],
   authors: [
     {
-      name: "Kortix AI Corp",
-      url: "https://kortix.ai",
+      name: "PISSH AI Corp",
+      url: "https://panasonic.cn/pissh/",
     },
   ],
-  creator: "Kortix AI Corp",
+  creator: "PISSH AI Corp",
   openGraph: {
     type: "website",
     locale: "en_US",

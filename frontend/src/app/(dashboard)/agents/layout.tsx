@@ -1,11 +1,11 @@
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Agent Conversation | Kortix Suna",
-  description: "Interactive agent conversation powered by Kortix Suna",
+  title: "Agent Conversation | OoKoO",
+  description: "Interactive agent conversation powered by OoKoO",
   openGraph: {
-    title: "Agent Conversation | Kortix Suna",
-    description: "Interactive agent conversation powered by Kortix Suna",
+    title: "Agent Conversation | OoKoO",
+    description: "Interactive agent conversation powered by OoKoO",
     type: "website",
   },
 };
@@ -16,4 +16,4 @@ export default function AgentsLayout({
   children: React.ReactNode;
 }) {
   return <>{children}</>;
-} 
+}
