@@ -23,6 +23,7 @@ import traceback
 
 # litellm.set_verbose=True
 litellm.modify_params=True
+litellm.drop_params=True
 
 # Constants
 MAX_RETRIES = 3
@@ -192,11 +193,17 @@ def prepare_params(
     # Add Gemini-specific parameters
     if "gemini" in model_name.lower():
         logger.debug(f"Preparing Google Gemini parameters for model: {model_name}")
-        # If reasoning_effort parameter is set, pass it for Gemini models
-        # LiteLLM takes care of translating this to the appropriate parameter for Gemini
-        if enable_thinking and reasoning_effort:
-            params["reasoning_effort"] = reasoning_effort
-            logger.debug(f"Added reasoning_effort={reasoning_effort} for Gemini model")
+        
+        # Gemini suporta 'thinking' com estrutura específica
+        if enable_thinking:
+            # Usar o formato correto para o thinking do Gemini através do LiteLLM
+            params["thinking"] = {
+                "type": "enabled",
+                "budget_tokens": 1024  # Ajustar conforme necessário
+            }
+            logger.debug(f"Added thinking capability for Gemini model: {params['thinking']}")
+            
+        # Nota: reasoning_effort não é necessário para Gemini quando usando thinking diretamente
 
     # Apply Anthropic prompt caching (minimal implementation)
     # Check model name *after* potential modifications (like adding bedrock/ prefix)
@@ -453,15 +460,15 @@ async def test_gemini():
         print(f"Response: {response.choices[0].message.content}")
         print(f"Model used: {response.model}")
         
-        # Test with Gemini Flash model with reasoning
-        print("\n--- Testing Gemini Flash model with reasoning ---")
+        # Test with Gemini Flash model with thinking
+        print("\n--- Testing Gemini Flash model with thinking ---")
         response = await make_llm_api_call(
             model_name="gemini/gemini-1.5-flash",
             messages=test_messages,
             temperature=0.7,
             max_tokens=100,
-            enable_thinking=True,
-            reasoning_effort="medium"
+            enable_thinking=True  # Ativa o thinking usando o formato correto
+            # O parâmetro thinking será adicionado automaticamente no prepare_params
         )
         print(f"Response: {response.choices[0].message.content}")
         print(f"Model used: {response.model}")

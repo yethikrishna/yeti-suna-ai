@@ -88,6 +88,7 @@ export const ChatInput = forwardRef<ChatInputHandles, ChatInputProps>(({
     
     // Google Gemini Models
     { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro", provider: "gemini" },
+    { id: "gemini-2.5-pro-thinking", label: "Gemini 2.5 Pro (Thinking)", provider: "gemini" },
             
     // Other Models via OpenRouter
     { id: "gemini-flash-2.5", label: "Gemini 2.5 Flash ", provider: "openrouter" },
