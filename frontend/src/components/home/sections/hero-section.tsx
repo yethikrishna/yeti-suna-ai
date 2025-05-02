@@ -279,7 +279,7 @@ export function HeroSection() {
           </Link>
           <div className="flex flex-col items-center justify-center gap-5">
             <h1 className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-medium tracking-tighter text-balance text-center">
-              <span className="text-secondary">OoKoO</span><span className="text-primary">, 您的AI智能员工.</span>
+              <span className="text-secondary">OoKoO</span><span className="text-primary">, 您的AI智能助手.</span>
             </h1>
             <p className="text-base md:text-lg text-center text-muted-foreground font-medium text-balance leading-relaxed tracking-tight">
               {hero.description}

@@ -1,3 +1,4 @@
+// ChatInput 组件：用于输入和发送消息，支持模型选择、文件上传、拖拽、快捷键等功能
 'use client';
 
 import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
@@ -24,40 +25,44 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 
-// Define API_URL
+// 定义后端 API 地址
 const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || '';
 
-// Local storage keys
-const STORAGE_KEY_MODEL = 'suna-preferred-model';
-const DEFAULT_MODEL_ID = "sonnet-3.7"; // Define default model ID
+// 本地存储模型选择的 key
+const STORAGE_KEY_MODEL = 'OoKoO-preferred-model';
+// 默认模型 ID
+const DEFAULT_MODEL_ID = "Qwen3"; // 默认模型 ID
 
+// ChatInput 组件的 props 类型定义
 interface ChatInputProps {
-  onSubmit: (message: string, options?: { model_name?: string; enable_thinking?: boolean }) => void;
-  placeholder?: string;
-  loading?: boolean;
-  disabled?: boolean;
-  isAgentRunning?: boolean;
-  onStopAgent?: () => void;
-  autoFocus?: boolean;
-  value?: string;
-  onChange?: (value: string) => void;
-  onFileBrowse?: () => void;
-  sandboxId?: string;
-  hideAttachments?: boolean;
+  onSubmit: (message: string, options?: { model_name?: string; enable_thinking?: boolean }) => void; // 提交消息回调
+  placeholder?: string; // 输入框占位符
+  loading?: boolean; // 是否加载中
+  disabled?: boolean; // 是否禁用
+  isAgentRunning?: boolean; // 智能体是否运行中
+  onStopAgent?: () => void; // 停止智能体回调
+  autoFocus?: boolean; // 是否自动聚焦
+  value?: string; // 受控输入值
+  onChange?: (value: string) => void; // 受控输入变更回调
+  onFileBrowse?: () => void; // 文件浏览回调
+  sandboxId?: string; // 沙盒 ID
+  hideAttachments?: boolean; // 是否隐藏附件
 }
 
+// 上传文件信息类型
 interface UploadedFile {
   name: string;
   path: string;
   size: number;
 }
 
-// Define interface for the ref
+// 组件暴露的 ref 方法类型
 export interface ChatInputHandles {
-  getPendingFiles: () => File[];
-  clearPendingFiles: () => void;
+  getPendingFiles: () => File[]; // 获取待上传文件
+  clearPendingFiles: () => void; // 清空待上传文件
 }
 
+// ChatInput 组件实现
 export const ChatInput = forwardRef<ChatInputHandles, ChatInputProps>(({
   onSubmit,
   placeholder = "Describe what you need help with...",
@@ -72,43 +77,49 @@ export const ChatInput = forwardRef<ChatInputHandles, ChatInputProps>(({
   sandboxId,
   hideAttachments = false
 }, ref) => {
+  // 判断是否为受控组件
   const isControlled = controlledValue !== undefined && controlledOnChange !== undefined;
-  
+  // 非受控输入值
   const [uncontrolledValue, setUncontrolledValue] = useState('');
+  // 当前输入值
   const value = isControlled ? controlledValue : uncontrolledValue;
 
-  // Define model options array earlier so it can be used in useEffect
+  // 支持的模型选项
   const modelOptions = [
     { id: "sonnet-3.7", label: "Sonnet 3.7" },
     { id: "sonnet-3.7-thinking", label: "Sonnet 3.7 (Thinking)" },
     { id: "gpt-4.1", label: "GPT-4.1" },
-    { id: "gemini-flash-2.5", label: "Gemini Flash 2.5" }
+    { id: "gemini-flash-2.0", label: "Gemini Flash 2.0" },
+    { id: "Qwen3", label: "Qwen3" },
+    { id: "deepseek V3", label: "deepseek V3" },
+    { id: "deepseek R1", label: "deepseek R1" }
   ];
 
-  // Initialize state with the default model
+  // 当前选中的模型
   const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL_ID);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
-  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
-  const [isDraggingOver, setIsDraggingOver] = useState(false);
-  
-  // Expose methods through the ref
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]); // 已上传文件
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]); // 待上传文件
+  const [isUploading, setIsUploading] = useState(false); // 上传状态
+  const [isDraggingOver, setIsDraggingOver] = useState(false); // 拖拽状态
+
+  // 通过 ref 暴露方法
   useImperativeHandle(ref, () => ({
     getPendingFiles: () => pendingFiles,
     clearPendingFiles: () => setPendingFiles([])
   }));
 
+  // 组件挂载时加载本地模型偏好
   useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
         const savedModel = localStorage.getItem(STORAGE_KEY_MODEL);
-        // Check if the saved model exists and is one of the valid options
+        // 检查本地存储的模型是否合法
         if (savedModel && modelOptions.some(option => option.id === savedModel)) {
           setSelectedModel(savedModel);
         } else if (savedModel) {
-          // If invalid model found in storage, clear it
+          // 清除无效模型
           localStorage.removeItem(STORAGE_KEY_MODEL);
           console.log(`Removed invalid model '${savedModel}' from localStorage. Using default: ${DEFAULT_MODEL_ID}`);
         }
@@ -117,31 +128,29 @@ export const ChatInput = forwardRef<ChatInputHandles, ChatInputProps>(({
       }
     }
   }, []);
-  
+
+  // 自动聚焦输入框
   useEffect(() => {
     if (autoFocus && textareaRef.current) {
       textareaRef.current.focus();
     }
   }, [autoFocus]);
 
+  // 输入框高度自适应
   useEffect(() => {
     const textarea = textareaRef.current;
     if (!textarea) return;
-
     const adjustHeight = () => {
       textarea.style.height = 'auto';
       const newHeight = Math.min(Math.max(textarea.scrollHeight, 24), 200);
       textarea.style.height = `${newHeight}px`;
     };
-
     adjustHeight();
-    
-    adjustHeight();
-
     window.addEventListener('resize', adjustHeight);
     return () => window.removeEventListener('resize', adjustHeight);
   }, [value]);
 
+  // 切换模型
   const handleModelChange = (model: string) => {
     setSelectedModel(model);
     if (typeof window !== 'undefined') {
@@ -149,43 +158,56 @@ export const ChatInput = forwardRef<ChatInputHandles, ChatInputProps>(({
     }
   };
 
+  // 提交消息处理
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if ((!value.trim() && uploadedFiles.length === 0) || loading || (disabled && !isAgentRunning)) return;
-    
+    // 如果智能体正在运行，点击按钮则停止
     if (isAgentRunning && onStopAgent) {
       onStopAgent();
       return;
     }
-    
     let message = value;
-    
+    // 拼接上传文件信息到消息
     if (uploadedFiles.length > 0) {
       const fileInfo = uploadedFiles.map(file => 
         `[Uploaded File: ${file.path}]`
       ).join('\n');
       message = message ? `${message}\n\n${fileInfo}` : fileInfo;
     }
-    
+    // 判断是否启用思考模式
     let baseModelName = selectedModel;
     let thinkingEnabled = false;
     if (selectedModel.endsWith("-thinking")) {
       baseModelName = selectedModel.replace(/-thinking$/, "");
       thinkingEnabled = true;
     }
-    
-    onSubmit(message, {
-      model_name: baseModelName,
-      enable_thinking: thinkingEnabled
-    });
-    
-    if (!isControlled) {
-      setUncontrolledValue("");
+    // 调用父组件提交
+    try {
+      await onSubmit(message, {
+        model_name: baseModelName,
+        enable_thinking: thinkingEnabled
+      });
+      if (!isControlled) {
+        setUncontrolledValue("");
+      }
+      setUploadedFiles([]);
+    } catch (error: any) {
+      // 针对沙盒配额超限的友好提示
+      if (error?.response) {
+        try {
+          const errorData = await error.response.json();
+          if (errorData?.detail && typeof errorData.detail === "string" && errorData.detail.includes("quota")) {
+            toast.error("沙盒配额已用尽，请清理无用沙盒或联系管理员扩容。", {duration: 8000});
+            return;
+          }
+        } catch {}
+      }
+      toast.error("消息发送失败，请稍后重试。\n" + (error?.message || ""));
     }
-    
-    setUploadedFiles([]);
   };
 
+  // 输入变更处理
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value;
     if (isControlled) {
@@ -195,15 +217,15 @@ export const ChatInput = forwardRef<ChatInputHandles, ChatInputProps>(({
     }
   };
 
+  // 按键事件处理（回车发送）
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      if ((value.trim() || uploadedFiles.length > 0) && !loading && (!disabled || isAgentRunning)) {
-        handleSubmit(e as React.FormEvent);
-      }
+      handleSubmit(e as any);
     }
   };
 
+  // 文件上传相关逻辑（略，后续可继续补充详细注释）
   const handleFileUpload = () => {
     if (fileInputRef.current) {
       fileInputRef.current.click();

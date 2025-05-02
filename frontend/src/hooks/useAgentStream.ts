@@ -169,6 +169,14 @@ export function useAgentStream(callbacks: AgentStreamCallbacks, threadId: string
     }
     if (!processedData) return;
 
+    // --- 处理 LLM 服务端 429 配额超限错误 ---
+    if (processedData.includes('429') && (processedData.includes('quota') || processedData.includes('RESOURCE_EXHAUSTED'))) {
+      setError('当前模型调用已达限额，请稍后重试或联系管理员申请配额提升。');
+      toast.error('当前模型调用已达限额，请稍后重试或联系管理员申请配额提升。');
+      finalizeStream('error', currentRunIdRef.current);
+      return;
+    }
+
     // --- Early exit for non-JSON completion messages ---
     if (processedData === '{"type": "status", "status": "completed", "message": "Agent run completed successfully"}') {
       console.log('[useAgentStream] Received final completion status message');
@@ -307,17 +315,32 @@ export function useAgentStream(callbacks: AgentStreamCallbacks, threadId: string
         const statusErrorMessage = statusError instanceof Error ? statusError.message : String(statusError);
         console.error(`[useAgentStream] Error checking agent status for ${runId} after stream error: ${statusErrorMessage}`);
         
-        const isNotFoundError = statusErrorMessage.includes('not found') || 
-                                statusErrorMessage.includes('404') ||
-                                statusErrorMessage.includes('does not exist');
-                                
-        if (isNotFoundError) {
-           console.log(`[useAgentStream] Agent run ${runId} not found after stream error. Finalizing.`);
-           // Revert to agent_not_running for this specific case
-           finalizeStream('agent_not_running', runId);
+        // 检查是否为项目不存在错误
+        const isProjectNotFoundError = statusErrorMessage.includes('PROJECT_NOT_FOUND') || 
+                                      statusErrorMessage.includes('项目不存在') || 
+                                      statusErrorMessage.includes('Project not found');
+        
+        // 检查是否为其他类型的 not found 错误
+        const isOtherNotFoundError = statusErrorMessage.includes('not found') || 
+                                    statusErrorMessage.includes('404') ||
+                                    statusErrorMessage.includes('does not exist');
+        
+        const isNotFoundError = isProjectNotFoundError || isOtherNotFoundError;
+        
+        // 为项目不存在错误设置更友好的错误消息
+        if (isProjectNotFoundError) {
+          const friendlyError = '项目不存在或已被删除，请检查后重试。';
+          setError(friendlyError);
+          toast.error(friendlyError);
+          console.log(`[useAgentStream] Project not found for agent run ${runId}. Finalizing.`);
+          finalizeStream('agent_not_running', runId);
+        } else if (isNotFoundError) {
+          console.log(`[useAgentStream] Agent run ${runId} not found after stream error. Finalizing.`);
+          // Revert to agent_not_running for this specific case
+          finalizeStream('agent_not_running', runId);
         } else {
-           // For other status check errors, finalize with the original stream error
-           finalizeStream('error', runId); 
+          // For other status check errors, finalize with the original stream error
+          finalizeStream('error', runId); 
         }
       });
 
@@ -366,18 +389,33 @@ export function useAgentStream(callbacks: AgentStreamCallbacks, threadId: string
           const errorMessage = err instanceof Error ? err.message : String(err);
           console.error(`[useAgentStream] Error checking agent status for ${runId} after stream close: ${errorMessage}`);
           
-          const isNotFoundError = errorMessage.includes('not found') || 
-                                  errorMessage.includes('404') ||
-                                  errorMessage.includes('does not exist');
-                                  
-          if (isNotFoundError) {
-             console.log(`[useAgentStream] Agent run ${runId} not found after stream close. Finalizing.`);
-             // Revert to agent_not_running for this specific case
-             finalizeStream('agent_not_running', runId);
-           } else {
-              // For other errors checking status, finalize with generic error
-             finalizeStream('error', runId);
-           }
+          // 检查是否为项目不存在错误
+          const isProjectNotFoundError = errorMessage.includes('PROJECT_NOT_FOUND') || 
+                                        errorMessage.includes('项目不存在') || 
+                                        errorMessage.includes('Project not found');
+          
+          // 检查是否为其他类型的 not found 错误
+          const isOtherNotFoundError = errorMessage.includes('not found') || 
+                                      errorMessage.includes('404') ||
+                                      errorMessage.includes('does not exist');
+          
+          const isNotFoundError = isProjectNotFoundError || isOtherNotFoundError;
+          
+          // 为项目不存在错误设置更友好的错误消息
+          if (isProjectNotFoundError) {
+            const friendlyError = '项目不存在或已被删除，请检查后重试。';
+            setError(friendlyError);
+            toast.error(friendlyError);
+            console.log(`[useAgentStream] Project not found for agent run ${runId}. Finalizing.`);
+            finalizeStream('agent_not_running', runId);
+          } else if (isNotFoundError) {
+            console.log(`[useAgentStream] Agent run ${runId} not found after stream close. Finalizing.`);
+            // Revert to agent_not_running for this specific case
+            finalizeStream('agent_not_running', runId);
+          } else {
+            // For other errors checking status, finalize with generic error
+            finalizeStream('error', runId);
+          }
        });
 
   }, [status, finalizeStream]); // Include status
@@ -452,12 +490,28 @@ export function useAgentStream(callbacks: AgentStreamCallbacks, threadId: string
        
        const errorMessage = err instanceof Error ? err.message : String(err);
        console.error(`[useAgentStream] Error initiating stream for ${runId}: ${errorMessage}`);
-       setError(errorMessage);
        
-       const isNotFoundError = errorMessage.includes('not found') || 
-                               errorMessage.includes('404') ||
-                               errorMessage.includes('does not exist');
-                               
+       // 检查是否为项目不存在错误
+       const isProjectNotFoundError = errorMessage.includes('PROJECT_NOT_FOUND') || 
+                                     errorMessage.includes('项目不存在') || 
+                                     errorMessage.includes('Project not found');
+       
+       // 检查是否为其他类型的 not found 错误
+       const isOtherNotFoundError = errorMessage.includes('not found') || 
+                                   errorMessage.includes('404') ||
+                                   errorMessage.includes('does not exist');
+       
+       const isNotFoundError = isProjectNotFoundError || isOtherNotFoundError;
+       
+       // 为项目不存在错误设置更友好的错误消息
+       if (isProjectNotFoundError) {
+         const friendlyError = '项目不存在或已被删除，请检查后重试。';
+         setError(friendlyError);
+         toast.error(friendlyError);
+       } else {
+         setError(errorMessage);
+       }
+       
        finalizeStream(isNotFoundError ? 'agent_not_running' : 'error', runId);
      }
    }, [updateStatus, finalizeStream, handleStreamMessage, handleStreamError, handleStreamClose]); // Add dependencies
@@ -492,4 +546,4 @@ export function useAgentStream(callbacks: AgentStreamCallbacks, threadId: string
     startStreaming,
     stopStreaming,
   };
-} 
+}

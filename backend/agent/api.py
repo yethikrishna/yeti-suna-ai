@@ -35,7 +35,9 @@ REDIS_RESPONSE_LIST_TTL = 3600 * 24
 
 # 模型名称别名映射，将简短名称映射到完整的模型标识符
 MODEL_NAME_ALIASES = {
-    "deepseek": "openrouter/deepseek/deepseek-chat-v3-0324:free",
+    "deepseek V3": "openrouter/deepseek/deepseek-chat-v3-0324:free",
+    "deepseek R1": "openrouter/deepseek/deepseek-r1:free",
+    "Qwen3": "openrouter/qwen/qwen3-235b-a22b:free",
     "sonnet-3.7": "openrouter/anthropic/claude-3-7-sonnet",
     "gpt-4.1": "openai/gpt-4.1-2025-04-14",
     "gemini-flash-2.0": "openrouter/google/gemini-2.0-flash-exp:free",

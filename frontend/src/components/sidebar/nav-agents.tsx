@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import {
   ArrowUpRight,
   Link as LinkIcon,
@@ -34,7 +34,7 @@ import {
   TooltipContent,
   TooltipTrigger
 } from "@/components/ui/tooltip"
-import { getProjects, getThreads, Project } from "@/lib/api"
+import { getProjects, getThreads, Project, deleteThread } from "@/lib/api"
 import Link from "next/link"
 
 // Thread with associated project info for display in sidebar
@@ -181,6 +181,20 @@ export function NavAgents() {
     router.push(url)
   }
 
+  // 删除线程的函数，必须放在组件内部，且用 useCallback 包裹
+  const handleDeleteThread = useCallback(async (threadId: string) => {
+    setLoadingThreadId(threadId)
+    try {
+      await deleteThread(threadId)
+      toast.success("Agent 已删除")
+      await loadThreadsWithProjects()
+    } catch (err) {
+      toast.error("删除失败")
+    } finally {
+      setLoadingThreadId(null)
+    }
+  }, [setLoadingThreadId, deleteThread, toast, loadThreadsWithProjects])
+
   return (
     <SidebarGroup>
       <div className="flex justify-between items-center">
@@ -293,7 +307,7 @@ export function NavAgents() {
                           </a>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDeleteThread(thread.threadId)}>
                           <Trash2 className="text-muted-foreground" />
                           <span>Delete</span>
                         </DropdownMenuItem>

@@ -1376,3 +1376,25 @@ export const checkBillingStatus = async (): Promise<BillingStatusResponse> => {
   }
 };
 
+
+// 新增：删除 thread 的 API
+export const deleteThread = async (threadId: string): Promise<void> => {
+  const supabase = createClient();
+  // 先删除 agent_runs 表中所有关联该 thread_id 的记录
+  const { error: agentRunsError } = await supabase
+    .from('agent_runs')
+    .delete()
+    .eq('thread_id', threadId);
+  if (agentRunsError) {
+    throw new Error(`删除 agent_runs 失败: ${agentRunsError.message}`);
+  }
+  // 再删除 threads 表中的对话
+  const { error } = await supabase
+    .from('threads')
+    .delete()
+    .eq('thread_id', threadId);
+  if (error) {
+    throw new Error(`删除对话失败: ${error.message}`);
+  }
+};
+

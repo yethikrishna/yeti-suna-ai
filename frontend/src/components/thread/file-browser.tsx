@@ -1,3 +1,4 @@
+// FileBrowser 组件：用于浏览沙盒文件系统，支持文件夹导航、文件预览和选择文件等功能
 "use client";
 
 import { useState, useEffect } from "react";
@@ -8,22 +9,24 @@ import { File, Folder, ChevronRight, ChevronUp, FileText, Coffee } from "lucide-
 import { listSandboxFiles, getSandboxFileContent, type FileInfo } from "@/lib/api";
 import { toast } from "sonner";
 
+// FileBrowser 组件的 props 类型定义
 interface FileBrowserProps {
-  sandboxId: string;
-  onSelectFile?: (path: string, content: string) => void;
-  trigger?: React.ReactNode;
+  sandboxId: string; // 沙盒唯一标识
+  onSelectFile?: (path: string, content: string) => void; // 选择文件回调
+  trigger?: React.ReactNode; // 触发按钮
 }
 
+// FileBrowser 组件实现
 export function FileBrowser({ sandboxId, onSelectFile, trigger }: FileBrowserProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [currentPath, setCurrentPath] = useState("");
-  const [files, setFiles] = useState<FileInfo[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [fileContent, setFileContent] = useState<string | null>(null);
-  const [selectedFile, setSelectedFile] = useState<string | null>(null);
-  const [breadcrumbs, setBreadcrumbs] = useState<string[]>([]);
+  const [isOpen, setIsOpen] = useState(false); // 控制弹窗显示
+  const [currentPath, setCurrentPath] = useState(""); // 当前目录路径
+  const [files, setFiles] = useState<FileInfo[]>([]); // 当前目录下文件列表
+  const [isLoading, setIsLoading] = useState(false); // 加载状态
+  const [fileContent, setFileContent] = useState<string | null>(null); // 当前预览文件内容
+  const [selectedFile, setSelectedFile] = useState<string | null>(null); // 当前选中文件路径
+  const [breadcrumbs, setBreadcrumbs] = useState<string[]>([]); // 面包屑导航
   
-  // Reset state when dialog opens
+  // 弹窗打开时重置状态并加载根目录文件
   useEffect(() => {
     if (isOpen) {
       loadFiles("");
@@ -33,15 +36,14 @@ export function FileBrowser({ sandboxId, onSelectFile, trigger }: FileBrowserPro
     }
   }, [isOpen, sandboxId]);
   
-  // Load files from the current path
+  // 加载指定路径下的文件列表
   const loadFiles = async (path: string) => {
     setIsLoading(true);
     try {
       const files = await listSandboxFiles(sandboxId, path);
       setFiles(files);
       setCurrentPath(path);
-      
-      // Update breadcrumbs
+      // 更新面包屑导航
       if (path === "") {
         setBreadcrumbs([]);
       } else {
@@ -56,7 +58,7 @@ export function FileBrowser({ sandboxId, onSelectFile, trigger }: FileBrowserPro
     }
   };
   
-  // Load file content
+  // 加载指定文件内容
   const loadFileContent = async (path: string) => {
     setIsLoading(true);
     setSelectedFile(path);
@@ -65,7 +67,7 @@ export function FileBrowser({ sandboxId, onSelectFile, trigger }: FileBrowserPro
       if (typeof content === 'string') {
         setFileContent(content);
       } else {
-        // For binary files, show a message
+        // 二进制文件显示提示
         setFileContent("[Binary file]");
       }
     } catch (error) {
@@ -77,7 +79,7 @@ export function FileBrowser({ sandboxId, onSelectFile, trigger }: FileBrowserPro
     }
   };
   
-  // Handle file or folder click
+  // 点击文件或文件夹
   const handleItemClick = (file: FileInfo) => {
     if (file.is_dir) {
       loadFiles(file.path);
@@ -86,10 +88,10 @@ export function FileBrowser({ sandboxId, onSelectFile, trigger }: FileBrowserPro
     }
   };
   
-  // Navigate to a specific breadcrumb
+  // 面包屑导航跳转
   const navigateToBreadcrumb = (index: number) => {
     if (index === -1) {
-      // Root directory
+      // 根目录
       loadFiles("");
     } else {
       const path = breadcrumbs.slice(0, index + 1).join('/');
@@ -97,7 +99,7 @@ export function FileBrowser({ sandboxId, onSelectFile, trigger }: FileBrowserPro
     }
   };
   
-  // Handle select button click
+  // 选择文件按钮点击
   const handleSelectFile = () => {
     if (selectedFile && fileContent && onSelectFile) {
       onSelectFile(selectedFile, fileContent);
@@ -114,8 +116,7 @@ export function FileBrowser({ sandboxId, onSelectFile, trigger }: FileBrowserPro
         <DialogHeader>
           <DialogTitle>Sandbox Files</DialogTitle>
         </DialogHeader>
-        
-        {/* Breadcrumbs */}
+        {/* 面包屑导航 */}
         <div className="flex items-center space-x-1 text-sm py-2 border-b">
           <Button
             variant="ghost"
@@ -140,9 +141,8 @@ export function FileBrowser({ sandboxId, onSelectFile, trigger }: FileBrowserPro
             </div>
           ))}
         </div>
-        
         <div className="grid grid-cols-2 gap-4 flex-1 overflow-hidden">
-          {/* File list */}
+          {/* 文件列表 */}
           <div className="border rounded-md overflow-y-auto h-[400px]">
             {isLoading && !files.length ? (
               <div className="p-4 space-y-2">
@@ -188,8 +188,7 @@ export function FileBrowser({ sandboxId, onSelectFile, trigger }: FileBrowserPro
               </div>
             )}
           </div>
-          
-          {/* File preview */}
+          {/* 文件预览 */}
           <div className="border rounded-md overflow-hidden flex flex-col">
             <div className="p-2 bg-muted text-sm font-medium border-b">
               {selectedFile ? selectedFile.split('/').pop() : "File Preview"}
@@ -198,27 +197,23 @@ export function FileBrowser({ sandboxId, onSelectFile, trigger }: FileBrowserPro
               {isLoading && selectedFile ? (
                 <div className="space-y-2">
                   {[1, 2, 3, 4, 5].map((i) => (
-                    <Skeleton key={i} className="h-4 w-full" />
+                    <Skeleton key={i} className="h-6 w-full" />
                   ))}
                 </div>
               ) : fileContent ? (
-                <pre className="text-xs whitespace-pre-wrap">{fileContent}</pre>
+                <pre className="whitespace-pre-wrap text-xs">{fileContent}</pre>
               ) : (
-                <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                  <File className="h-8 w-8 mb-2" />
-                  <p>Select a file to preview</p>
-                </div>
+                <div className="text-muted-foreground text-xs">No file selected</div>
               )}
+            </div>
+            <div className="p-2 border-t flex justify-end">
+              <Button onClick={handleSelectFile} disabled={!selectedFile || !fileContent}>
+                Select File
+              </Button>
             </div>
           </div>
         </div>
-        
-        {selectedFile && fileContent && onSelectFile && (
-          <div className="flex justify-end pt-2">
-            <Button onClick={handleSelectFile}>Select File</Button>
-          </div>
-        )}
       </DialogContent>
     </Dialog>
   );
-} 
+}
