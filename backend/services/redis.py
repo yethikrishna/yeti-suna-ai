@@ -25,7 +25,6 @@ def initialize():
     redis_host = os.getenv('REDIS_HOST', 'redis')
     redis_port = int(os.getenv('REDIS_PORT', 6379))
     redis_password = os.getenv('REDIS_PASSWORD', '')
-    redis_username = os.getenv('REDIS_USERNAME', 'default')
     # Convert string 'True'/'False' to boolean
     redis_ssl_str = os.getenv('REDIS_SSL', 'False')
     redis_ssl = redis_ssl_str.lower() == 'true'
@@ -37,13 +36,12 @@ def initialize():
         host=redis_host,
         port=redis_port,
         password=redis_password,
-        #ssl=redis_ssl,
+        ssl=redis_ssl,
         decode_responses=True,
         socket_timeout=5.0,
         socket_connect_timeout=5.0,
         retry_on_timeout=True,
-        health_check_interval=30,
-        username=redis_username
+        health_check_interval=30
     )
 
     return client
