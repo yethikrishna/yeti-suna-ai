@@ -4,6 +4,7 @@ import * as React from "react"
 import Link from "next/link"
 import { Menu } from "lucide-react"
 
+import { NavAIEmployees } from "@/components/sidebar/nav-ai-employees"
 import { NavAgents } from "@/components/sidebar/nav-agents"
 import { NavUserWithTeams } from "@/components/sidebar/nav-user-with-teams"
 import { KortixLogo } from "@/components/sidebar/kortix-logo"
@@ -15,6 +16,7 @@ import {
   SidebarHeader,
   SidebarRail,
   SidebarTrigger,
+  SidebarSeparator,
   useSidebar,
 } from "@/components/ui/sidebar"
 import { useEffect, useState } from "react"
@@ -25,6 +27,7 @@ import {
   TooltipTrigger
 } from "@/components/ui/tooltip"
 import { useIsMobile } from "@/hooks/use-mobile"
+import { Separator } from "@/components/ui/separator"
 
 export function SidebarLeft({
   ...props
@@ -117,6 +120,8 @@ export function SidebarLeft({
         </div>
       </SidebarHeader>
       <SidebarContent className="[&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
+        <NavAIEmployees />
+        <SidebarSeparator className="my-4" />
         <NavAgents />
       </SidebarContent>
       {state !== "collapsed" && (
