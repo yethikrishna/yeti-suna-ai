@@ -7,6 +7,9 @@ import { useMediaQuery } from "@/hooks/use-media-query";
 import { ArrowLeft } from "lucide-react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 
+
+export const dynamic = 'force-dynamic';
+
 function LegalContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
