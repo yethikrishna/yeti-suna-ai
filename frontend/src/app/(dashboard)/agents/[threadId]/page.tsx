@@ -45,9 +45,8 @@ import {
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useMediaQuery } from "@/hooks/use-media-query";
-import { useSidebar } from "@/hooks/use-sidebar";
+
 import { BillingError } from "@/lib/errors";
-import BillingErrorAlert from "@/components/billing/billing-error-alert";
 import config from "@/config";
 
 // Define the structure for a message with potential tool calls
@@ -127,7 +126,7 @@ export default function AgentThreadPage() {
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const userClosedPanelRef = useRef(false);
   const isMobile = useMediaQuery("(max-width: 768px)");
-  const { leftSidebarState } = useSidebar();
+
 
   const { 
     completion, 
@@ -815,7 +814,7 @@ export default function AgentThreadPage() {
       {/* Input Area */}
       <div className={cn(
         "fixed bottom-0 z-10 bg-gradient-to-t from-background via-background/90 to-transparent px-4 pt-8 transition-all duration-200 ease-in-out",
-        leftSidebarState === 'expanded' ? 'left-[72px] lg:left-[256px]' : 'left-[72px]',
+      		'left-[72px]',
         isSidePanelOpen ? 'right-[90%] sm:right-[450px] md:right-[500px] lg:right-[550px] xl:right-[650px]' : 'right-0',
         isMobile ? 'left-0 right-0' : ''
       )}>
@@ -867,7 +866,6 @@ export default function AgentThreadPage() {
         />
       )}
       {/* Billing Alert */}
-      <BillingErrorAlert 
         message={billingData.message}
         currentUsage={billingData.currentUsage}
         limit={billingData.limit}

@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
@@ -27,535 +28,379 @@ import { cn } from "@/lib/utils";
 // Define API_URL
 const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || '';
 
-// Local storage keys
-const STORAGE_KEY_MODEL = 'suna-preferred-model';
-const DEFAULT_MODEL_ID = "sonnet-3.7"; // Define default model ID
-
 interface ChatInputProps {
-  onSubmit: (message: string, options?: { model_name?: string; enable_thinking?: boolean }) => void;
-  placeholder?: string;
-  loading?: boolean;
-  disabled?: boolean;
-  isAgentRunning?: boolean;
-  onStopAgent?: () => void;
-  autoFocus?: boolean;
-  value?: string;
-  onChange?: (value: string) => void;
-  onFileBrowse?: () => void;
-  sandboxId?: string;
-  hideAttachments?: boolean;
+  threadId: string;
+  initialInput?: string;
+  onMessageSent?: () => void;
+  onMessageResponseStarted?: () => void;
+  onMessageResponseCompleted?: () => void;
+  onMessageResponseError?: (error: Error) => void;
+  isResponding: boolean;
+  setIsResponding: (isResponding: boolean) => void;
+  onFileUploadSuccess?: (uploadedFiles: any[]) => void;
+  agentId: string;
 }
 
-interface UploadedFile {
-  name: string;
-  path: string;
-  size: number;
-}
-
-// Define interface for the ref
-export interface ChatInputHandles {
-  getPendingFiles: () => File[];
-  clearPendingFiles: () => void;
-}
-
-export const ChatInput = forwardRef<ChatInputHandles, ChatInputProps>(({
-  onSubmit,
-  placeholder = "Describe what you need help with...",
-  loading = false,
-  disabled = false,
-  isAgentRunning = false,
-  onStopAgent,
-  autoFocus = true,
-  value: controlledValue,
-  onChange: controlledOnChange,
-  onFileBrowse,
-  sandboxId,
-  hideAttachments = false
-}, ref) => {
-  const isControlled = controlledValue !== undefined && controlledOnChange !== undefined;
-  
-  const [uncontrolledValue, setUncontrolledValue] = useState('');
-  const value = isControlled ? controlledValue : uncontrolledValue;
-
-  // Define model options array earlier so it can be used in useEffect
-  const modelOptions = [
-    { id: "sonnet-3.7", label: "Sonnet 3.7" },
-    { id: "sonnet-3.7-thinking", label: "Sonnet 3.7 (Thinking)" },
-    { id: "gpt-4.1", label: "GPT-4.1" },
-    { id: "gemini-flash-2.5", label: "Gemini Flash 2.5" }
-  ];
-
-  // Initialize state with the default model
-  const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL_ID);
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
-  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+const ChatInput = forwardRef<{
+  focus: () => void;
+  setInput: (value: string) => void;
+  handleSend: () => void;
+}, ChatInputProps>((
+  {
+    threadId,
+    initialInput = '',
+    onMessageSent,
+    onMessageResponseStarted,
+    onMessageResponseCompleted,
+    onMessageResponseError,
+    isResponding,
+    setIsResponding,
+    onFileUploadSuccess,
+    agentId,
+  },
+  ref
+) => {
+  const [input, setInput] = useState(initialInput);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
-  const [isDraggingOver, setIsDraggingOver] = useState(false);
-  
-  // Expose methods through the ref
+  const [model, setModel] = useState<string>("gpt-4o"); // Default model
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const supabase = createClient();
+
   useImperativeHandle(ref, () => ({
-    getPendingFiles: () => pendingFiles,
-    clearPendingFiles: () => setPendingFiles([])
+    focus: () => {
+      textareaRef.current?.focus();
+    },
+    setInput: (value: string) => {
+      setInput(value);
+      adjustTextareaHeight();
+    },
+    handleSend: () => {
+      handleSendMessage();
+    }
   }));
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const savedModel = localStorage.getItem(STORAGE_KEY_MODEL);
-        // Check if the saved model exists and is one of the valid options
-        if (savedModel && modelOptions.some(option => option.id === savedModel)) {
-          setSelectedModel(savedModel);
-        } else if (savedModel) {
-          // If invalid model found in storage, clear it
-          localStorage.removeItem(STORAGE_KEY_MODEL);
-          console.log(`Removed invalid model '${savedModel}' from localStorage. Using default: ${DEFAULT_MODEL_ID}`);
-        }
-      } catch (error) {
-        console.warn('Failed to load preferences from localStorage:', error);
-      }
-    }
-  }, []);
-  
-  useEffect(() => {
-    if (autoFocus && textareaRef.current) {
-      textareaRef.current.focus();
-    }
-  }, [autoFocus]);
+    adjustTextareaHeight();
+  }, [input]);
 
-  useEffect(() => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-
-    const adjustHeight = () => {
-      textarea.style.height = 'auto';
-      const newHeight = Math.min(Math.max(textarea.scrollHeight, 24), 200);
-      textarea.style.height = `${newHeight}px`;
-    };
-
-    adjustHeight();
-    
-    adjustHeight();
-
-    window.addEventListener('resize', adjustHeight);
-    return () => window.removeEventListener('resize', adjustHeight);
-  }, [value]);
-
-  const handleModelChange = (model: string) => {
-    setSelectedModel(model);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(STORAGE_KEY_MODEL, model);
+  const adjustTextareaHeight = () => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if ((!value.trim() && uploadedFiles.length === 0) || loading || (disabled && !isAgentRunning)) return;
-    
-    if (isAgentRunning && onStopAgent) {
-      onStopAgent();
-      return;
-    }
-    
-    let message = value;
-    
-    if (uploadedFiles.length > 0) {
-      const fileInfo = uploadedFiles.map(file => 
-        `[Uploaded File: ${file.path}]`
-      ).join('\n');
-      message = message ? `${message}\n\n${fileInfo}` : fileInfo;
-    }
-    
-    let baseModelName = selectedModel;
-    let thinkingEnabled = false;
-    if (selectedModel.endsWith("-thinking")) {
-      baseModelName = selectedModel.replace(/-thinking$/, "");
-      thinkingEnabled = true;
-    }
-    
-    onSubmit(message, {
-      model_name: baseModelName,
-      enable_thinking: thinkingEnabled
-    });
-    
-    if (!isControlled) {
-      setUncontrolledValue("");
-    }
-    
-    setUploadedFiles([]);
+  const handleInputChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInput(event.target.value);
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const newValue = e.target.value;
-    if (isControlled) {
-      controlledOnChange(newValue);
-    } else {
-      setUncontrolledValue(newValue);
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === 'Enter' && !event.shiftKey && !isResponding) {
+      event.preventDefault();
+      handleSendMessage();
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      if ((value.trim() || uploadedFiles.length > 0) && !loading && (!disabled || isAgentRunning)) {
-        handleSubmit(e as React.FormEvent);
-      }
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files) {
+      const files = Array.from(event.target.files);
+      setSelectedFiles(prevFiles => [...prevFiles, ...files]);
+      event.target.value = ''; // Reset file input
     }
   };
 
-  const handleFileUpload = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
+  const handleRemoveFile = (index: number) => {
+    setSelectedFiles(prevFiles => prevFiles.filter((_, i) => i !== index));
   };
 
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDraggingOver(true);
-  };
+  const handleUploadFiles = async (): Promise<string[]> => {
+    if (selectedFiles.length === 0) return [];
 
-  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDraggingOver(false);
-  };
+    setIsUploading(true);
+    const uploadedFileIds: string[] = [];
 
-  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDraggingOver(false);
-    
-    if (!e.dataTransfer.files || e.dataTransfer.files.length === 0) return;
-    
-    const files = Array.from(e.dataTransfer.files);
-    
-    if (sandboxId) {
-      // If we have a sandboxId, upload files directly
-      await uploadFiles(files);
-    } else {
-      // Otherwise, store files locally
-      handleLocalFiles(files);
-    }
-  };
-
-  const processFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!event.target.files || event.target.files.length === 0) return;
-    
-    const files = Array.from(event.target.files);
-    
-    if (sandboxId) {
-      // If we have a sandboxId, upload files directly
-      await uploadFiles(files);
-    } else {
-      // Otherwise, store files locally
-      handleLocalFiles(files);
-    }
-    
-    event.target.value = '';
-  };
-
-  // New function to handle files locally when there's no sandboxId
-  const handleLocalFiles = (files: File[]) => {
-    const filteredFiles = files.filter(file => {
-      if (file.size > 50 * 1024 * 1024) {
-        toast.error(`File size exceeds 50MB limit: ${file.name}`);
-        return false;
-      }
-      return true;
-    });
-    
-    // Store the files in pendingFiles state
-    setPendingFiles(prevFiles => [...prevFiles, ...filteredFiles]);
-    
-    // Also add to uploadedFiles for UI display
-    const newUploadedFiles: UploadedFile[] = filteredFiles.map(file => ({
-      name: file.name,
-      path: `/workspace/${file.name}`, // This is just for display purposes
-      size: file.size
-    }));
-    
-    setUploadedFiles(prev => [...prev, ...newUploadedFiles]);
-    filteredFiles.forEach(file => {
-      toast.success(`File attached: ${file.name} (pending upload)`);
-    });
-  };
-
-  const uploadFiles = async (files: File[]) => {
     try {
-      setIsUploading(true);
-      
-      const newUploadedFiles: UploadedFile[] = [];
-      
-      for (const file of files) {
-        if (file.size > 50 * 1024 * 1024) {
-          toast.error(`File size exceeds 50MB limit: ${file.name}`);
-          continue;
+      for (const file of selectedFiles) {
+        const filePath = `${threadId}/${Date.now()}_${file.name}`;
+        const { data, error } = await supabase.storage
+          .from('user_files')
+          .upload(filePath, file);
+
+        if (error) {
+          throw new Error(`Failed to upload ${file.name}: ${error.message}`);
         }
-        
-        const formData = new FormData();
-        formData.append('file', file);
-        
-        const uploadPath = `/workspace/${file.name}`;
-        formData.append('path', uploadPath);
-        
-        const supabase = createClient();
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (!session?.access_token) {
-          throw new Error('No access token available');
+
+        if (data) {
+          // Get public URL (consider security implications)
+          const { data: urlData } = supabase.storage.from('user_files').getPublicUrl(filePath);
+          uploadedFileIds.push(urlData.publicUrl);
         }
-        
-        const response = await fetch(`${API_URL}/sandboxes/${sandboxId}/files`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-          },
-          body: formData
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Upload failed: ${response.statusText}`);
-        }
-        
-        newUploadedFiles.push({
-          name: file.name,
-          path: uploadPath,
-          size: file.size
-        });
-        
-        toast.success(`File uploaded: ${file.name}`);
       }
-      
-      setUploadedFiles(prev => [...prev, ...newUploadedFiles]);
-      
-    } catch (error) {
-      console.error("File upload failed:", error);
-      toast.error(typeof error === 'string' ? error : (error instanceof Error ? error.message : "Failed to upload file"));
+
+      toast.success(`${selectedFiles.length} file(s) uploaded successfully.`);
+      setSelectedFiles([]);
+      if (onFileUploadSuccess) {
+        // Pass file details if needed, here just passing URLs
+        onFileUploadSuccess(uploadedFileIds.map(url => ({ url, name: url.split('/').pop() })));
+      }
+      return uploadedFileIds;
+    } catch (error: any) { // Explicitly type error as any or Error
+      console.error("File upload error:", error);
+      toast.error(`File upload failed: ${error.message}`);
+      // Optionally keep failed files for retry?
+      return []; // Return empty array on failure
     } finally {
       setIsUploading(false);
     }
   };
 
-  const formatFileSize = (bytes: number): string => {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  const handleSendMessage = async () => {
+    const trimmedInput = input.trim();
+    if (!trimmedInput && selectedFiles.length === 0) return;
+    if (isResponding) return;
+
+    setIsResponding(true);
+    if (onMessageResponseStarted) onMessageResponseStarted();
+
+    let uploadedFileUrls: string[] = [];
+    if (selectedFiles.length > 0) {
+      uploadedFileUrls = await handleUploadFiles();
+      // If upload fails and input is empty, don't proceed
+      if (uploadedFileUrls.length === 0 && !trimmedInput) {
+        setIsResponding(false);
+        if (onMessageResponseCompleted) onMessageResponseCompleted();
+        return;
+      }
+    }
+
+    const messageContent = trimmedInput;
+    setInput('');
+    setTimeout(adjustTextareaHeight, 0); // Adjust height after clearing input
+
+    if (onMessageSent) onMessageSent();
+
+    try {
+      const response = await fetch(`${API_URL}/threads/${threadId}/messages`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            content: messageContent,
+            file_urls: uploadedFileUrls,
+            model: model, // Include selected model
+            agent_id: agentId // Include agentId
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+      }
+
+      // No need to process response here if handled by parent
+
+    } catch (error: any) {
+      console.error('Error sending message:', error);
+      toast.error(`Error: ${error.message}`);
+      if (onMessageResponseError) onMessageResponseError(error);
+      // Restore input if sending failed?
+      // setInput(messageContent);
+    } finally {
+      // Parent component should set isResponding to false when stream ends
+      // setIsResponding(false);
+      // if (onMessageResponseCompleted) onMessageResponseCompleted();
+    }
   };
 
-  const removeUploadedFile = (index: number) => {
-    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+  const handleStopResponding = async () => {
+    try {
+      const response = await fetch(`${API_URL}/threads/${threadId}/interrupt`, {
+        method: 'POST',
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+      }
+      toast.info("Processing stopped.");
+      // Let the polling mechanism in the parent handle the state update
+      // setIsResponding(false);
+      // if (onMessageResponseCompleted) onMessageResponseCompleted();
+    } catch (error: any) {
+      console.error('Error stopping response:', error);
+      toast.error(`Error stopping: ${error.message}`);
+    }
   };
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 py-4">
-      <AnimatePresence>
-        {uploadedFiles.length > 0 && (
-          <motion.div 
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="mb-2 overflow-hidden"
-          >
-            <div className="flex flex-wrap gap-1.5 max-h-20 overflow-y-auto">
-              {uploadedFiles.map((file, index) => (
-                <motion.div 
-                  key={index}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  transition={{ duration: 0.15 }}
-                  className={cn(
-                    "px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded-md flex items-center gap-1.5 group text-sm",
-                    !sandboxId ? "border border-blue-200 dark:border-blue-800" : "" // Add special styling for pending files
-                  )}
+    <TooltipProvider delayDuration={100}>
+      <div className="relative flex flex-col gap-2 px-4 pb-4 pt-2 border-t bg-background shadow-lg"> {/* Added pt-2 */}
+        {/* Selected Files Preview */}
+        {selectedFiles.length > 0 && (
+          <div className="flex flex-wrap gap-2 p-2 border rounded-md bg-muted/50 max-h-28 overflow-y-auto">
+            {selectedFiles.map((file, index) => (
+              <div key={index} className="flex items-center gap-2 bg-background border rounded-full px-3 py-1 text-sm">
+                <Paperclip className="h-4 w-4 text-muted-foreground" />
+                <span className="truncate max-w-xs" title={file.name}>{file.name}</span>
+                <button
+                  onClick={() => handleRemoveFile(index)}
+                  className="text-muted-foreground hover:text-destructive disabled:opacity-50"
+                  disabled={isUploading}
+                  aria-label={`Remove ${file.name}`}
                 >
-                  <span className="truncate max-w-[120px] text-gray-700 dark:text-gray-300">{file.name}</span>
-                  <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
-                    ({formatFileSize(file.size)})
-                    {!sandboxId && <span className="ml-1 text-blue-500">(pending)</span>}
-                  </span>
-                  <Button 
-                    type="button" 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-4 w-4 rounded-full p-0 hover:bg-gray-200 dark:hover:bg-gray-700"
-                    onClick={() => {
-                      removeUploadedFile(index);
-                      // Also remove from pendingFiles if needed
-                      if (!sandboxId && pendingFiles.length > index) {
-                        setPendingFiles(prev => prev.filter((_, i) => i !== index));
-                      }
-                    }}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+          </div>
         )}
-      </AnimatePresence>
 
-      <div 
-        className={cn(
-          "flex items-end w-full rounded-lg border border-gray-200 dark:border-gray-900 bg-white dark:bg-black px-3 py-2 shadow-sm transition-all duration-200",
-          isDraggingOver ? "border-blue-200 dark:border-blue-900 bg-blue-50/50 dark:bg-blue-950/10" : ""
-        )}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-      >
-        <div className="relative flex-1 flex items-center overflow-hidden dark:bg-black">
-          <Textarea
-            ref={textareaRef}
-            value={value}
-            onChange={handleChange}
-            onKeyDown={handleKeyDown}
-            placeholder={placeholder}
-            className={cn(
-              "min-h-[24px] max-h-[200px] py-0 px-0 text-sm resize-none border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent w-full dark:bg-black",
-              isDraggingOver ? "opacity-40" : ""
-            )}
-            disabled={loading || (disabled && !isAgentRunning)}
-            rows={1}
-          />
-        </div>
-        
-        <div className="flex items-center gap-2 pl-2 flex-shrink-0">
-          {/* {!isAgentRunning && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button 
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
-                      >
-                        <Settings className="h-4 w-4" />
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[360px] p-0 gap-0 border border-border shadow-lg">
-                      <DialogHeader className="px-4 pt-4 pb-3 border-b">
-                        <DialogTitle className="text-sm font-medium">Select Model</DialogTitle>
-                      </DialogHeader>
-                      <div className="p-4">
-                        <RadioGroup 
-                          defaultValue={selectedModel} 
-                          onValueChange={handleModelChange}
-                          className="grid gap-2"
-                        >
-                          {modelOptions.map(option => (
-                            <div key={option.id} className="flex items-center space-x-2 rounded-md px-3 py-2 cursor-pointer hover:bg-accent">
-                              <RadioGroupItem value={option.id} id={option.id} />
-                              <Label htmlFor={option.id} className="flex-1 cursor-pointer text-sm font-normal">
-                                {option.label}
-                              </Label>
-                              {selectedModel === option.id && (
-                                <span className="text-xs text-muted-foreground">Active</span>
-                              )}
-                            </div>
-                          ))}
-                        </RadioGroup>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                </TooltipTrigger>
-                <TooltipContent side="top">
-                  <p>Settings</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )} */}
-          
-          {!hideAttachments && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button 
-                    type="button"
-                    onClick={handleFileUpload}
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
-                    disabled={loading || (disabled && !isAgentRunning) || isUploading}
-                  >
-                    {isUploading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Paperclip className="h-4 w-4" />
-                    )}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="top">
-                  <p>Attach files</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
-          
+        {/* Input Area */}
+        <div className="relative flex items-end gap-2">
+          {/* File Upload Button */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isResponding || isUploading}
+                className="flex-shrink-0"
+              >
+                {isUploading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Paperclip className="h-5 w-5" />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Attach files</p>
+            </TooltipContent>
+          </Tooltip>
           <input
             type="file"
             ref={fileInputRef}
-            className="hidden"
-            onChange={processFileUpload}
+            onChange={handleFileChange}
             multiple
+            className="hidden"
+            accept=".c,.cpp,.csv,.docx,.html,.java,.json,.md,.pdf,.php,.pptx,.py,.rb,.tex,.txt,.css,.jpeg,.jpg,.js,.gif,.png,.ts,.xlsx"
           />
-          
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  type="submit"
-                  onClick={isAgentRunning ? onStopAgent : handleSubmit}
-                  variant="ghost"
-                  size="icon"
-                  className={cn(
-                    "h-8 w-8 rounded-md",
-                    isAgentRunning 
-                      ? "text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30" 
-                      : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800",
-                    ((!value.trim() && uploadedFiles.length === 0) && !isAgentRunning) || loading || (disabled && !isAgentRunning) 
-                      ? "opacity-50" 
-                      : ""
-                  )}
-                  disabled={((!value.trim() && uploadedFiles.length === 0) && !isAgentRunning) || loading || (disabled && !isAgentRunning)}
+
+          {/* Textarea */}
+          <Textarea
+            ref={textareaRef}
+            value={input}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+            placeholder="Ask anything... Shift+Enter for new line"
+            className="flex-1 resize-none overflow-y-auto max-h-40 min-h-[40px] pr-10 text-sm leading-6"
+            rows={1}
+            disabled={isResponding || isUploading}
+            style={{ height: '40px' }} // Initial height
+          />
+
+          {/* Send/Stop Button */}
+          <div className="absolute bottom-1.5 right-1.5 flex items-center gap-1">
+            {/* Model Selector Dialog */}
+            <Dialog>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DialogTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" disabled={isResponding || isUploading}>
+                      <Settings className="h-4 w-4" />
+                    </Button>
+                  </DialogTrigger>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Model Settings</p>
+                </TooltipContent>
+              </Tooltip>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Model Selection</DialogTitle>
+                </DialogHeader>
+                <RadioGroup value={model} onValueChange={setModel} className="grid gap-4 py-4">
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="gpt-4o" id="gpt-4o" />
+                    <Label htmlFor="gpt-4o">GPT-4o (OpenAI)</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="claude-3-5-sonnet-20240620" id="claude-3.5-sonnet" />
+                    <Label htmlFor="claude-3.5-sonnet">Claude 3.5 Sonnet (Anthropic)</Label>
+                  </div>
+                  {/* Add more models as needed */}
+                </RadioGroup>
+                {/* Add other settings here if needed */}
+              </DialogContent>
+            </Dialog>
+
+            {/* Send / Stop Button */}
+            <AnimatePresence mode="wait">
+              {isResponding ? (
+                <motion.div
+                  key="stop"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ duration: 0.15 }}
                 >
-                  {loading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : isAgentRunning ? (
-                    <Square className="h-4 w-4" />
-                  ) : (
-                    <Send className="h-4 w-4" />
-                  )}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="top">
-                <p>{isAgentRunning ? 'Stop agent' : 'Send message'}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        onClick={handleStopResponding}
+                        className="h-8 w-8"
+                      >
+                        <Square className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Stop generating</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="send"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ duration: 0.15 }}
+                >
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="submit"
+                        size="icon"
+                        onClick={handleSendMessage}
+                        disabled={(!input.trim() && selectedFiles.length === 0) || isUploading}
+                        className="h-8 w-8"
+                      >
+                        <Send className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Send message</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </div>
-
-      {isAgentRunning && (
-        <motion.div 
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mt-2 w-full flex items-center justify-center"
-        >
-          <div className="text-xs text-muted-foreground flex items-center gap-2">
-            <Loader2 className="h-3 w-3 animate-spin" />
-            <span>Kortix Suna is working...</span>
-          </div>
-        </motion.div>
-      )}
-    </div>
+    </TooltipProvider>
   );
 });
 
-// Set display name for the component
-ChatInput.displayName = 'ChatInput'; 
+ChatInput.displayName = 'ChatInput';
+
+export default ChatInput;
+
+
