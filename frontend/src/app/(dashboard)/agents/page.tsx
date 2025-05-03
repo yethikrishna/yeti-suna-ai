@@ -1,15 +1,12 @@
 "use client";
 export const dynamic = "force-dynamic";
+
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { PlusCircle, MessagesSquare, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-} from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle, MessagesSquare, PlusCircle } from "lucide-react";
 import { getProjects, getThreads, type Project } from "@/lib/api";
 
 // Define the Agent type that combines project and thread data
@@ -92,7 +89,6 @@ export default function AgentsPage() {
           </Link>
         </Button>
       </div>
-
       {isLoading ? (
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
