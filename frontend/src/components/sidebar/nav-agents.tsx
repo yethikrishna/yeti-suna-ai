@@ -207,15 +207,31 @@ export function NavAgents() {
       // Show success message
       toast.success("Conversation deleted successfully");
       
-      // If current conversation was deleted, redirect to dashboard
-      if (pathname?.includes(threadToDelete.id)) {
+      // Check if we need to redirect
+      const needsRedirect = pathname?.includes(threadToDelete.id);
+      
+      // If we're not redirecting, reset states immediately
+      if (!needsRedirect) {
+        setIsDeleting(false);
+        setIsDeleteDialogOpen(false);
+        setThreadToDelete(null);
+      } else {
+        // If current conversation was deleted, redirect to dashboard
+        // and reset states after a small delay to ensure navigation completes
         router.push('/dashboard');
+        
+        // Use a small timeout to ensure navigation has time to start
+        setTimeout(() => {
+          setIsDeleting(false);
+          setIsDeleteDialogOpen(false);
+          setThreadToDelete(null);
+        }, 100);
       }
     } catch (error) {
       console.error("Error while deleting:", error);
       toast.error("Unable to delete the conversation");
-    } finally {
-      // Reset states
+      
+      // Always reset states on error
       setIsDeleting(false);
       setIsDeleteDialogOpen(false);
       setThreadToDelete(null);
