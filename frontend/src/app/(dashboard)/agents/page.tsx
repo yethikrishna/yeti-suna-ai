@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { PlusCircle, MessagesSquare, AlertCircle } from "lucide-react";
@@ -150,4 +152,4 @@ export default function AgentsPage() {
       )}
     </div>
   );
-} 
+}
