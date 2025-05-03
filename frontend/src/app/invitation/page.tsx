@@ -4,6 +4,8 @@ import React from 'react';
 import AcceptTeamInvitation from "@/components/basejump/accept-team-invitation";
 import { redirect } from "next/navigation"
 
+export const dynamic = 'force-dynamic';
+
 type InvitationSearchParams = {
   token?: string;
 };
