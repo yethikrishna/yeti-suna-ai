@@ -37,6 +37,7 @@ import {
 import { getProjects, getThreads, Project, deleteThread } from "@/lib/api"
 import Link from "next/link"
 import { DeleteConfirmationDialog } from "@/components/thread/DeleteConfirmationDialog"
+import { useDeleteOperation } from '@/contexts/DeleteOperationContext'
 
 // Thread with associated project info for display in sidebar
 type ThreadWithProject = {
@@ -58,6 +59,8 @@ export function NavAgents() {
   const [threadToDelete, setThreadToDelete] = useState<{ id: string; name: string } | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const isNavigatingRef = useRef(false)
+  const { performDelete, isOperationInProgress } = useDeleteOperation();
+  const isPerformingActionRef = useRef(false);
 
   // Helper to sort threads by updated_at (most recent first)
   const sortThreads = (threadsList: ThreadWithProject[]): ThreadWithProject[] => {
@@ -216,76 +219,47 @@ export function NavAgents() {
   };
 
   const confirmDelete = async () => {
-    if (!threadToDelete) return;
+    if (!threadToDelete || isPerformingActionRef.current) return;
     
-    try {
-      console.log("DELETION - Starting thread deletion process");
-      
-      // Set loading state
-      setIsDeleting(true);
-      
-      // Delete the thread
-      await deleteThread(threadToDelete.id);
-      
-      // Update the thread list
-      setThreads(prevThreads => prevThreads.filter(t => t.threadId !== threadToDelete.id));
-      
-      // Show success message
-      toast.success("Conversation deleted successfully");
-      
-      // Check if we need to redirect
-      const needsRedirect = pathname?.includes(threadToDelete.id);
-      
-      // If we're not redirecting, reset states immediately
-      if (!needsRedirect) {
+    // Mark action in progress
+    isPerformingActionRef.current = true;
+    
+    // Close dialog first for immediate feedback
+    setIsDeleteDialogOpen(false);
+    
+    const threadId = threadToDelete.id;
+    const isActive = pathname?.includes(threadId);
+    
+    // Store threadToDelete in a local variable since it might be cleared
+    const deletedThread = { ...threadToDelete };
+    
+    // Log operation start
+    console.log("DELETION - Starting thread deletion process", {
+      threadId: deletedThread.id,
+      isCurrentThread: isActive
+    });
+    
+    // Use the centralized deletion system with completion callback
+    await performDelete(
+      threadId,
+      isActive,
+      async () => {
+        // Delete the thread
+        await deleteThread(threadId);
+        
+        // Update the thread list
+        setThreads(prev => prev.filter(t => t.threadId !== threadId));
+        
+        // Show success message
+        toast.success("Conversation deleted successfully");
+      },
+      // Completion callback to reset local state
+      () => {
+        setThreadToDelete(null);
         setIsDeleting(false);
-        setIsDeleteDialogOpen(false);
-        setThreadToDelete(null);
-      } else {
-        // Memorize ID for cleanup
-        const deletedThreadId = threadToDelete.id;
-        
-        // First reset dialog-related UI states
-        setIsDeleteDialogOpen(false);
-        setThreadToDelete(null);
-        
-        console.log("DELETION - Preparing to navigate away from deleted thread");
-        
-        // Set navigation flag and temporarily disable pointer events
-        isNavigatingRef.current = true;
-        document.body.style.pointerEvents = "none";
-        
-        try {
-          console.log("DELETION - Attempting programmatic navigation");
-          
-          // First attempt: use router
-          router.push("/dashboard");
-          
-          // Set a fallback in case programmatic navigation fails
-          setTimeout(() => {
-            if (isNavigatingRef.current && pathname?.includes(deletedThreadId)) {
-              console.log("DELETION - Router navigation timeout, using direct location change");
-              window.location.href = "/dashboard";
-            }
-            
-            // Reset loading state after the delay in any case
-            setIsDeleting(false);
-          }, 300);
-        } catch (navigationError) {
-          console.error("DELETION - Navigation error, forcing page reload", navigationError);
-          window.location.href = "/dashboard";
-          setIsDeleting(false);
-        }
+        isPerformingActionRef.current = false;
       }
-    } catch (error) {
-      console.error("Error while deleting:", error);
-      toast.error("Unable to delete the conversation");
-      
-      // Always reset states on error
-      setIsDeleting(false);
-      setIsDeleteDialogOpen(false);
-      setThreadToDelete(null);
-    }
+    );
   };
 
   return (
