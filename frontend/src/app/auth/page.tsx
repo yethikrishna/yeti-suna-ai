@@ -23,5 +23,3 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-
-[... rest of the file content ...]
