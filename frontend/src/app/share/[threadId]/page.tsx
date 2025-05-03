@@ -24,7 +24,7 @@ import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import { getSharedThread, getProject, type Project, type ThreadMessage, type ToolCall } from "@/lib/api";
-import { ToolCallPanelWithDebugInfo } from "@/components/tool-call-panel-debug"; // Import the debug version
+import { ToolCallPanelWithDebugInfo } from "@/components/thread/tool-call-side-panel";
 import { FileViewerModal } from "@/components/file-viewer-modal";
 import { type Message as ApiMessageType } from "ai"; // Import the specific type
 
