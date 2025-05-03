@@ -1,4 +1,5 @@
-'use client';
+
+export const dynamic = "force-dynamic";
 
 import React from 'react';
 import AcceptTeamInvitation from "@/components/basejump/accept-team-invitation";
@@ -25,3 +26,4 @@ export default function AcceptInvitationPage({
         </div>
     )
 }
+

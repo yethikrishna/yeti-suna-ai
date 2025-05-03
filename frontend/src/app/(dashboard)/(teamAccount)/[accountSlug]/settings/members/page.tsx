@@ -1,4 +1,5 @@
-'use client';
+
+export const dynamic = "force-dynamic";
 
 import React from 'react';
 import {createClient} from "@/lib/supabase/server";
@@ -96,3 +97,4 @@ export default function TeamMembersPage({ params }: { params: Promise<AccountPar
         </div>
     )
 }
+
