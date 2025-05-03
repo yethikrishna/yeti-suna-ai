@@ -1,12 +1,13 @@
-"use client";
-
 export const dynamic = "force-dynamic";
-
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { PlusCircle, MessagesSquare, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getProjects, getThreads, type Project } from "@/lib/api";
 
@@ -138,7 +139,7 @@ export default function AgentsPage() {
                       href={
                         agent.threadId
                           ? `/agents/${agent.threadId}`
-                          : `/dashboard`
+                          : `/dashboard` // Fallback link if no threadId
                       }
                     >
                       Continue Conversation
@@ -153,3 +154,4 @@ export default function AgentsPage() {
     </div>
   );
 }
+
