@@ -30,7 +30,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import ChatInput from "@/components/chat-input";
-import { ToolCallSidePanel } from "@/components/tool-call-panel";
+iimport ToolCallSidePanel from '@/components/thread/tool-call-side-panel';l";
 import { FileViewerModal } from "@/components/file-viewer-modal";
 import { 
   getThread, 
