@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import {createClient} from "@/lib/supabase/server";
 import AccountBillingStatus from "@/components/billing/account-billing-status";
 
@@ -6,7 +8,6 @@ const returnUrl = process.env.NEXT_PUBLIC_URL as string;
 export default async function PersonalAccountBillingPage() {
     const supabaseClient = await createClient();
     const {data: personalAccount} = await supabaseClient.rpc('get_personal_account');
-
 
     return (
         <div>
