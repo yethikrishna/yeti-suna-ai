@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import {
   ArrowUpRight,
   Link as LinkIcon,
@@ -57,6 +57,7 @@ export function NavAgents() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [threadToDelete, setThreadToDelete] = useState<{ id: string; name: string } | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const isNavigatingRef = useRef(false)
 
   // Helper to sort threads by updated_at (most recent first)
   const sortThreads = (threadsList: ThreadWithProject[]): ThreadWithProject[] => {
@@ -178,6 +179,29 @@ export function NavAgents() {
     setLoadingThreadId(null)
   }, [pathname])
 
+  // Add event handler for completed navigation
+  useEffect(() => {
+    const handleNavigationComplete = () => {
+      console.log("NAVIGATION - Navigation event completed");
+      document.body.style.pointerEvents = "auto";
+      isNavigatingRef.current = false;
+    };
+    
+    window.addEventListener("popstate", handleNavigationComplete);
+    
+    return () => {
+      window.removeEventListener("popstate", handleNavigationComplete);
+      // Ensure we clean up any leftover styles
+      document.body.style.pointerEvents = "auto"; 
+    };
+  }, []);
+  
+  // Reset isNavigatingRef when pathname changes
+  useEffect(() => {
+    isNavigatingRef.current = false;
+    document.body.style.pointerEvents = "auto";
+  }, [pathname]);
+
   // Function to handle thread click with loading state
   const handleThreadClick = (e: React.MouseEvent<HTMLAnchorElement>, threadId: string, url: string) => {
     e.preventDefault()
@@ -195,6 +219,8 @@ export function NavAgents() {
     if (!threadToDelete) return;
     
     try {
+      console.log("DELETION - Starting thread deletion process");
+      
       // Set loading state
       setIsDeleting(true);
       
@@ -216,16 +242,40 @@ export function NavAgents() {
         setIsDeleteDialogOpen(false);
         setThreadToDelete(null);
       } else {
-        // If current conversation was deleted, redirect to dashboard
-        // and reset states after a small delay to ensure navigation completes
-        router.push('/dashboard');
+        // Memorize ID for cleanup
+        const deletedThreadId = threadToDelete.id;
         
-        // Use a small timeout to ensure navigation has time to start
-        setTimeout(() => {
+        // First reset dialog-related UI states
+        setIsDeleteDialogOpen(false);
+        setThreadToDelete(null);
+        
+        console.log("DELETION - Preparing to navigate away from deleted thread");
+        
+        // Set navigation flag and temporarily disable pointer events
+        isNavigatingRef.current = true;
+        document.body.style.pointerEvents = "none";
+        
+        try {
+          console.log("DELETION - Attempting programmatic navigation");
+          
+          // First attempt: use router
+          router.push("/dashboard");
+          
+          // Set a fallback in case programmatic navigation fails
+          setTimeout(() => {
+            if (isNavigatingRef.current && pathname?.includes(deletedThreadId)) {
+              console.log("DELETION - Router navigation timeout, using direct location change");
+              window.location.href = "/dashboard";
+            }
+            
+            // Reset loading state after the delay in any case
+            setIsDeleting(false);
+          }, 300);
+        } catch (navigationError) {
+          console.error("DELETION - Navigation error, forcing page reload", navigationError);
+          window.location.href = "/dashboard";
           setIsDeleting(false);
-          setIsDeleteDialogOpen(false);
-          setThreadToDelete(null);
-        }, 100);
+        }
       }
     } catch (error) {
       console.error("Error while deleting:", error);
