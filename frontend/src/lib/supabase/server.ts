@@ -1,10 +1,12 @@
-export const dynamic = 'force-dynamic'
 'use server';
+
+export const dynamic = 'force-dynamic';
+
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
 export const createClient = async () => {
-  const cookieStore = await cookies();
+  const cookieStore = await cookies(); // No need to await cookies() directly here, it returns the store synchronously
   let supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
   
