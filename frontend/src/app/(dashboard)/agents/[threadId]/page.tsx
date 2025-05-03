@@ -1,879 +1,1788 @@
-"use client";
-export const dynamic = "force-dynamic";
+'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
-import Image from "next/image";
-import { toast } from "sonner";
-import { useCompletion, type Message as ApiMessageType } from "ai/react";
-import { 
-  User, 
-  Bot, 
-  Loader2, 
-  Code, 
-  CheckCircle, 
-  XCircle, 
-  CircleDashed, 
-  AlertCircle, 
-  StopCircle, 
-  FileText, 
-  FileCode, 
-  FileImage, 
-  FileArchive, 
-  FileQuestion 
-} from "lucide-react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { vscDarkPlus } from "react-syntax-highlighter/dist/cjs/styles/prism";
-import { Button } from "@/components/ui/button";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import {
+  ArrowDown, FileText, Terminal, ExternalLink, User, CheckCircle, CircleDashed,
+  FileEdit, Search, Globe, Code, MessageSquare, Folder, FileX, CloudUpload, Wrench, Cog
+} from 'lucide-react';
+import type { ElementType } from 'react';
+import { addUserMessage, getMessages, startAgent, stopAgent, getAgentStatus, streamAgent, getAgentRuns, getProject, getThread, updateProject, Project } from '@/lib/api';
+import { toast } from 'sonner';
 import { Skeleton } from "@/components/ui/skeleton";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import ChatInput from "@/components/chat-input";
-import ToolCallSidePanel from '@/components/thread/tool-call-side-panel';
-import { FileViewerModal } from "@/components/file-viewer-modal";
-import { 
-  getThread, 
-  getProject, 
-  getToolCalls, 
-  getAgentStatus, 
-  stopAgent, 
-  type Project, 
-  type ThreadMessage, 
-  type ToolCall, 
-  type AgentStatus 
-} from "@/lib/api";
-import { cn } from "@/lib/utils";
-import { useMediaQuery } from "@/hooks/use-media-query";
+import { ChatInput } from '@/components/thread/chat-input';
+import { FileViewerModal } from '@/components/thread/file-viewer-modal';
+import { SiteHeader } from "@/components/thread/thread-site-header"
+import { ToolCallSidePanel, SidePanelContent, ToolCallData } from "@/components/thread/tool-call-side-panel";
+import { useSidebar } from "@/components/ui/sidebar";
+import { TodoPanel } from '@/components/thread/todo-panel';
 
-import { BillingError } from "@/lib/errors";
-import config from "@/config";
-
-// Define the structure for a message with potential tool calls
-interface DisplayMessage extends ThreadMessage {
-  toolCalls?: ToolCall[];
-}
-
-// Helper to group tool calls with messages
-function groupMessagesWithTools(messages: ThreadMessage[], toolCalls: ToolCall[]): DisplayMessage[] {
-  const displayMessages: DisplayMessage[] = [];
-  const toolCallMap = new Map<string, ToolCall[]>();
-
-  // Group tool calls by assistant message ID
-  toolCalls.forEach(tc => {
-    if (tc.assistant_message_id) {
-      if (!toolCallMap.has(tc.assistant_message_id)) {
-        toolCallMap.set(tc.assistant_message_id, []);
-      }
-      toolCallMap.get(tc.assistant_message_id)?.push(tc);
-    }
-  });
-
-  // Combine messages and tool calls
-  messages.forEach(msg => {
-    if (msg.role === "assistant") {
-      const calls = toolCallMap.get(msg.id);
-      displayMessages.push({ ...msg, toolCalls: calls });
-    } else {
-      displayMessages.push(msg);
-    }
-  });
-
-  return displayMessages;
-}
-
-// Helper to get file icon
-const getFileIcon = (fileName: string) => {
-  const extension = fileName.split(".").pop()?.toLowerCase();
-  if (["js", "ts", "jsx", "tsx", "py", "rb", "java", "c", "cpp", "cs", "go", "php", "html", "css", "scss", "json", "yaml", "yml", "md"].includes(extension || "")) {
-    return FileCode;
-  }
-  if (["png", "jpg", "jpeg", "gif", "webp", "svg", "bmp", "ico"].includes(extension || "")) {
-    return FileImage;
-  }
-  if (["zip", "tar", "gz", "rar", "7z"].includes(extension || "")) {
-    return FileArchive;
-  }
-  if (["txt", "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx"].includes(extension || "")) {
-    return FileText;
-  }
-  return FileQuestion;
+// Define a type for the params to make React.use() work properly
+type ThreadParams = { 
+  threadId: string;
 };
 
-export default function AgentThreadPage() {
-  const params = useParams();
-  const router = useRouter();
-  const threadId = params.threadId as string;
-  const [messages, setMessages] = useState<DisplayMessage[]>([]);
-  const [toolCalls, setToolCalls] = useState<ToolCall[]>([]);
-  const [project, setProject] = useState<Project | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [newMessage, setNewMessage] = useState("");
-  const [isSending, setIsSending] = useState(false);
-  const [agentStatus, setAgentStatus] = useState<AgentStatus>("idle");
-  const [isSidePanelOpen, setIsSidePanelOpen] = useState(false);
-  const [currentToolIndex, setCurrentToolIndex] = useState(-1);
-  const [fileViewerOpen, setFileViewerOpen] = useState(false);
-  const [fileToView, setFileToView] = useState<string | null>(null);
-  const [sandboxId, setSandboxId] = useState<string | null>(null);
-  const [autoOpenedPanel, setAutoOpenedPanel] = useState(false);
-  const [showBillingAlert, setShowBillingAlert] = useState(false);
-  const [billingData, setBillingData] = useState<any>({});
+interface ApiMessage {
+  role: string;
+  content: string;
+  type?: string;
+  name?: string;
+  arguments?: string;
+  tool_call?: {
+    id: string;
+    function: {
+      name: string;
+      arguments: string;
+    };
+    type: string;
+    index: number;
+  };
+}
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const latestMessageRef = useRef<HTMLDivElement>(null);
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const userClosedPanelRef = useRef(false);
-  const isMobile = useMediaQuery("(max-width: 768px)");
+// Define structure for grouped tool call/result sequences
+type ToolSequence = {
+  type: 'tool_sequence';
+  items: ApiMessage[];
+};
 
+// Type for items that will be rendered
+type RenderItem = ApiMessage | ToolSequence;
 
-  const { 
-    completion, 
-    input, 
-    setInput, 
-    handleInputChange, 
-    handleSubmit, 
-    stop, 
-    isLoading: isCompletionLoading, 
-    error: completionError 
-  } = useCompletion({
-    api: `/api/threads/${threadId}/chat`,
-    body: { threadId },
-    onFinish: (prompt, completion) => {
-      console.log("Completion finished:", completion);
-      setIsSending(false);
-      fetchData(); // Refresh data after completion
-      startPolling(); // Restart polling for agent status
-    },
-    onError: (err) => {
-      console.error("Completion error:", err);
-      setIsSending(false);
-      if (err.message.includes("BillingError")) {
-        try {
-          const errorDetails = JSON.parse(err.message.split("BillingError: ")[1]);
-          setBillingData({
-            message: errorDetails.message || "Monthly usage limit reached. Please upgrade your plan.",
-            currentUsage: errorDetails.currentUsage,
-            limit: errorDetails.limit,
-            accountId: project?.personal_account_id // Assuming project has personal_account_id
-          });
-          setShowBillingAlert(true);
-        } catch (parseError) {
-          toast.error("Monthly usage limit reached. Please upgrade your plan.");
-        }
-      } else {
-        toast.error(err.message || "Failed to send message");
-      }
-      startPolling(); // Ensure polling restarts even on error
-    }
-  });
+// Type guard to check if an item is a ToolSequence
+function isToolSequence(item: RenderItem): item is ToolSequence {
+  return (item as ToolSequence).type === 'tool_sequence';
+}
 
-  // --- Data Fetching and Polling ---
-  const fetchData = useCallback(async (isInitialLoad = false) => {
-    if (!threadId) return;
-    if (isInitialLoad) setIsLoading(true);
-    try {
-      const [threadData, toolCallsData, statusData, projectData] = await Promise.all([
-        getThread(threadId),
-        getToolCalls(threadId),
-        getAgentStatus(threadId),
-        project ? Promise.resolve(project) : (threadData && threadData.project_id ? getProject(threadData.project_id) : Promise.resolve(null))
-      ]);
+// Helper function to get an icon based on tool name
+const getToolIcon = (toolName: string): ElementType => {
+  // Ensure we handle null/undefined toolName gracefully
+  if (!toolName) return Cog;
+  
+  // Convert to lowercase for case-insensitive matching
+  const normalizedName = toolName.toLowerCase();
+  
+  // Check for browser-related tools with a prefix check
+  if (normalizedName.startsWith('browser-')) {
+    return Globe;
+  }
+  
+  switch (normalizedName) {
+    // File operations
+    case 'create-file':
+    case 'str-replace':
+    case 'full-file-rewrite':
+    case 'read-file':
+      return FileEdit;
+    
+    // Shell commands
+    case 'execute-command':
+      return Terminal;
+    
+    // Web operations
+    case 'web-search':
+      return Search;
+    
+    // API and data operations
+    case 'call-data-provider':
+    case 'get-data-provider-endpoints':
+      return ExternalLink; // Using ExternalLink instead of Database which isn't imported
+    
+    // Code operations
+    case 'delete-file':
+      return FileX;
+    
+    // Deployment
+    case 'deploy-site':
+      return CloudUpload;
+    
+    // Tools and utilities
+    case 'execute-code':
+      return Code;
+    
+    // Default case
+    default:
+      // Add logging for debugging unhandled tool types
+      console.log(`[PAGE] Using default icon for unknown tool type: ${toolName}`);
+      return Wrench; // Default icon for tools
+  }
+};
 
-      if (!project && projectData) {
-        setProject(projectData);
-        setSandboxId(projectData.sandbox_id);
+// Helper function to extract a primary parameter from XML/arguments
+const extractPrimaryParam = (toolName: string, content: string | undefined): string | null => {
+  if (!content) return null;
+
+  try {
+    // Handle browser tools with a prefix check
+    if (toolName?.toLowerCase().startsWith('browser-')) {
+      // Try to extract URL for navigation
+      const urlMatch = content.match(/url=(?:"|')([^"|']+)(?:"|')/);
+      if (urlMatch) return urlMatch[1];
+      
+      // For other browser operations, extract the goal or action
+      const goalMatch = content.match(/goal=(?:"|')([^"|']+)(?:"|')/);
+      if (goalMatch) {
+        const goal = goalMatch[1];
+        return goal.length > 30 ? goal.substring(0, 27) + '...' : goal;
       }
       
-      const groupedMessages = groupMessagesWithTools(threadData.messages, toolCallsData);
-      setMessages(groupedMessages);
-      setToolCalls(toolCallsData);
-      setAgentStatus(statusData.status);
-      setError(null);
-
-      // Auto-open side panel if new tool calls appeared and user hasn't closed it
-      if (toolCallsData.length > toolCalls.length && !userClosedPanelRef.current && !autoOpenedPanel) {
-        setIsSidePanelOpen(true);
-        setCurrentToolIndex(toolCallsData.length - 1); // Navigate to the latest tool call
-        setAutoOpenedPanel(true); // Mark that we auto-opened it once
-      }
-      // Reset auto-open flag if tool calls decrease (e.g., thread reset)
-      if (toolCallsData.length < toolCalls.length) {
-        setAutoOpenedPanel(false);
-        userClosedPanelRef.current = false; // Allow auto-open again
-      }
-
-    } catch (err) {
-      console.error("Error loading thread data:", err);
-      setError(err instanceof Error ? err.message : "Could not load conversation.");
-      // Stop polling on critical fetch errors
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-        pollingIntervalRef.current = null;
-      }
-    } finally {
-      if (isInitialLoad) setIsLoading(false);
+      return null;
     }
-  }, [threadId, project, toolCalls.length, autoOpenedPanel]); // Include dependencies
-
-  const startPolling = useCallback(() => {
-    // Clear existing interval if any
-    if (pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current);
+    
+    // Simple regex for common parameters - adjust as needed
+    let match: RegExpMatchArray | null = null;
+    
+    switch (toolName?.toLowerCase()) {
+      // File operations
+      case 'create-file':
+      case 'full-file-rewrite':
+      case 'read-file':
+      case 'delete-file':
+      case 'str-replace':
+        // Try to match file_path attribute
+        match = content.match(/file_path=(?:"|')([^"|']+)(?:"|')/);
+        // Return just the filename part
+        return match ? match[1].split('/').pop() || match[1] : null;
+      
+      // Shell commands
+      case 'execute-command':
+        // Extract command content
+        match = content.match(/command=(?:"|')([^"|']+)(?:"|')/);
+        if (match) {
+          const cmd = match[1];
+          return cmd.length > 30 ? cmd.substring(0, 27) + '...' : cmd;
+        }
+        return null;
+      
+      // Web search
+      case 'web-search':
+        match = content.match(/query=(?:"|')([^"|']+)(?:"|')/);
+        return match ? (match[1].length > 30 ? match[1].substring(0, 27) + '...' : match[1]) : null;
+      
+      // Data provider operations
+      case 'call-data-provider':
+        match = content.match(/service_name=(?:"|')([^"|']+)(?:"|')/);
+        const route = content.match(/route=(?:"|')([^"|']+)(?:"|')/);
+        return match && route ? `${match[1]}/${route[1]}` : (match ? match[1] : null);
+      
+      // Deployment
+      case 'deploy-site':
+        match = content.match(/site_name=(?:"|')([^"|']+)(?:"|')/);
+        return match ? match[1] : null;
     }
-    // Start new polling
-    pollingIntervalRef.current = setInterval(() => {
-      fetchData();
-    }, 3000); // Poll every 3 seconds
-  }, [fetchData]);
+    
+    return null;
+  } catch (e) {
+    console.warn("Error parsing tool parameters:", e);
+    return null;
+  }
+};
 
+// Flag to control whether tool result messages are rendered
+const SHOULD_RENDER_TOOL_RESULTS = false;
+
+// Function to group consecutive assistant tool call / user tool result pairs
+function groupMessages(messages: ApiMessage[]): RenderItem[] {
+  const grouped: RenderItem[] = [];
+  let i = 0;
+
+  while (i < messages.length) {
+    const currentMsg = messages[i];
+    const nextMsg = i + 1 < messages.length ? messages[i + 1] : null;
+
+    let currentSequence: ApiMessage[] = [];
+
+    // Check if current message is the start of a potential sequence
+    if (currentMsg.role === 'assistant') {
+      // Regex to find the first XML-like tag: <tagname ...> or <tagname> or self-closing tags
+      const toolTagMatch = currentMsg.content?.match(/<(?!inform\b)([a-zA-Z\-_]+)(?:\s+[^>]*)?(?:\/)?>/);
+      if (toolTagMatch && nextMsg && nextMsg.role === 'user') {
+        const expectedTag = toolTagMatch[1];
+
+        // Regex to check for <tool_result><tagname>...</tagname></tool_result>
+        // Also handle self-closing tags in the response
+        const toolResultRegex = new RegExp(`^<tool_result>\\s*<(${expectedTag})(?:\\s+[^>]*)?(?:/>|>[\\s\\S]*?</\\1>)\\s*</tool_result>`);
+
+        if (nextMsg.content?.match(toolResultRegex)) {
+          // Found a pair, start a sequence
+          currentSequence.push(currentMsg);
+          currentSequence.push(nextMsg);
+          i += 2; // Move past this pair
+
+          // Check for continuation
+          while (i < messages.length) {
+            const potentialAssistant = messages[i];
+            const potentialUser = i + 1 < messages.length ? messages[i + 1] : null;
+
+            if (potentialAssistant.role === 'assistant') {
+              const nextToolTagMatch = potentialAssistant.content?.match(/<(?!inform\b)([a-zA-Z\-_]+)(?:\s+[^>]*)?(?:\/)?>/);
+              if (nextToolTagMatch && potentialUser && potentialUser.role === 'user') {
+                const nextExpectedTag = nextToolTagMatch[1];
+
+                // Also handle self-closing tags in the response
+                const nextToolResultRegex = new RegExp(`^<tool_result>\\s*<(${nextExpectedTag})(?:\\s+[^>]*)?(?:/>|>[\\s\\S]*?</\\1>)\\s*</tool_result>`);
+
+                if (potentialUser.content?.match(nextToolResultRegex)) {
+                  // Sequence continues
+                  currentSequence.push(potentialAssistant);
+                  currentSequence.push(potentialUser);
+                  i += 2; // Move past the added pair
+                } else {
+                  // Assistant/User message, but not a matching tool result pair - break sequence
+                  break;
+                }
+              } else {
+                // Assistant message without tool tag, or no following user message - break sequence
+                break;
+              }
+            } else {
+              // Not an assistant message - break sequence
+              break;
+            }
+          }
+          // Add the completed sequence to grouped results
+          grouped.push({ type: 'tool_sequence', items: currentSequence });
+          continue; // Continue the outer loop from the new 'i'
+        }
+      }
+    }
+
+    // If no sequence was started or continued, add the current message normally
+    if (currentSequence.length === 0) {
+       grouped.push(currentMsg);
+       i++; // Move to the next message
+    }
+  }
+  return grouped;
+}
+
+export default function ThreadPage({ params }: { params: Promise<ThreadParams> }) {
+  const unwrappedParams = React.use(params);
+  const threadId = unwrappedParams.threadId;
+  
+  const router = useRouter();
+  const [messages, setMessages] = useState<ApiMessage[]>([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSending, setIsSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [agentRunId, setAgentRunId] = useState<string | null>(null);
+  const [agentStatus, setAgentStatus] = useState<'idle' | 'running' | 'paused'>('idle');
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [streamContent, setStreamContent] = useState('');
+  const [toolCallData, setToolCallData] = useState<ToolCallData | null>(null);
+  const [projectId, setProjectId] = useState<string | null>(null);
+  const [projectName, setProjectName] = useState<string>('Project');
+  const streamCleanupRef = useRef<(() => void) | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const initialLoadCompleted = useRef<boolean>(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const latestMessageRef = useRef<HTMLDivElement>(null);
+  const messagesLoadedRef = useRef(false);
+  const agentRunsCheckedRef = useRef(false);
+  const [showScrollButton, setShowScrollButton] = useState(false);
+  const [buttonOpacity, setButtonOpacity] = useState(0);
+  const [userHasScrolled, setUserHasScrolled] = useState(false);
+  const hasInitiallyScrolled = useRef<boolean>(false);
+  const [project, setProject] = useState<Project | null>(null);
+  const [sandboxId, setSandboxId] = useState<string | null>(null);
+  const [fileViewerOpen, setFileViewerOpen] = useState(false);
+  const [isSidePanelOpen, setIsSidePanelOpen] = useState(false);
+  const initialLayoutAppliedRef = useRef(false);
+  const [sidePanelContent, setSidePanelContent] = useState<SidePanelContent | null>(null);
+  const [allHistoricalPairs, setAllHistoricalPairs] = useState<{ assistantCall: ApiMessage, userResult: ApiMessage }[]>([]);
+  const [currentPairIndex, setCurrentPairIndex] = useState<number | null>(null);
+
+  // Access the state and controls for the main SidebarLeft
+  const { state: leftSidebarState, setOpen: setLeftSidebarOpen } = useSidebar();
+
+  // Handler to toggle the right side panel (ToolCallSidePanel)
+  const toggleSidePanel = useCallback(() => {
+    setIsSidePanelOpen(prevIsOpen => !prevIsOpen);
+  }, []);
+
+  // Function to handle project renaming from SiteHeader
+  const handleProjectRenamed = useCallback((newName: string) => {
+    setProjectName(newName);
+  }, []);
+
+  // Effect to enforce exclusivity: Close left sidebar if right panel opens
   useEffect(() => {
-    fetchData(true); // Initial fetch
-    startPolling(); // Start polling
+    if (isSidePanelOpen && leftSidebarState !== 'collapsed') {
+      // Run this update as an effect after the right panel state is set to true
+      setLeftSidebarOpen(false);
+    }
+  }, [isSidePanelOpen, leftSidebarState, setLeftSidebarOpen]);
 
-    // Cleanup on unmount
-    return () => {
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
+  // Effect to enforce exclusivity: Close the right panel if the left sidebar is opened
+  useEffect(() => {
+    if (leftSidebarState === 'expanded' && isSidePanelOpen) {
+      setIsSidePanelOpen(false);
+    }
+  }, [leftSidebarState, isSidePanelOpen]);
+
+  // Auto-close left sidebar and open tool call side panel on page load
+  useEffect(() => {
+    // Only apply the initial layout once and only on first mount
+    if (!initialLayoutAppliedRef.current) {
+      // Close the left sidebar when page loads
+      setLeftSidebarOpen(false);
+      
+      // Mark that we've applied the initial layout
+      initialLayoutAppliedRef.current = true;
+    }
+    // Empty dependency array ensures this only runs once on mount
+  }, []);
+
+  // Effect for CMD+I keyboard shortcut
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Use CMD on Mac, CTRL on others
+      if ((event.metaKey || event.ctrlKey) && event.key === 'i') {
+        event.preventDefault(); // Prevent default browser action (e.g., italics)
+        toggleSidePanel();
       }
     };
-  }, [threadId, startPolling]); // Only re-run if threadId changes
 
-  // Stop polling if agent becomes idle or errored
-  useEffect(() => {
-    if ((agentStatus === "idle" || agentStatus === "error") && pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current);
-      pollingIntervalRef.current = null;
-      console.log("Polling stopped for status:", agentStatus);
+    window.addEventListener('keydown', handleKeyDown);
+    // Cleanup listener on component unmount
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [toggleSidePanel]); // Dependency: the toggle function
+
+  // Preprocess messages to group tool call/result sequences and extract historical pairs
+  const processedMessages = useMemo(() => {
+    const grouped = groupMessages(messages);
+    const historicalPairs: { assistantCall: ApiMessage, userResult: ApiMessage }[] = [];
+    grouped.forEach(item => {
+      if (isToolSequence(item)) {
+        for (let i = 0; i < item.items.length; i += 2) {
+          if (item.items[i+1]) {
+            historicalPairs.push({ assistantCall: item.items[i], userResult: item.items[i+1] });
+          }
+        }
+      }
+    });
+    // Update the state containing all historical pairs
+    // Use a functional update if necessary to avoid stale state issues, though likely fine here
+    setAllHistoricalPairs(historicalPairs);
+    return grouped;
+  }, [messages]);
+
+  const handleStreamAgent = useCallback(async (runId: string) => {
+    // Prevent multiple streams for the same run
+    if (streamCleanupRef.current && agentRunId === runId) {
+      console.log(`[PAGE] Stream already exists for run ${runId}, skipping`);
+      return;
     }
-  }, [agentStatus]);
 
-  // --- Message Submission ---
-  const handleSubmitMessage = (messageText: string, files?: File[]) => {
-    if (!messageText.trim() && (!files || files.length === 0)) return;
+    // Clean up any existing stream
+    if (streamCleanupRef.current) {
+      console.log(`[PAGE] Cleaning up existing stream before starting new one`);
+      streamCleanupRef.current();
+      streamCleanupRef.current = null;
+    }
     
-    // TODO: Handle file uploads if files are provided
-    if (files && files.length > 0) {
-      toast.info("File uploads are not yet fully supported in this view.");
-      // Placeholder: Add logic to upload files and potentially include references
-      // in the message sent to the backend.
+    setIsStreaming(true);
+    setStreamContent('');
+    setToolCallData(null); // Clear old live tool call data
+    setSidePanelContent(null); // Clear side panel when starting new stream
+    setCurrentPairIndex(null); // Reset index when starting new stream
+    
+    console.log(`[PAGE] Setting up stream for agent run ${runId}`);
+    
+    // Start streaming the agent's responses with improved implementation
+    const cleanup = streamAgent(runId, {
+      onMessage: async (rawData: string) => {
+        try {
+          // Update last message timestamp to track stream health
+          (window as any).lastStreamMessage = Date.now();
+          
+          // Log the raw data first for debugging
+          console.log(`[PAGE] Raw message data:`, rawData);
+          
+          let processedData = rawData;
+          let jsonData: {
+            type?: string;
+            status?: string;
+            content?: string;
+            message?: string;
+            name?: string;
+            arguments?: string;
+            finish_reason?: string;
+            function_name?: string;
+            xml_tag_name?: string;
+            tool_call?: {
+              id: string;
+              function: {
+                name: string;
+                arguments: string;
+              };
+              type: string;
+              index: number;
+            };
+          } | null = null;
+          
+          // Handle data: prefix format (SSE standard)
+          if (processedData.startsWith('data: ')) {
+            processedData = processedData.substring(6).trim();
+          }
+          
+          try {
+            jsonData = JSON.parse(processedData);
+            
+            // Handle error messages immediately and only once
+            if (jsonData?.status === 'error' && jsonData?.message) {
+              // Get a clean string version of the error, handling any nested objects
+              const errorMessage = typeof jsonData.message === 'object' 
+                ? JSON.stringify(jsonData.message)
+                : String(jsonData.message);
+
+              if (jsonData.status !== 'error') {
+                console.error('[PAGE] Error from stream:', errorMessage);
+              }
+              
+              // Only show toast and cleanup if we haven't already
+              if (agentStatus === 'running') {
+                toast.error(errorMessage);
+                setAgentStatus('idle');
+                setAgentRunId(null);
+                
+                // Clean up the stream
+                if (streamCleanupRef.current) {
+                  streamCleanupRef.current();
+                  streamCleanupRef.current = null;
+                }
+              }
+              return;
+            }
+
+            // Handle completion status
+            if (jsonData?.type === 'status' && jsonData?.status === 'completed') {
+              console.log('[PAGE] Received completion status');
+              if (streamCleanupRef.current) {
+                streamCleanupRef.current();
+                streamCleanupRef.current = null;
+              }
+              setAgentStatus('idle');
+              setAgentRunId(null);
+              return;
+            }
+            
+            // Handle finish message
+            if (jsonData?.type === 'finish') {
+              console.log(`[PAGE] Received finish message with reason: ${jsonData.finish_reason}`);
+              // If there's a specific finish reason, handle it
+              if (jsonData.finish_reason === 'xml_tool_limit_reached') {
+                // Potentially show a toast notification
+                // toast.info('Tool execution limit reached. The agent will continue with available information.');
+              }
+              return;
+            }
+
+            // Handle content type messages (text from the agent)
+            if (jsonData?.type === 'content' && jsonData?.content) {
+              console.log('[PAGE] Adding content to stream:', jsonData.content);
+              setStreamContent(prev => prev + jsonData.content);
+              return;
+            }
+            
+            // Handle tool status messages
+            if (jsonData?.type === 'tool_status') {
+              console.log(`[PAGE] Tool status: ${jsonData.status} for ${jsonData.function_name}`);
+              
+              // Update UI based on tool status
+              if (jsonData.status === 'started') {
+                // Could show a loading indicator for the specific tool
+                const toolInfo = {
+                  id: jsonData.xml_tag_name || `tool-${Date.now()}`,
+                  name: jsonData.function_name || 'unknown',
+                  arguments: '{}',
+                  index: 0,
+                };
+                
+                setToolCallData(toolInfo);
+              } else if (jsonData.status === 'completed') {
+                // Update UI to show tool completion
+                setToolCallData(null);
+              }
+              return;
+            }
+            
+            // Handle tool result messages
+            if (jsonData?.type === 'tool_result') {
+              console.log('[PAGE] Received tool result for:', jsonData.function_name);
+              
+              // Clear the tool data since execution is complete
+              setSidePanelContent(null);
+              setToolCallData(null);
+              
+              return;
+            }
+
+            // --- Handle Live Tool Call Updates for Side Panel ---
+            if (jsonData?.type === 'tool_call' && jsonData.tool_call) {
+              console.log('[PAGE] Received tool_call update:', jsonData.tool_call);
+              const currentLiveToolCall: ToolCallData = {
+                id: jsonData.tool_call.id,
+                name: jsonData.tool_call.function.name,
+                arguments: jsonData.tool_call.function.arguments,
+                index: jsonData.tool_call.index,
+              };
+              setToolCallData(currentLiveToolCall); // Keep for stream content rendering
+              setCurrentPairIndex(null); // Live data means not viewing a historical pair
+              setSidePanelContent(currentLiveToolCall); // Update side panel
+              
+              if (!isSidePanelOpen) {
+                // Optionally auto-open side panel? Maybe only if user hasn't closed it recently.
+                // setIsSidePanelOpen(true);
+              }
+              return;
+            }
+            
+            // If we reach here and have JSON data but it's not a recognized type,
+            // log it for debugging purposes
+            console.log('[PAGE] Unhandled message type:', jsonData?.type);
+            
+          } catch (e) {
+            // If JSON parsing fails, treat it as raw text content
+            console.warn('[PAGE] Failed to parse as JSON, treating as raw content:', e);
+            setStreamContent(prev => prev + processedData);
+          }
+        } catch (error) {
+          console.error('[PAGE] Error processing message:', error);
+          toast.error('Failed to process agent response');
+        }
+      },
+      onError: (error: Error | string) => {
+        console.error('[PAGE] Streaming error:', error);
+        
+        // Show error toast and clean up state
+        toast.error(typeof error === 'string' ? error : error.message);
+        
+        // Clean up on error
+        streamCleanupRef.current = null;
+        setIsStreaming(false);
+        setAgentStatus('idle');
+        setAgentRunId(null);
+        setStreamContent('');  // Clear any partial content
+        setToolCallData(null); // Clear tool call data on error
+        setSidePanelContent(null); // Clear side panel on error
+        setCurrentPairIndex(null);
+      },
+      onClose: async () => {
+        console.log('[PAGE] Stream connection closed');
+        
+        // Immediately set UI state to idle
+        setAgentStatus('idle');
+        setIsStreaming(false);
+        
+        // Reset tool call data
+        setToolCallData(null);
+        setSidePanelContent(null); // Clear side panel on close
+        setCurrentPairIndex(null);
+        
+        try {
+          // Only check status if we still have an agent run ID
+          if (agentRunId) {
+            console.log(`[PAGE] Checking final status for agent run ${agentRunId}`);
+            const status = await getAgentStatus(agentRunId);
+            console.log(`[PAGE] Agent status: ${status.status}`);
+            
+            // Clear cleanup reference to prevent reconnection
+            streamCleanupRef.current = null;
+            
+            // Set agent run ID to null to prevent lingering state
+            setAgentRunId(null);
+            
+            // Fetch final messages first, then clear streaming content
+            console.log('[PAGE] Fetching final messages');
+            const updatedMessages = await getMessages(threadId);
+            
+            // Update messages first
+            setMessages(updatedMessages as ApiMessage[]);
+            
+            // Then clear streaming content
+            setStreamContent('');
+            setToolCallData(null); // Also clear tool call data when stream closes normally
+          }
+        } catch (err) {
+          console.error('[PAGE] Error checking agent status:', err);
+          toast.error('Failed to verify agent status');
+          
+          // Clear the agent run ID
+          setAgentRunId(null);
+          setStreamContent('');
+        }
+      }
+    });
+    
+    // Store cleanup function
+    streamCleanupRef.current = cleanup;
+  }, [threadId, agentRunId]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadData() {
+      // Only show loading state on the first load, not when switching tabs
+      if (!initialLoadCompleted.current) {
+        setIsLoading(true);
+      }
+      
+      setError(null);
+      
+      try {
+        if (!threadId) {
+          throw new Error('Thread ID is required');
+        }
+        
+        // First fetch the thread to get the project_id
+        const threadData = await getThread(threadId).catch(err => {
+          throw new Error('Failed to load thread data: ' + err.message);
+        });
+        
+        if (!isMounted) return;
+        
+        // Set the project ID from the thread data
+        if (threadData && threadData.project_id) {
+          setProjectId(threadData.project_id);
+        }
+        
+        // Fetch project details to get sandbox_id
+        if (threadData && threadData.project_id) {
+          const projectData = await getProject(threadData.project_id);
+          if (isMounted && projectData && projectData.sandbox) {
+            // Store the full project object
+            setProject(projectData);
+            
+            // Extract the sandbox ID correctly
+            setSandboxId(typeof projectData.sandbox === 'string' ? projectData.sandbox : projectData.sandbox.id);
+            
+            // Set project name from project data
+            if (projectData.name) {
+              setProjectName(projectData.name);
+            }
+            
+            // Load messages only if not already loaded
+            if (!messagesLoadedRef.current) {
+              const messagesData = await getMessages(threadId);
+              if (isMounted) {
+                // Log the parsed messages structure
+                console.log('[PAGE] Loaded messages structure:', {
+                  count: messagesData.length,
+                  fullMessages: messagesData
+                });
+                
+                setMessages(messagesData as ApiMessage[]);
+                messagesLoadedRef.current = true;
+                
+                // Only scroll to bottom on initial page load
+                if (!hasInitiallyScrolled.current) {
+                  scrollToBottom('auto');
+                  hasInitiallyScrolled.current = true;
+                }
+              }
+            }
+
+            // Check for active agent runs only once per thread
+            if (!agentRunsCheckedRef.current) {
+              try {
+                // Get agent runs for this thread using the proper API function
+                const agentRuns = await getAgentRuns(threadId);
+                agentRunsCheckedRef.current = true;
+                
+                // Look for running agent runs
+                const activeRuns = agentRuns.filter(run => run.status === 'running');
+                if (activeRuns.length > 0 && isMounted) {
+                  // Sort by start time to get the most recent
+                  activeRuns.sort((a, b) => 
+                    new Date(b.started_at).getTime() - new Date(a.started_at).getTime()
+                  );
+                  
+                  // Set the current agent run
+                  const latestRun = activeRuns[0];
+                  if (latestRun) {
+                    setAgentRunId(latestRun.id);
+                    setAgentStatus('running');
+                    
+                    // Start streaming only on initial page load
+                    console.log('Starting stream for active run on initial page load');
+                    handleStreamAgent(latestRun.id);
+                  }
+                }
+              } catch (err) {
+                console.error('Error checking for active runs:', err);
+              }
+            }
+            
+            // Mark that we've completed the initial load
+            initialLoadCompleted.current = true;
+          }
+        }
+      } catch (err) {
+        console.error('Error loading thread data:', err);
+        if (isMounted) {
+          const errorMessage = err instanceof Error ? err.message : 'Failed to load thread';
+          setError(errorMessage);
+          toast.error(errorMessage);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
     }
+    
+    loadData();
+
+    // Handle visibility changes for more responsive streaming
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && agentRunId && agentStatus === 'running') {
+        console.log('[PAGE] Page became visible, checking stream health');
+        
+        // Check if we've received any messages recently
+        const lastMessage = (window as any).lastStreamMessage || 0;
+        const now = Date.now();
+        const messageTimeout = 10000; // 10 seconds
+        
+        // Only reconnect if we haven't received messages in a while
+        if (!streamCleanupRef.current && (!lastMessage || (now - lastMessage > messageTimeout))) {
+          // Add a debounce to prevent rapid reconnections
+          const lastStreamAttempt = (window as any).lastStreamAttempt || 0;
+          
+          if (now - lastStreamAttempt > 5000) { // 5 second cooldown
+            console.log('[PAGE] Stream appears stale, reconnecting');
+            (window as any).lastStreamAttempt = now;
+            handleStreamAgent(agentRunId);
+          } else {
+            console.log('[PAGE] Skipping reconnect - too soon since last attempt');
+          }
+        } else {
+          console.log('[PAGE] Stream appears healthy, no reconnection needed');
+        }
+      }
+    };
+
+    // Add visibility change listener
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Cleanup function
+    return () => {
+      isMounted = false;
+      
+      // Remove visibility change listener
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      
+      // Properly clean up stream
+      if (streamCleanupRef.current) {
+        console.log('[PAGE] Cleaning up stream on unmount');
+        streamCleanupRef.current();
+        streamCleanupRef.current = null;
+      }
+      
+      // Reset component state to prevent memory leaks
+      console.log('[PAGE] Resetting component state on unmount');
+    };
+  }, [threadId, handleStreamAgent, agentRunId, agentStatus, isStreaming]);
+
+  const handleSubmitMessage = async (message: string) => {
+    if (!message.trim()) return;
     
     setIsSending(true);
-    setShowBillingAlert(false); // Hide previous billing alerts
-    setInput(messageText); // Set input for useCompletion
-    handleSubmit(); // Trigger useCompletion hook
-    setNewMessage(""); // Clear input field
     
-    // Stop current polling and fetch immediately to show user message
-    if (pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current);
-      pollingIntervalRef.current = null;
-    }
-    // Optimistically add user message (will be replaced by fetch)
-    setMessages(prev => [...prev, { id: `temp-${Date.now()}`, role: "user", content: messageText, created_at: new Date().toISOString(), thread_id: threadId }]);
-    // Fetch data almost immediately after optimistic update
-    setTimeout(() => fetchData(), 100);
-  };
-
-  // --- Agent Control ---
-  const handleStopAgent = async () => {
-    if (!threadId || agentStatus !== "running") return;
-    console.log("Attempting to stop agent...");
-    // Optimistically update status
-    setAgentStatus("stopping");
-    if (pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current);
-      pollingIntervalRef.current = null;
-    }
-    stop(); // Stop AI completion if in progress
     try {
-      await stopAgent(threadId);
-      toast.success("Agent stopping process initiated.");
-      // Fetch data after a short delay to allow status update
-      setTimeout(() => fetchData(), 1500);
+      // Add the message optimistically to the UI
+      const userMessage: ApiMessage = {
+        role: 'user',
+        content: message
+      };
+      
+      setMessages(prev => [...prev, userMessage]);
+      setNewMessage('');
+      scrollToBottom();
+      
+      // Send to the API and start agent in parallel
+      const [messageResult, agentResult] = await Promise.all([
+        addUserMessage(threadId, userMessage.content).catch(err => {
+          throw new Error('Failed to send message: ' + err.message);
+        }),
+        startAgent(threadId).catch(err => {
+          throw new Error('Failed to start agent: ' + err.message);
+        })
+      ]);
+      
+      setAgentRunId(agentResult.agent_run_id);
+      setAgentStatus('running');
+      
+      // Start streaming the agent's responses immediately
+      handleStreamAgent(agentResult.agent_run_id);
     } catch (err) {
-      console.error("Error stopping agent:", err);
-      toast.error("Failed to stop agent.");
-      // Resume polling if stop failed
-      startPolling();
-    } 
+      console.error('Error sending message:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to send message');
+      
+      // Remove the optimistically added message on error
+      setMessages(prev => prev.slice(0, -1));
+    } finally {
+      setIsSending(false);
+    }
   };
 
-  // --- Scrolling Logic ---
+  const handleStopAgent = async () => {
+    if (!agentRunId) {
+      console.warn('[PAGE] No agent run ID to stop');
+      return;
+    }
+    
+    console.log(`[PAGE] Stopping agent run: ${agentRunId}`);
+    
+    try {
+      // First clean up the stream if it exists
+      if (streamCleanupRef.current) {
+        console.log('[PAGE] Cleaning up stream connection');
+        streamCleanupRef.current();
+        streamCleanupRef.current = null;
+      }
+      
+      // Mark as not streaming, but keep content visible during transition
+      setIsStreaming(false);
+      setAgentStatus('idle');
+      
+      // Then stop the agent
+      console.log('[PAGE] Sending stop request to backend');
+      await stopAgent(agentRunId).catch(err => {
+        throw new Error('Failed to stop agent: ' + err.message);
+      });
+      
+      // Update UI
+      console.log('[PAGE] Agent stopped successfully');
+      toast.success('Agent stopped successfully');
+      
+      // Reset agent run ID
+      setAgentRunId(null);
+      
+      // Fetch final messages to get state from database
+      console.log('[PAGE] Fetching final messages after stop');
+      const updatedMessages = await getMessages(threadId);
+      
+      // Update messages first - cast to ApiMessage[] to fix type error
+      setMessages(updatedMessages as ApiMessage[]);
+      
+      // Then clear streaming content after a tiny delay for smooth transition
+      setTimeout(() => {
+        console.log('[PAGE] Clearing streaming content');
+        setStreamContent('');
+      }, 50);
+    } catch (err) {
+      console.error('[PAGE] Error stopping agent:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to stop agent');
+      
+      // Still update UI state to avoid being stuck
+      setAgentStatus('idle');
+      setIsStreaming(false);
+      setAgentRunId(null);
+      setStreamContent('');
+    }
+  };
+
+  // Auto-focus on textarea when component loads
   useEffect(() => {
-    // Scroll to the latest message or completion chunk
-    if (latestMessageRef.current) {
-      latestMessageRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
-    } else if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
+    if (!isLoading && textareaRef.current) {
+      textareaRef.current.focus();
     }
-  }, [messages, completion, agentStatus]); // Scroll when messages, completion, or status change
+  }, [isLoading]);
 
-  // --- Tool Call Panel Navigation ---
-  const handleSidePanelNavigate = (index: number) => {
-    if (index >= 0 && index < toolCalls.length) {
-      setCurrentToolIndex(index);
-      // Optional: Scroll the corresponding message/tool call into view in the main chat
-      // This requires adding refs to individual tool call elements, which can be complex.
-      // For now, just update the index.
-    }
+  // Adjust textarea height based on content
+  useEffect(() => {
+    const adjustHeight = () => {
+      if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto';
+        textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+      }
+    };
+
+    adjustHeight();
+    
+    // Adjust on window resize too
+    window.addEventListener('resize', adjustHeight);
+    return () => window.removeEventListener('resize', adjustHeight);
+  }, [newMessage]);
+
+  // Check if user has scrolled up from bottom
+  const handleScroll = () => {
+    if (!messagesContainerRef.current) return;
+    
+    const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+    const isScrolledUp = scrollHeight - scrollTop - clientHeight > 100;
+    
+    setShowScrollButton(isScrolledUp);
+    setButtonOpacity(isScrolledUp ? 1 : 0);
+    setUserHasScrolled(isScrolledUp);
   };
 
-  // --- File Viewer --- 
-  const handleOpenFileViewer = (filePath?: string) => {
-    setFileToView(filePath || null);
+  // Scroll to bottom explicitly
+  const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
+    messagesEndRef.current?.scrollIntoView({ behavior });
+  };
+
+  // Auto-scroll only when:
+  // 1. User sends a new message
+  // 2. Agent starts responding
+  // 3. User clicks the scroll button
+  useEffect(() => {
+    const isNewUserMessage = messages.length > 0 && messages[messages.length - 1]?.role === 'user';
+    
+    if ((isNewUserMessage || agentStatus === 'running') && !userHasScrolled) {
+      scrollToBottom();
+    }
+  }, [messages, agentStatus, userHasScrolled]);
+
+  // Make sure clicking the scroll button scrolls to bottom
+  const handleScrollButtonClick = () => {
+    scrollToBottom();
+    setUserHasScrolled(false);
+  };
+
+  // Remove unnecessary scroll effects
+  useEffect(() => {
+    if (!latestMessageRef.current || messages.length === 0) return;
+    
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setShowScrollButton(!entry?.isIntersecting);
+        setButtonOpacity(entry?.isIntersecting ? 0 : 1);
+      },
+      {
+        root: messagesContainerRef.current,
+        threshold: 0.1,
+      }
+    );
+    
+    observer.observe(latestMessageRef.current);
+    return () => observer.disconnect();
+  }, [messages, streamContent]);
+
+  // Update UI states when agent status changes
+  useEffect(() => {
+    // Scroll to bottom when agent starts responding, but only if user hasn't scrolled up manually
+    if (agentStatus === 'running' && !userHasScrolled) {
+      scrollToBottom();
+    }
+  }, [agentStatus, userHasScrolled]);
+
+  // Add synchronization effect to ensure agentRunId and agentStatus are in sync
+  useEffect(() => {
+    // If agentRunId is null, make sure agentStatus is 'idle'
+    if (agentRunId === null && agentStatus !== 'idle') {
+      console.log('[PAGE] Synchronizing agent status to idle because agentRunId is null');
+      setAgentStatus('idle');
+      setIsStreaming(false);
+    }
+    
+    // If we have an agentRunId but status is idle, check if it should be running
+    if (agentRunId !== null && agentStatus === 'idle') {
+      const checkAgentRunStatus = async () => {
+        try {
+          const status = await getAgentStatus(agentRunId);
+          if (status.status === 'running') {
+            console.log('[PAGE] Synchronizing agent status to running based on backend status');
+            setAgentStatus('running');
+            
+            // If not already streaming, start streaming
+            if (!isStreaming && !streamCleanupRef.current) {
+              console.log('[PAGE] Starting stream due to status synchronization');
+              handleStreamAgent(agentRunId);
+            }
+          } else {
+            // If the backend shows completed/stopped but we have an ID, reset it
+            console.log('[PAGE] Agent run is not running, resetting agentRunId');
+            setAgentRunId(null);
+          }
+        } catch (err) {
+          console.error('[PAGE] Error checking agent status for sync:', err);
+          // In case of error, reset to idle state
+          setAgentRunId(null);
+          setAgentStatus('idle');
+          setIsStreaming(false);
+        }
+      };
+      
+      checkAgentRunStatus();
+    }
+  }, [agentRunId, agentStatus, isStreaming, handleStreamAgent]);
+
+  // Add debug logging for agentStatus changes
+  useEffect(() => {
+    console.log(`[PAGE] 🔄 AgentStatus changed to: ${agentStatus}, isStreaming: ${isStreaming}, agentRunId: ${agentRunId}`);
+  }, [agentStatus, isStreaming, agentRunId]);
+
+  // Failsafe effect to ensure UI consistency
+  useEffect(() => {
+    // Force agentStatus to idle if not streaming or no agentRunId
+    if ((!isStreaming || agentRunId === null) && agentStatus !== 'idle') {
+      console.log('[PAGE] 🔒 FAILSAFE: Forcing agentStatus to idle because isStreaming is false or agentRunId is null');
+      setAgentStatus('idle');
+    }
+  }, [isStreaming, agentRunId, agentStatus]);
+
+  // Open the file viewer modal
+  const handleOpenFileViewer = () => {
     setFileViewerOpen(true);
   };
 
-  // --- Render Logic ---
-  if (isLoading) {
+  // Click handler for historical tool previews
+  const handleHistoricalToolClick = (pair: { assistantCall: ApiMessage, userResult: ApiMessage }) => {
+    // Extract tool names for display in the side panel
+    const userToolName = pair.userResult.content?.match(/<tool_result>\s*<([a-zA-Z\-_]+)/)?.[1] || 'Tool';
+
+    // Extract only the XML part and the tool name from the assistant message
+    const assistantContent = pair.assistantCall.content || '';
+    // First try to match complete tags, then try self-closing tags
+    const xmlRegex = /<(?!inform\b)([a-zA-Z\-_]+)(?:\s+[^>]*)?>[\s\S]*?<\/\1>|<(?!inform\b)([a-zA-Z\-_]+)(?:\s+[^>]*)?(?:\/)?>/;
+    const xmlMatch = assistantContent.match(xmlRegex);
+    const toolCallXml = xmlMatch ? xmlMatch[0] : '[Could not extract XML tag]';
+    // Get tag name from either the first capturing group (full tag) or second capturing group (self-closing)
+    const assistantToolName = xmlMatch ? (xmlMatch[1] || xmlMatch[2]) : 'Tool';
+
+    const userResultContent = pair.userResult.content?.match(/<tool_result>([\s\S]*)<\/tool_result>/)?.[1].trim() || '[Could not parse result]';
+
+    setSidePanelContent({
+      type: 'historical',
+      assistantCall: { name: assistantToolName, content: toolCallXml },
+      userResult: { name: userToolName, content: userResultContent }
+    });
+    // Find and set the index of the clicked pair
+    const pairIndex = allHistoricalPairs.findIndex(p => 
+      p.assistantCall.content === pair.assistantCall.content && 
+      p.userResult.content === pair.userResult.content
+      // Note: This comparison might be fragile if messages aren't unique.
+      // A unique ID per message would be better.
+    );
+    setCurrentPairIndex(pairIndex !== -1 ? pairIndex : null);
+    setIsSidePanelOpen(true);
+  };
+
+  // Handler for navigation within the side panel
+  const handleSidePanelNavigate = (newIndex: number) => {
+    if (newIndex >= 0 && newIndex < allHistoricalPairs.length) {
+      const pair = allHistoricalPairs[newIndex];
+      setCurrentPairIndex(newIndex);
+      
+      // Re-extract data for the side panel (similar to handleHistoricalToolClick)
+      const assistantContent = pair.assistantCall.content || '';
+      const xmlRegex = /<(?!inform\b)([a-zA-Z\-_]+)(?:\s+[^>]*)?>[\s\S]*?<\/\1>|<(?!inform\b)([a-zA-Z\-_]+)(?:\s+[^>]*)?(?:\/)?>/;
+      const xmlMatch = assistantContent.match(xmlRegex);
+      const toolCallXml = xmlMatch ? xmlMatch[0] : '[Could not extract XML tag]';
+      const assistantToolName = xmlMatch ? (xmlMatch[1] || xmlMatch[2]) : 'Tool';
+      const userToolName = pair.userResult.content?.match(/<tool_result>\s*<([a-zA-Z\-_]+)/)?.[1] || 'Tool';
+      const userResultContent = pair.userResult.content?.match(/<tool_result>([\s\S]*)<\/tool_result>/)?.[1].trim() || '[Could not parse result]';
+
+      setSidePanelContent({
+        type: 'historical',
+        assistantCall: { name: assistantToolName, content: toolCallXml },
+        userResult: { name: userToolName, content: userResultContent }
+      });
+    }
+  };
+
+  // Only show a full-screen loader on the very first load
+  if (isLoading && !initialLoadCompleted.current) {
     return (
-      <div className="flex flex-col h-full items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-muted-foreground mt-2">Loading conversation...</p>
+      <div className="flex h-screen">
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <SiteHeader 
+            threadId={threadId} 
+            projectName={projectName}
+            projectId={projectId}
+            onViewFiles={() => setFileViewerOpen(true)} 
+            onToggleSidePanel={toggleSidePanel}
+          />
+          <div className="flex flex-1 overflow-hidden">
+            <div className="flex-1 overflow-y-auto px-6 py-4 pb-[5.5rem]">
+              <div className="mx-auto max-w-3xl space-y-4">
+                <div className="flex justify-end">
+                  <div className="max-w-[85%] rounded-lg bg-primary/10 px-4 py-3">
+                    <Skeleton className="h-4 w-32" />
+                  </div>
+                </div>
+                <div className="flex justify-start">
+                  <div className="max-w-[85%] rounded-lg bg-muted px-4 py-3">
+                    <Skeleton className="h-4 w-48 mb-2" />
+                    <Skeleton className="h-4 w-40" />
+                  </div>
+                </div>
+                <div className="flex justify-end">
+                  <div className="max-w-[85%] rounded-lg bg-primary/10 px-4 py-3">
+                    <Skeleton className="h-4 w-40" />
+                  </div>
+                </div>
+                <div className="flex justify-start">
+                  <div className="max-w-[85%] rounded-lg bg-muted px-4 py-3">
+                    <Skeleton className="h-4 w-56 mb-2" />
+                    <Skeleton className="h-4 w-44" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <ToolCallSidePanel 
+          isOpen={isSidePanelOpen} 
+          onClose={() => { setIsSidePanelOpen(false); setSidePanelContent(null); setCurrentPairIndex(null); }}
+          content={sidePanelContent}
+          currentIndex={currentPairIndex}
+          totalPairs={allHistoricalPairs.length}
+          onNavigate={handleSidePanelNavigate}
+          project={project}
+        />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex flex-col h-full items-center justify-center p-4">
-        <Alert variant="destructive" className="max-w-md">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
+      <div className="flex h-screen">
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <SiteHeader 
+            threadId={threadId} 
+            projectName={projectName}
+            projectId={projectId}
+            onViewFiles={() => setFileViewerOpen(true)} 
+            onToggleSidePanel={toggleSidePanel}
+          />
+          <div className="flex flex-1 items-center justify-center p-4">
+            <div className="flex w-full max-w-md flex-col items-center gap-4 rounded-lg border bg-card p-6 text-center">
+              <h2 className="text-lg font-semibold text-destructive">Error</h2>
+              <p className="text-sm text-muted-foreground">{error}</p>
+              <Button variant="outline" onClick={() => router.push(`/dashboard/projects/${projectId || ''}`)}>
+                Back to Project
+              </Button>
+            </div>
+          </div>
+        </div>
+        <ToolCallSidePanel 
+          isOpen={isSidePanelOpen} 
+          onClose={() => { setIsSidePanelOpen(false); setSidePanelContent(null); setCurrentPairIndex(null); }}
+          content={sidePanelContent}
+          currentIndex={currentPairIndex}
+          totalPairs={allHistoricalPairs.length}
+          onNavigate={handleSidePanelNavigate}
+          project={project}
+        />
       </div>
     );
   }
-  
-  // Tool view render functions for the side panel
-  const toolViewAssistant = (message: ApiMessageType) => (
-    <div className="flex items-start gap-3">
-      <div className="flex-shrink-0 w-5 h-5 mt-1 rounded-md flex items-center justify-center overflow-hidden bg-primary/10">
-        <Image src="/kortix-symbol.svg" alt="Suna" width={14} height={14} className="object-contain"/>
-      </div>
-      <div className="flex-1 space-y-1">
-        <span className="font-semibold text-sm">Assistant</span>
-        {message.content && <p className="text-xs text-muted-foreground">{message.content}</p>}
-      </div>
-    </div>
-  );
-
-  const toolViewResult = (toolCall: ToolCall) => {
-    let resultDisplay = null;
-    if (toolCall.result) {
-      // Try to parse the result content
-      let parsedResult = toolCall.result;
-      try {
-        if (typeof toolCall.result === 'string') {
-          parsedResult = JSON.parse(toolCall.result);
-        }
-      } catch {}
-
-      if (parsedResult.error) {
-        resultDisplay = <span className="text-red-500 text-xs">Error: {parsedResult.error}</span>;
-      } else if (typeof parsedResult.content === 'string' && (parsedResult.content.startsWith('File written:') || parsedResult.content.startsWith('File read:'))) {
-        resultDisplay = <span className="text-xs text-muted-foreground">{parsedResult.content}</span>;
-      } else {
-        try {
-          // Attempt to pretty-print JSON if possible
-          const jsonResult = typeof parsedResult.content === 'string' ? JSON.parse(parsedResult.content) : parsedResult.content;
-          resultDisplay = (
-            <pre className="text-xs bg-muted p-2 rounded overflow-x-auto">
-              {JSON.stringify(jsonResult, null, 2)}
-            </pre>
-          );
-        } catch {
-          // Fallback for non-JSON string results
-          resultDisplay = <pre className="text-xs bg-muted p-2 rounded overflow-x-auto">{parsedResult.content || JSON.stringify(parsedResult)}</pre>;
-        }
-      }
-    } else {
-      resultDisplay = <span className="text-xs text-muted-foreground italic">Result pending...</span>;
-    }
-
-    return (
-      <div className="flex items-start gap-3 mt-2">
-        <div className="flex-shrink-0 w-5 h-5 mt-1 rounded-md flex items-center justify-center overflow-hidden bg-secondary">
-          <Code className="h-3 w-3 text-secondary-foreground" />
-        </div>
-        <div className="flex-1 space-y-1">
-          <span className="font-semibold text-sm">Tool Result</span>
-          <div className="text-xs text-muted-foreground">
-            {resultDisplay}
-          </div>
-        </div>
-      </div>
-    );
-  };
 
   return (
-    <div className={cn(
-      "flex flex-col h-full relative transition-all duration-300 ease-in-out",
-      isSidePanelOpen ? "lg:mr-[550px] xl:mr-[650px]" : ""
-    )}>
-      <div className="flex-1 overflow-hidden flex flex-col">
-        {/* Header */}
-        <header className="border-b p-3 flex items-center justify-between flex-shrink-0 h-[57px]">
-          <div className="flex items-center gap-2">
-            {project ? (
-              <>
-                <Image src="/kortix-symbol.svg" alt="Suna Logo" width={20} height={20} />
-                <h1 className="text-base font-semibold truncate" title={project.name}>{project.name}</h1>
-              </>
-            ) : (
-              <Skeleton className="h-5 w-32" />
-            )}
-          </div>
-          <div className="flex items-center gap-1">
-            {agentStatus === "running" && (
-              <Button variant="outline" size="sm" onClick={handleStopAgent} className="text-xs">
-                <StopCircle className="h-3.5 w-3.5 mr-1.5" />
-                Stop Agent
-              </Button>
-            )}
-            {/* Add other controls if needed */}
-          </div>
-        </header>
-        
-        {/* Message List */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-6 scroll-smooth" id="message-list">
-          <div className="max-w-3xl mx-auto w-full pb-24"> {/* Added padding-bottom */} 
-            {messages.length === 0 && !isLoading && agentStatus === 'idle' && (
-              <div className="text-center text-muted-foreground pt-10">
-                Start the conversation by sending a message.
-              </div>
-            )}
-            {messages.map((message, index) => (
-              <div key={message.id || `msg-${index}`} className="mb-6">
-                {message.role === "user" && (
-                  <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
-                      <User className="h-5 w-5 text-secondary-foreground" />
-                    </div>
-                    <div className="flex-1 space-y-2">
-                      <p className="font-semibold">You</p>
-                      <div className="bg-secondary text-secondary-foreground rounded-lg px-4 py-3 text-sm whitespace-pre-wrap break-words">
-                        {message.content}
-                      </div>
+    <div className="flex h-screen">
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <SiteHeader 
+          threadId={threadId} 
+          projectName={projectName}
+          projectId={projectId}
+          onViewFiles={() => setFileViewerOpen(true)} 
+          onToggleSidePanel={toggleSidePanel}
+          onProjectRenamed={handleProjectRenamed}
+        />
+        <div className="flex flex-1 overflow-hidden">
+          <div className="flex-1 flex flex-col relative overflow-hidden">
+            <div 
+              ref={messagesContainerRef}
+              className="flex-1 overflow-y-auto px-6 py-4 pb-[0.5rem]"
+              onScroll={handleScroll}
+            >
+              <div className="mx-auto max-w-3xl">
+                {messages.length === 0 && !streamContent ? (
+                  <div className="flex h-full items-center justify-center">
+                    <div className="flex flex-col items-center gap-1 text-center">
+                      <p className="text-sm text-muted-foreground">Send a message to start the conversation.</p>
+                      <p className="text-xs text-muted-foreground/60">The AI agent will respond automatically.</p>
                     </div>
                   </div>
-                )}
-                {message.role === "assistant" && (
-                  <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
-                       <Image src="/kortix-symbol.svg" alt="Suna" width={20} height={20} className="object-contain"/>
-                    </div>
-                    <div className="flex-1 space-y-2">
-                      <p className="font-semibold">Assistant</p>
-                      {message.content && message.content.trim().length > 0 && (
-                        <div className="bg-muted rounded-lg max-w-[90%] px-4 py-3 text-sm">
-                           <ReactMarkdown
-                              remarkPlugins={[remarkGfm]}
-                              components={{
-                                code({ node, inline, className, children, ...props }) {
-                                  const match = /language-(\w+)/.exec(className || '');
-                                  return !inline && match ? (
-                                    <SyntaxHighlighter
-                                      style={vscDarkPlus}
-                                      language={match[1]}
-                                      PreTag="div"
-                                      {...props}
-                                    >
-                                      {String(children).replace(/\n$/, '')}
-                                    </SyntaxHighlighter>
-                                  ) : (
-                                    <code className={className} {...props}>
-                                      {children}
-                                    </code>
-                                  );
-                                },
-                                a({ href, children }) {
-                                  if (href?.startsWith("sandboxfs://")) {
-                                    const filePath = href.substring("sandboxfs://".length);
-                                    const FileName = filePath.split('/').pop();
-                                    const Icon = getFileIcon(FileName || "");
-                                    return (
-                                      <Button 
-                                        variant="link"
-                                        className="p-0 h-auto text-sm text-primary inline-flex items-center gap-1"
-                                        onClick={() => handleOpenFileViewer(filePath)}
-                                      >
-                                        <Icon className="h-3.5 w-3.5 flex-shrink-0" />
-                                        {children}
-                                      </Button>
-                                    );
-                                  }
-                                  return <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary underline">{children}</a>;
-                                },
-                              }}
-                           >
-                              {message.content as string}
-                           </ReactMarkdown>
-                        </div>
-                      )}
-                      {/* Display Tool Calls under the assistant message */}
-                      {message.toolCalls && message.toolCalls.length > 0 && (
-                        <div className="mt-2 space-y-1">
-                          {message.toolCalls.map((toolCall) => {
-                            const globalToolIndex = toolCalls.findIndex(tc => tc.id === toolCall.id);
-                            const toolName = toolCall.name || 'Unnamed Tool';
-                            let paramDisplay = '';
-                            try {
-                              if (toolCall.args) {
-                                const args = typeof toolCall.args === 'string' ? JSON.parse(toolCall.args) : toolCall.args;
-                                // Simple display logic - adjust as needed
-                                if (args.file) paramDisplay = args.file.split('/').pop();
-                                else if (args.command) paramDisplay = args.command.split(' ')[0];
-                                else if (args.url) paramDisplay = new URL(args.url).hostname;
-                                else if (args.query) paramDisplay = args.query;
-                                else if (args.prompt) paramDisplay = args.prompt.substring(0, 20) + '...';
-                                else if (args.text) paramDisplay = args.text.substring(0, 20) + '...';
-                              }
-                            } catch {}
+                ) : (
+                  <div className="space-y-6">
+                    {/* Map over processed messages */}
+                    {processedMessages.map((item, index) => {
+                      // Check if this message is an assistant message that follows a user message
+                      const prevMessage = index > 0 ? processedMessages[index - 1] : null;
+                      const isAssistantAfterUser = 
+                        (isToolSequence(item) || ((item as ApiMessage).role === 'assistant')) && 
+                        (prevMessage && !isToolSequence(prevMessage) && (prevMessage as ApiMessage).role === 'user');
+                      
+                      // ---- Rendering Logic for Tool Sequences ----
+                      if (isToolSequence(item)) {
+                        // Group sequence items into pairs of [assistant, user]
+                        const pairs: { assistantCall: ApiMessage, userResult: ApiMessage }[] = [];
+                        for (let i = 0; i < item.items.length; i += 2) {
+                          if (item.items[i+1]) {
+                            pairs.push({ assistantCall: item.items[i], userResult: item.items[i+1] });
+                          }
+                        }
 
-                            return (
-                              <div key={toolCall.id} className="pl-4 border-l-2 border-primary/20">
-                                <button 
-                                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors w-full text-left py-0.5"
-                                  onClick={() => {
-                                    setIsSidePanelOpen(true);
-                                    setCurrentToolIndex(globalToolIndex);
-                                    userClosedPanelRef.current = false; // User interacted, allow auto-open again
-                                  }}
-                                >
-                                  {toolCall.result ? (
-                                    toolCall.result.error ? (
-                                      <XCircle className="h-3.5 w-3.5 text-red-500 flex-shrink-0" />
-                                    ) : (
-                                      <CheckCircle className="h-3.5 w-3.5 text-green-500 flex-shrink-0" />
-                                    )
-                                  ) : (
-                                    <CircleDashed className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                                  )}
-                                  <span className="font-mono text-xs">{toolName}</span>
-                                  {paramDisplay && <span className="ml-1 text-muted-foreground/70 truncate max-w-[200px]" title={paramDisplay}>{paramDisplay}</span>}
-                                </button>
+                        return (
+                          <div
+                            key={`seq-${index}`}
+                            ref={index === processedMessages.length - 1 ? latestMessageRef : null}
+                            className="relative group pt-4 pb-2"
+                          >
+                            {/* Show header only if this is an assistant message after a user message */}
+                            {isAssistantAfterUser && (
+                              <div className="flex items-center mb-2 text-sm gap-2">
+                                <div className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center overflow-hidden">
+                                  <Image src="/kortix-symbol.svg" alt="Suna" width={16} height={16} className="object-contain" />
+                                </div>
+                                <span className="text-gray-700 font-medium">Suna</span>
                               </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
-            
-            {/* Display streaming completion */}
-            {completion && (
-              <div ref={latestMessageRef} className="mb-6">
-                <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
-                    <Image src="/kortix-symbol.svg" alt="Suna" width={20} height={20} className="object-contain"/>
-                  </div>
-                  <div className="flex-1 space-y-2">
-                    <p className="font-semibold">Assistant</p>
-                    <div className="bg-muted rounded-lg max-w-[90%] px-4 py-3 text-sm">
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                        components={{
-                          code({ node, inline, className, children, ...props }) {
-                            const match = /language-(\w+)/.exec(className || '');
-                            return !inline && match ? (
-                              <SyntaxHighlighter
-                                style={vscDarkPlus}
-                                language={match[1]}
-                                PreTag="div"
-                                {...props}
-                              >
-                                {String(children).replace(/\n$/, '')}
-                              </SyntaxHighlighter>
-                            ) : (
-                              <code className={className} {...props}>
-                                {children}
-                              </code>
-                            );
-                          },
-                          a({ href, children }) {
-                            if (href?.startsWith("sandboxfs://")) {
-                              const filePath = href.substring("sandboxfs://".length);
-                              const FileName = filePath.split('/').pop();
-                              const Icon = getFileIcon(FileName || "");
-                              return (
-                                <Button 
-                                  variant="link"
-                                  className="p-0 h-auto text-sm text-primary inline-flex items-center gap-1"
-                                  onClick={() => handleOpenFileViewer(filePath)}
-                                >
-                                  <Icon className="h-3.5 w-3.5 flex-shrink-0" />
-                                  {children}
-                                </Button>
-                              );
-                            }
-                            return <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary underline">{children}</a>;
-                          },
-                        }}
-                      >
-                        {completion}
-                      </ReactMarkdown>
-                      <span className="inline-block w-2 h-4 bg-foreground animate-pulse ml-1"></span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            {/* Display agent thinking/running state */}
-            {(agentStatus === 'running' || agentStatus === 'connecting' || agentStatus === 'stopping') && !completion && (
-              <div ref={latestMessageRef} className="mb-6">
-                {(() => {
-                  // Find the latest assistant message ID that might have pending tool calls
-                  let lastAssistantMsgId: string | null = null;
-                  for (let i = messages.length - 1; i >= 0; i--) {
-                    if (messages[i].role === 'assistant') {
-                      lastAssistantMsgId = messages[i].id;
-                      break;
-                    }
-                  }
-                  
-                  // Filter tool calls that happened *after* the last assistant message or have no message ID yet
-                  const pendingToolCalls = toolCalls.filter(tc => 
-                    !tc.result && 
-                    (!lastAssistantMsgId || new Date(tc.created_at) > new Date(messages.find(m => m.id === lastAssistantMsgId)?.created_at || 0))
-                  );
+                            )}
 
-                  // Check if the last message was an assistant message with tool calls that are all finished
-                  const lastMsg = messages[messages.length - 1];
-                  const allLastToolsFinished = lastMsg?.role === 'assistant' && 
-                                             lastMsg.toolCalls && 
-                                             lastMsg.toolCalls.every(tc => tc.result);
+                            {/* Container for the pairs within the sequence */}
+                            <div className="space-y-4">
+                              {pairs.map((pair, pairIndex) => {
+                                // Parse assistant message content
+                                const assistantContent = pair.assistantCall.content || '';
+                                const xmlRegex = /<(?!inform\b)([a-zA-Z\-_]+)(?:\s+[^>]*)?>[\s\S]*?<\/\1>|<(?!inform\b)([a-zA-Z\-_]+)(?:\s+[^>]*)?(?:\/)?>/;
+                                const xmlMatch = assistantContent.match(xmlRegex);
+                                // Get tag name from either the first or second capturing group
+                                const toolName = xmlMatch ? (xmlMatch[1] || xmlMatch[2]) : 'Tool';
+                                const preContent = xmlMatch ? assistantContent.substring(0, xmlMatch.index).trim() : assistantContent.trim();
+                                const postContent = xmlMatch ? assistantContent.substring(xmlMatch.index + xmlMatch[0].length).trim() : '';
+                                const userResultName = pair.userResult.content?.match(/<tool_result>\s*<([a-zA-Z\-_]+)/)?.[1] || 'Result';
 
-                  // Show thinking indicator only if:
-                  // 1. Agent is running/connecting/stopping
-                  // 2. There's no streaming completion
-                  // 3. EITHER there are no pending tool calls displayed yet OR the last message's tools are all finished
-                  if (pendingToolCalls.length === 0 || allLastToolsFinished) {
-                    return (
-                      <div className="flex items-start gap-3">
-                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
-                          <Image src="/kortix-symbol.svg" alt="Suna" width={20} height={20} className="object-contain"/>
-                        </div>
-                        <div className="flex-1 space-y-2">
-                          <p className="font-semibold">Assistant</p>
-                          <div className="bg-muted rounded-lg max-w-[90%] px-4 py-3 text-sm">
-                            <div className="flex items-center gap-1.5 py-1">
-                              <div className="h-1.5 w-1.5 rounded-full bg-primary/50 animate-pulse" />
-                              <div className="h-1.5 w-1.5 rounded-full bg-primary/50 animate-pulse delay-150" />
-                              <div className="h-1.5 w-1.5 rounded-full bg-primary/50 animate-pulse delay-300" />
-                            </div>
-                          </div>
-                          {/* Display pending tool calls below thinking indicator */}
-                          {pendingToolCalls.length > 0 && (
-                            <div className="mt-2 space-y-1">
-                              {pendingToolCalls.map(toolCall => {
-                                const globalToolIndex = toolCalls.findIndex(tc => tc.id === toolCall.id);
-                                const toolName = toolCall.name || 'Unnamed Tool';
-                                let paramDisplay = '';
-                                try {
-                                  if (toolCall.args) {
-                                    const args = typeof toolCall.args === 'string' ? JSON.parse(toolCall.args) : toolCall.args;
-                                    if (args.file) paramDisplay = args.file.split('/').pop();
-                                    else if (args.command) paramDisplay = args.command.split(' ')[0];
-                                    else if (args.url) paramDisplay = new URL(args.url).hostname;
-                                    else if (args.query) paramDisplay = args.query;
-                                    else if (args.prompt) paramDisplay = args.prompt.substring(0, 20) + '...';
-                                    else if (args.text) paramDisplay = args.text.substring(0, 20) + '...';
-                                  }
-                                } catch {}
-                                
+                                // Get icon and parameter for the tag
+                                const IconComponent = getToolIcon(toolName);
+                                const paramDisplay = extractPrimaryParam(toolName, assistantContent);
+
                                 return (
-                                  <div key={toolCall.id} className="pl-4 border-l-2 border-primary/20">
-                                    <button 
-                                      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors w-full text-left py-0.5"
-                                      onClick={() => {
-                                        setIsSidePanelOpen(true);
-                                        setCurrentToolIndex(globalToolIndex);
-                                        userClosedPanelRef.current = false;
-                                      }}
-                                    >
-                                      {(() => {
-                                          // Find the corresponding tool call in the main toolCalls array to check status
-                                          const currentToolCallState = toolCalls[globalToolIndex];
-                                          return (
-                                            <>
-                                              {currentToolCallState?.result ? (
-                                                currentToolCallState.result.error ? (
-                                                  <XCircle className="h-3.5 w-3.5 text-red-500 flex-shrink-0" />
-                                                ) : (
-                                                  <CheckCircle className="h-3.5 w-3.5 text-green-500 flex-shrink-0" />
-                                                )
-                                              ) : (
-                                                <CircleDashed className="h-3.5 w-3.5 text-primary flex-shrink-0 animate-spin animation-duration-2000" />
-                                              )}
-                                              <span className="font-mono text-xs text-primary">{toolName}</span>
-                                              {paramDisplay && <span className="ml-1 text-primary/70 truncate max-w-[200px]" title={paramDisplay}>{paramDisplay}</span>}
-                                            </>
-                                          );
-                                      })()}
-                                    </button>
+                                  <div key={`${index}-pair-${pairIndex}`} className="space-y-2">
+                                    {/* Tool execution content */}
+                                    <div className="space-y-1">
+                                      {/* First show any text content before the tool call */}
+                                      {preContent && (
+                                        <p className="text-sm text-gray-800 whitespace-pre-wrap break-words">
+                                          {preContent}
+                                        </p>
+                                      )}
+                                      
+                                      {/* Clickable Tool Tag */}
+                                      {xmlMatch && (
+                                        <button
+                                          onClick={() => handleHistoricalToolClick(pair)}
+                                          className="inline-flex items-center gap-1.5 py-0.5 px-2 text-xs text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors cursor-pointer border border-gray-200"
+                                        >
+                                          <IconComponent className="h-3.5 w-3.5 text-gray-500 flex-shrink-0" />
+                                          <span className="font-mono text-xs text-gray-700">
+                                            {toolName}
+                                          </span>
+                                          {paramDisplay && (
+                                            <span className="ml-1 text-gray-500 truncate" title={paramDisplay}>
+                                              {paramDisplay}
+                                            </span>
+                                          )}
+                                        </button>
+                                      )}
+
+                                      {/* Post-XML Content (Less Common) */}
+                                      {postContent && (
+                                        <p className="text-sm text-gray-800 whitespace-pre-wrap break-words">
+                                          {postContent}
+                                        </p>
+                                      )}
+                                    </div>
+
+                                    {/* Simple tool result indicator */}
+                                    {SHOULD_RENDER_TOOL_RESULTS && userResultName && (
+                                      <div className="ml-4 flex items-center gap-1.5 text-xs text-gray-500">
+                                        <CheckCircle className="h-3 w-3 text-green-600" />
+                                        <span className="font-mono">{userResultName} completed</span>
+                                      </div>
+                                    )}
+
                                   </div>
                                 );
                               })}
                             </div>
+                          </div>
+                        );
+                      }
+                      // ---- Rendering Logic for Regular Messages ----
+                      else {
+                        const message = item as ApiMessage; // Safe cast now due to type guard
+                        // We rely on the existing rendering for *structured* tool calls/results (message.type === 'tool_call', message.role === 'tool')
+                        // which are populated differently (likely via streaming updates) than the raw XML content.
+
+                        return (
+                          <div
+                            key={index} // Use the index from processedMessages
+                            ref={index === processedMessages.length - 1 && message.role !== 'user' ? latestMessageRef : null} // Ref on the regular message div if it's last (and not user)
+                            className={`${message.role === 'user' ? 'text-right py-1' : 'py-2'}`} // Removed border-t
+                          >
+                            {/* Avatar (User = Right, Assistant/Tool = Left) */}
+                            {message.role === 'user' ? (
+                              // User bubble with rounded background that fits to text
+                              <div className="inline-block ml-auto text-sm text-gray-800 whitespace-pre-wrap break-words bg-gray-100 rounded-lg py-2 px-3">
+                                {message.content}
+                              </div>
+                            ) : (
+                              // Assistant / Tool bubble on the left
+                              <div>
+                                {/* Show header only if this is an assistant message after a user message */}
+                                {isAssistantAfterUser && (
+                                  <div className="flex items-center mb-2 text-sm gap-2">
+                                    <div className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center overflow-hidden">
+                                      <Image src="/kortix-symbol.svg" alt="Suna" width={16} height={16} className="object-contain" />
+                                    </div>
+                                    <span className="text-gray-700 font-medium">Suna</span>
+                                  </div>
+                                )}
+
+                                {/* Message content */}
+                                {message.type === 'tool_call' && message.tool_call ? (
+                                  // Clickable Tool Tag (Live)
+                                  <div className="space-y-2">
+                                    {(() => { // IIFE for scope
+                                      const toolName = message.tool_call.function.name;
+                                      const IconComponent = getToolIcon(toolName);
+                                      const paramDisplay = extractPrimaryParam(toolName, message.tool_call.function.arguments);
+                                      return (
+                                        <button
+                                          className="inline-flex items-center gap-1.5 py-0.5 px-2 text-xs text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors cursor-pointer border border-gray-200"
+                                          onClick={() => {
+                                            if (message.tool_call) {
+                                              setSidePanelContent({
+                                                id: message.tool_call.id,
+                                                name: message.tool_call.function.name,
+                                                arguments: message.tool_call.function.arguments,
+                                                index: message.tool_call.index
+                                              });
+                                              setIsSidePanelOpen(true);
+                                            }
+                                          }}
+                                        >
+                                          <CircleDashed className="h-3.5 w-3.5 text-gray-500 flex-shrink-0 animate-spin animation-duration-2000" />
+                                          <span className="font-mono text-xs text-gray-700">
+                                            {toolName}
+                                          </span>
+                                          {paramDisplay && (
+                                            <span className="ml-1 text-gray-500 truncate" title={paramDisplay}>
+                                              {paramDisplay}
+                                            </span>
+                                          )}
+                                        </button>
+                                      );
+                                    })()}
+                                    <pre className="text-xs font-mono overflow-x-auto my-1 p-2 bg-gray-50 border border-gray-100 rounded-sm">
+                                      {message.tool_call.function.arguments}
+                                    </pre>
+                                  </div>
+                                ) : (message.role === 'tool' && SHOULD_RENDER_TOOL_RESULTS) ? (
+                                  // Clean tool result UI
+                                  <div className="space-y-2">
+                                    <div className="flex items-center justify-between py-1 group">
+                                      <div className="flex items-center gap-2">
+                                        <CheckCircle className="h-4 w-4 text-gray-400" />
+                                        <span className="font-mono text-sm text-gray-700">
+                                          {message.name || 'Unknown Tool'}
+                                        </span>
+                                      </div>
+                                    </div>
+                                    <pre className="text-xs font-mono overflow-x-auto my-1 p-2 bg-gray-50 border border-gray-100 rounded-sm">
+                                      {typeof message.content === 'string' ? message.content : JSON.stringify(message.content, null, 2)}
+                                    </pre>
+                                  </div>
+                                ) : (
+                                  // Plain text message
+                                  <div className="max-w-[85%] text-sm text-gray-800 whitespace-pre-wrap break-words">
+                                    {(() => {
+                                      // Parse XML from assistant messages
+                                      if (message.role === 'assistant') {
+                                        const assistantContent = message.content || '';
+                                        const xmlRegex = /<(?!inform\b)([a-zA-Z\-_]+)(?:\s+[^>]*)?>[\s\S]*?<\/\1>|<(?!inform\b)([a-zA-Z\-_]+)(?:\s+[^>]*)?(?:\/)?>/;
+                                        const xmlMatch = assistantContent.match(xmlRegex);
+                                        
+                                        if (xmlMatch) {
+                                          // Get tag name from either the first capturing group (full tag) or second capturing group (self-closing)
+                                          const toolName = xmlMatch[1] || xmlMatch[2];
+                                          const preContent = assistantContent.substring(0, xmlMatch.index).trim();
+                                          const postContent = assistantContent.substring(xmlMatch.index + xmlMatch[0].length).trim();
+                                          const IconComponent = getToolIcon(toolName);
+                                          const paramDisplay = extractPrimaryParam(toolName, assistantContent);
+                                          
+                                          return (
+                                            <>
+                                              {preContent && <p className="mb-2">{preContent}</p>}
+                                              
+                                              <button
+                                                onClick={() => {
+                                                  // Create a synthetic pair to match the history format
+                                                  const syntheticPair = {
+                                                    assistantCall: message,
+                                                    userResult: { content: "", role: "user" } // Empty result
+                                                  };
+                                                  handleHistoricalToolClick(syntheticPair);
+                                                }}
+                                                className="inline-flex items-center gap-1.5 py-0.5 px-2 text-xs text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors cursor-pointer border border-gray-200 mb-2"
+                                              >
+                                                <IconComponent className="h-3.5 w-3.5 text-gray-500 flex-shrink-0" />
+                                                <span className="font-mono text-xs text-gray-700">
+                                                  {toolName}
+                                                </span>
+                                                {paramDisplay && (
+                                                  <span className="ml-1 text-gray-500 truncate" title={paramDisplay}>
+                                                    {paramDisplay}
+                                                  </span>
+                                                )}
+                                              </button>
+                                              
+                                              {postContent && <p>{postContent}</p>}
+                                            </>
+                                          );
+                                        }
+                                      }
+                                      
+                                      // Default rendering for non-XML or non-assistant messages
+                                      return message.content;
+                                    })()}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      }
+                    })}
+                    {/* ---- End of Message Mapping ---- */}
+                    
+                    {streamContent && (
+                      <div 
+                        ref={latestMessageRef} 
+                        className="py-2 border-t border-gray-100"
+                      >
+                        {/* Simplified header with logo and name */}
+                        <div className="flex items-center mb-2 text-sm gap-2">
+                          <div className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center overflow-hidden">
+                            <Image src="/kortix-symbol.svg" alt="Suna" width={16} height={16} className="object-contain" />
+                          </div>
+                          <span className="text-gray-700 font-medium">Suna</span>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          {toolCallData ? (
+                            // Clickable Tool Tag (Streaming)
+                            <div className="space-y-2">
+                              {(() => { // IIFE for scope
+                                const toolName = toolCallData.name;
+                                const IconComponent = getToolIcon(toolName);
+                                const paramDisplay = extractPrimaryParam(toolName, toolCallData.arguments);
+                                return (
+                                  <button
+                                    className="inline-flex items-center gap-1.5 py-0.5 px-2 text-xs text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors cursor-pointer border border-gray-200"
+                                    onClick={() => {
+                                      if (toolCallData) {
+                                        setSidePanelContent(toolCallData);
+                                        setIsSidePanelOpen(true);
+                                      }
+                                    }}
+                                  >
+                                    <CircleDashed className="h-3.5 w-3.5 text-gray-500 flex-shrink-0 animate-spin animation-duration-2000" />
+                                    <span className="font-mono text-xs text-gray-700">
+                                      {toolName}
+                                    </span>
+                                    {paramDisplay && (
+                                      <span className="ml-1 text-gray-500 truncate" title={paramDisplay}>
+                                        {paramDisplay}
+                                      </span>
+                                    )}
+                                  </button>
+                                );
+                              })()}
+                              <pre className="text-xs font-mono overflow-x-auto my-1 p-2 bg-gray-50 border border-gray-100 rounded-sm">
+                                {toolCallData.arguments || ''}
+                              </pre>
+                            </div>
+                          ) : (
+                            // Enhanced text streaming with XML parsing
+                            <div className="text-sm text-gray-800 whitespace-pre-wrap break-words max-w-[85%]">
+                              {(() => {
+                                const content = streamContent;
+                                
+                                // Tokenize the content to properly render XML and text
+                                const renderStreamContent = () => {
+                                  // RegExp for matching both opening and closing tags
+                                  const tagRegex = /<(?!inform\b)([a-zA-Z\-_]+)(?:\s+[^>]*)?(?:\/)?>/g;
+                                  const closingTagRegex = /<\/([a-zA-Z\-_]+)>/g;
+                                  
+                                  // Build a map of tag states
+                                  const openTags: Record<string, { count: number, positions: number[] }> = {};
+                                  
+                                  // Track all opening tags
+                                  let match;
+                                  while ((match = tagRegex.exec(content)) !== null) {
+                                    const tagName = match[1];
+                                    if (!openTags[tagName]) {
+                                      openTags[tagName] = { count: 0, positions: [] };
+                                    }
+                                    openTags[tagName].count++;
+                                    openTags[tagName].positions.push(match.index);
+                                  }
+                                  
+                                  // Subtract all closing tags
+                                  while ((match = closingTagRegex.exec(content)) !== null) {
+                                    const tagName = match[1];
+                                    if (openTags[tagName]) {
+                                      openTags[tagName].count--;
+                                    }
+                                  }
+                                  
+                                  // Find incomplete tags (those with count > 0)
+                                  const incompleteTags = Object.entries(openTags)
+                                    .filter(([_, data]) => data.count > 0)
+                                    .map(([tag, data]) => ({ 
+                                      tag, 
+                                      // Use the last position for this incomplete tag
+                                      position: data.positions[data.positions.length - data.count] 
+                                    }))
+                                    .sort((a, b) => a.position - b.position);
+                                  
+                                  // If there are no incomplete tags, render normally
+                                  if (incompleteTags.length === 0) {
+                                    return (
+                                      <div>
+                                        {parseNormalXmlContent(content)}
+                                        {isStreaming && (
+                                          <span className="inline-block h-4 w-0.5 bg-gray-400 ml-0.5 -mb-1 animate-pulse" />
+                                        )}
+                                      </div>
+                                    );
+                                  }
+                                  
+                                  // Handle incomplete tags
+                                  const segments = [];
+                                  let lastPosition = 0;
+                                  
+                                  // Process each incomplete tag in sequence
+                                  for (const { tag, position } of incompleteTags) {
+                                    // Add content before this incomplete tag
+                                    if (position > lastPosition) {
+                                      const segmentContent = content.substring(lastPosition, position);
+                                      segments.push(
+                                        <div key={`seg-${lastPosition}`}>
+                                          {parseNormalXmlContent(segmentContent)}
+                                        </div>
+                                      );
+                                    }
+                                    
+                                    // Find the opening tag and extract attributes for param display
+                                    const openingTagMatch = new RegExp(`<${tag}([^>]*)>`, 'g');
+                                    openingTagMatch.lastIndex = position;
+                                    const tagMatch = openingTagMatch.exec(content);
+                                    const tagAttributes = tagMatch ? tagMatch[1] : '';
+                                    
+                                    // Add the incomplete tag button
+                                    const IconComponent = getToolIcon(tag);
+                                    const paramDisplay = extractPrimaryParam(tag, tagAttributes);
+                                    
+                                    segments.push(
+                                      <div key={`tag-${position}`} className="space-y-2 my-2">
+                                        <button
+                                          className="inline-flex items-center gap-1.5 py-0.5 px-2 text-xs text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors cursor-pointer border border-gray-200"
+                                        >
+                                          <CircleDashed className="h-3.5 w-3.5 text-gray-500 flex-shrink-0 animate-spin animation-duration-2000" />
+                                          <span className="font-mono text-xs text-gray-700">
+                                            {tag}
+                                          </span>
+                                          {paramDisplay && (
+                                            <span className="ml-1 text-gray-500 truncate" title={paramDisplay}>
+                                              {paramDisplay}
+                                            </span>
+                                          )}
+                                        </button>
+                                        <div className="my-1 flex items-center">
+                                          <span className="inline-block h-4 w-4 text-gray-400">
+                                            <CircleDashed className="h-4 w-4 animate-spin" />
+                                          </span>
+                                          <span className="ml-2 text-xs text-gray-500">Processing...</span>
+                                        </div>
+                                      </div>
+                                    );
+                                    
+                                    // Move past this tag's position
+                                    lastPosition = position + (tagMatch ? tagMatch[0].length : 0);
+                                  }
+                                  
+                                  // Add any remaining content after the last incomplete tag
+                                  if (lastPosition < content.length) {
+                                    const remainingContent = content.substring(lastPosition);
+                                    segments.push(
+                                      <div key={`remaining-${lastPosition}`}>
+                                        {parseNormalXmlContent(remainingContent)}
+                                        {isStreaming && (
+                                          <span className="inline-block h-4 w-0.5 bg-gray-400 ml-0.5 -mb-1 animate-pulse" />
+                                        )}
+                                      </div>
+                                    );
+                                  }
+                                  
+                                  return <>{segments}</>;
+                                };
+                                
+                                // Helper to parse normal XML content (fully formed tags)
+                                const parseNormalXmlContent = (text: string) => {
+                                  if (!text) return null;
+                                  
+                                  // Find all complete XML tags
+                                  const segments = [];
+                                  let lastIndex = 0;
+                                  
+                                  // Regex for complete XML tags
+                                  const completeXmlRegex = /<(?!inform\b)([a-zA-Z\-_]+)(?:\s+[^>]*)?>[\s\S]*?<\/\1>|<(?!inform\b)([a-zA-Z\-_]+)(?:\s+[^>]*)?\/>/g;
+                                  let xmlMatch;
+                                  
+                                  while ((xmlMatch = completeXmlRegex.exec(text)) !== null) {
+                                    // Add text before this XML
+                                    if (xmlMatch.index > lastIndex) {
+                                      segments.push(
+                                        <span key={`text-${lastIndex}`}>
+                                          {text.substring(lastIndex, xmlMatch.index)}
+                                        </span>
+                                      );
+                                    }
+                                    
+                                    // Add the complete XML tag as a button
+                                    const tagName = xmlMatch[1] || xmlMatch[2];
+                                    const IconComponent = getToolIcon(tagName);
+                                    const paramDisplay = extractPrimaryParam(tagName, xmlMatch[0]);
+                                    
+                                    segments.push(
+                                      <button
+                                        key={`xml-${xmlMatch.index}`}
+                                        className="inline-flex items-center gap-1.5 py-0.5 px-2 text-xs text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors cursor-pointer border border-gray-200 my-1"
+                                      >
+                                        <IconComponent className="h-3.5 w-3.5 text-gray-500 flex-shrink-0" />
+                                        <span className="font-mono text-xs text-gray-700">
+                                          {tagName}
+                                        </span>
+                                        {paramDisplay && (
+                                          <span className="ml-1 text-gray-500 truncate" title={paramDisplay}>
+                                            {paramDisplay}
+                                          </span>
+                                        )}
+                                      </button>
+                                    );
+                                    
+                                    lastIndex = xmlMatch.index + xmlMatch[0].length;
+                                  }
+                                  
+                                  // Add any remaining text
+                                  if (lastIndex < text.length) {
+                                    segments.push(
+                                      <span key={`text-${lastIndex}`}>
+                                        {text.substring(lastIndex)}
+                                      </span>
+                                    );
+                                  }
+                                  
+                                  return segments.length > 0 ? segments : text;
+                                };
+                                
+                                return renderStreamContent();
+                              })()}
+                            </div>
                           )}
                         </div>
                       </div>
-                    );
-                  }
-                  // If not showing thinking indicator, but there are pending tool calls, show them under the last assistant message
-                  else if (pendingToolCalls.length > 0) {
-                    return pendingToolCalls.map(toolCall => {
-                      const globalToolIndex = toolCalls.findIndex(tc => tc.id === toolCall.id);
-                      const toolName = toolCall.name || 'Unnamed Tool';
-                      let paramDisplay = '';
-                      try {
-                        if (toolCall.args) {
-                          const args = typeof toolCall.args === 'string' ? JSON.parse(toolCall.args) : toolCall.args;
-                          if (args.file) paramDisplay = args.file.split('/').pop();
-                          else if (args.command) paramDisplay = args.command.split(' ')[0];
-                          else if (args.url) paramDisplay = new URL(args.url).hostname;
-                          else if (args.query) paramDisplay = args.query;
-                          else if (args.prompt) paramDisplay = args.prompt.substring(0, 20) + '...';
-                          else if (args.text) paramDisplay = args.text.substring(0, 20) + '...';
-                        }
-                      } catch {}
-                      
-                      return (
-                        <div key={toolCall.id} className="flex items-start gap-3">
-                           {/* Placeholder for Assistant Icon - assumes it's under the last assistant message */}
-                           <div className="w-8 h-8 flex-shrink-0"></div> 
-                           <div className="flex-1 space-y-2">
-                             <div className="mt-0"> {/* Adjust spacing if needed */} 
-                                <div className="pl-4 border-l-2 border-primary/20">
-                                  {(() => {
-                                      const currentToolCallState = toolCalls[globalToolIndex];
-                                      return (
-                                        <button 
-                                          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors w-full text-left py-0.5"
-                                          onClick={() => {
-                                            setIsSidePanelOpen(true);
-                                            setCurrentToolIndex(globalToolIndex);
-                                            userClosedPanelRef.current = false;
-                                          }}
-                                        >
-                                          {currentToolCallState?.result ? (
-                                            currentToolCallState.result.error ? (
-                                              <XCircle className="h-3.5 w-3.5 text-red-500 flex-shrink-0" />
-                                            ) : (
-                                              <CheckCircle className="h-3.5 w-3.5 text-green-500 flex-shrink-0" />
-                                            )
-                                          ) : (
-                                            <CircleDashed className="h-3.5 w-3.5 text-primary flex-shrink-0 animate-spin animation-duration-2000" />
-                                          )}
-                                          <span className="font-mono text-xs text-primary">{toolName}</span>
-                                          {paramDisplay && <span className="ml-1 text-primary/70 truncate max-w-[200px]" title={paramDisplay}>{paramDisplay}</span>}
-                                        </button>
-                                      );
-                                  })()}
-                                </div>
-                              </div>
-                            </div>
-                        </div>
-                      );
-                    });
-                  }
-                  // If agent is stopping, show a specific indicator
-                  else if (agentStatus === 'stopping') {
-                     return (
-                        <div className="flex items-start gap-3">
-                          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
-                            <Image src="/kortix-symbol.svg" alt="Suna" width={20} height={20} className="object-contain"/>
+                    )}
+                    
+                    {/* Loading indicator (three dots) */}
+                    {agentStatus === 'running' && !streamContent && !toolCallData && (
+                      <div className="py-2 border-t border-gray-100">
+                        {/* Simplified header with logo and name */}
+                        <div className="flex items-center mb-2 text-sm gap-2">
+                          <div className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center overflow-hidden">
+                            <Image src="/kortix-symbol.svg" alt="Suna" width={16} height={16} className="object-contain" />
                           </div>
-                          <div className="flex-1 space-y-2">
-                            <p className="font-semibold">Assistant</p>
-                            <div className="bg-muted rounded-lg max-w-[90%] px-4 py-3 text-sm text-muted-foreground italic">
-                              Stopping agent...
-                            </div>
-                          </div>
+                          <span className="text-gray-700 font-medium">Suna</span>
                         </div>
-                      );
-                  }
-                  // Otherwise, render nothing for this state
-                  return null;
-                })()}
+                        
+                        <div className="flex items-center gap-1.5 py-1">
+                          <div className="h-1.5 w-1.5 rounded-full bg-gray-400/50 animate-pulse" />
+                          <div className="h-1.5 w-1.5 rounded-full bg-gray-400/50 animate-pulse delay-150" />
+                          <div className="h-1.5 w-1.5 rounded-full bg-gray-400/50 animate-pulse delay-300" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-            )}
-            <div ref={messagesEndRef} className="h-1" />
+              
+              <div 
+                className="sticky bottom-6 flex justify-center"
+                style={{ 
+                  opacity: buttonOpacity,
+                  transition: 'opacity 0.3s ease-in-out',
+                  visibility: showScrollButton ? 'visible' : 'hidden'
+                }}
+              >
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8 rounded-full bg-background/80 backdrop-blur-sm hover:bg-background"
+                  onClick={handleScrollButtonClick}
+                >
+                  <ArrowDown className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            <div className="bg-sidebar backdrop-blur-sm">
+              <div className="mx-auto max-w-3xl px-6 py-2">
+                {/* Show Todo panel above chat input when side panel is closed */}
+                {!isSidePanelOpen && sandboxId && (
+                  <TodoPanel
+                    sandboxId={sandboxId}
+                    isSidePanelOpen={isSidePanelOpen}
+                    className="mb-3"
+                  />
+                )}
+                
+                <ChatInput
+                  value={newMessage}
+                  onChange={setNewMessage}
+                  onSubmit={handleSubmitMessage}
+                  placeholder="Type your message... (Enter to send, Shift+Enter for new line)"
+                  loading={isSending}
+                  disabled={isSending}
+                  isAgentRunning={agentStatus === 'running'}
+                  onStopAgent={handleStopAgent}
+                  autoFocus={!isLoading}
+                  onFileBrowse={handleOpenFileViewer}
+                  sandboxId={sandboxId || undefined}
+                />
+              </div>
+            </div>
           </div>
         </div>
       </div>
-      {/* Input Area */}
-      <div className={cn(
-        "fixed bottom-0 z-10 bg-gradient-to-t from-background via-background/90 to-transparent px-4 pt-8 transition-all duration-200 ease-in-out",
-      		'left-[72px]',
-        isSidePanelOpen ? 'right-[90%] sm:right-[450px] md:right-[500px] lg:right-[550px] xl:right-[650px]' : 'right-0',
-        isMobile ? 'left-0 right-0' : ''
-      )}>
-        <div className={cn(
-          "mx-auto",
-          isMobile ? "w-full px-4" : "max-w-3xl"
-        )}>
-          <ChatInput
-            value={newMessage}
-            onChange={setNewMessage}
-            onSubmit={handleSubmitMessage}
-            placeholder="Ask Suna anything..."
-            loading={isSending || isCompletionLoading}
-            disabled={isSending || isCompletionLoading || agentStatus === 'running' || agentStatus === 'connecting' || agentStatus === 'stopping'}
-            isAgentRunning={agentStatus === 'running' || agentStatus === 'connecting'}
-            onStopAgent={handleStopAgent}
-            autoFocus={!isLoading}
-            onFileBrowse={handleOpenFileViewer}
-            sandboxId={sandboxId || undefined}
-          />
-        </div>
-      </div>
-      {/* Tool Call Side Panel */}
+
       <ToolCallSidePanel 
         isOpen={isSidePanelOpen} 
-        onClose={() => {
-          setIsSidePanelOpen(false);
-          userClosedPanelRef.current = true;
-          setAutoOpenedPanel(true); // Prevent auto-reopen immediately
-        }}
-        toolCalls={toolCalls}
-        messages={messages as ApiMessageType[]} // Pass display messages for context
-        agentStatus={agentStatus}
-        currentIndex={currentToolIndex}
+        onClose={() => { setIsSidePanelOpen(false); setSidePanelContent(null); setCurrentPairIndex(null); }}
+        content={sidePanelContent}
+        currentIndex={currentPairIndex}
+        totalPairs={allHistoricalPairs.length}
         onNavigate={handleSidePanelNavigate}
-        project={project || undefined}
-        renderAssistantMessage={toolViewAssistant}
-        renderToolResult={toolViewResult}
-        onViewFile={handleOpenFileViewer} // Pass file view handler
+        project={project}
       />
-      {/* File Viewer Modal */}
+
       {sandboxId && (
         <FileViewerModal
           open={fileViewerOpen}
           onOpenChange={setFileViewerOpen}
           sandboxId={sandboxId}
-          initialFilePath={fileToView}
-          project={project || undefined}
         />
       )}
-      {/* Billing Alert */}
-        message={billingData.message}
-        currentUsage={billingData.currentUsage}
-        limit={billingData.limit}
-        accountId={billingData.accountId}
-        onDismiss={() => setShowBillingAlert(false)}
-        isOpen={showBillingAlert}
-      />
     </div>
   );
-}
-
+} 
