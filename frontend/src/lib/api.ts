@@ -1376,3 +1376,15 @@ export const checkBillingStatus = async (): Promise<BillingStatusResponse> => {
   }
 };
 
+
+
+
+// Placeholder function - replace with actual implementation if available
+export const generateThreadName = async (prompt: string): Promise<string> => {
+  console.log("[API] Placeholder generateThreadName called with prompt:", prompt);
+  // Simple placeholder logic: return first 5 words + ellipsis
+  const words = prompt.split(" ");
+  const name = words.slice(0, 5).join(" ") + (words.length > 5 ? "..." : "");
+  return name || "New Chat";
+};
+

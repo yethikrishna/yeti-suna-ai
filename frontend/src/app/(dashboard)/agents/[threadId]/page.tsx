@@ -12,12 +12,12 @@ import type { ElementType } from 'react';
 import { addUserMessage, getMessages, startAgent, stopAgent, getAgentStatus, streamAgent, getAgentRuns, getProject, getThread, updateProject, Project } from '@/lib/api';
 import { toast } from 'sonner';
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChatInput } from '@/components/thread/chat-input';
-import { FileViewerModal } from '@/components/thread/file-viewer-modal';
+import ChatInput from '@/components/thread/chat-input';
+import FileViewerModal from '@/components/thread/file-viewer-modal';
 import { SiteHeader } from "@/components/thread/thread-site-header"
 import { ToolCallSidePanel, SidePanelContent, ToolCallData } from "@/components/thread/tool-call-side-panel";
 import { useSidebar } from "@/components/ui/sidebar";
-import { TodoPanel } from '@/components/thread/todo-panel';
+
 
 // Define a type for the params to make React.use() work properly
 type ThreadParams = { 
@@ -1738,14 +1738,7 @@ export default function ThreadPage({ params }: { params: Promise<ThreadParams> }
 
             <div className="bg-sidebar backdrop-blur-sm">
               <div className="mx-auto max-w-3xl px-6 py-2">
-                {/* Show Todo panel above chat input when side panel is closed */}
-                {!isSidePanelOpen && sandboxId && (
-                  <TodoPanel
-                    sandboxId={sandboxId}
-                    isSidePanelOpen={isSidePanelOpen}
-                    className="mb-3"
-                  />
-                )}
+
                 
                 <ChatInput
                   value={newMessage}
