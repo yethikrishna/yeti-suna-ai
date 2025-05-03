@@ -24,7 +24,7 @@ import {
 import { BillingError } from "@/lib/api";
 import { useBillingError } from "@/hooks/useBillingError";
 import { BillingErrorAlert } from "@/components/billing/usage-limit-alert";
-import config from "@/config";
+import config from "@/lib/config";
 
 const PENDING_PROMPT_KEY = "pendingDashboardPrompt";
 

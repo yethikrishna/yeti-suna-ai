@@ -6,8 +6,8 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { ArrowLeft, AlertCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { SubmitButton } from "@/components/submit-button";
-import { handleResetPassword } from "./actions";
+import { SubmitButton } from "@/components/ui/submit-button";on";
+import { handleResetPassword } from "@/app/auth/actions";
 
 function ResetPasswordContent() {
   const searchParams = useSearchParams();
