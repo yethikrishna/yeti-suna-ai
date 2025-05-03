@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import ManageTeams from "@/components/basejump/manage-teams";
 
 // This page simply renders the ManageTeams server component,
@@ -5,4 +7,3 @@ import ManageTeams from "@/components/basejump/manage-teams";
 export default function PersonalAccountTeamsPage() {
   return <ManageTeams />;
 }
-
