@@ -34,8 +34,9 @@ import {
   TooltipContent,
   TooltipTrigger
 } from "@/components/ui/tooltip"
-import { getProjects, getThreads, Project } from "@/lib/api"
+import { getProjects, getThreads, Project, deleteThread } from "@/lib/api"
 import Link from "next/link"
+import { DeleteConfirmationDialog } from "@/components/thread/DeleteConfirmationDialog"
 
 // Thread with associated project info for display in sidebar
 type ThreadWithProject = {
@@ -53,6 +54,9 @@ export function NavAgents() {
   const [loadingThreadId, setLoadingThreadId] = useState<string | null>(null)
   const pathname = usePathname()
   const router = useRouter()
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [threadToDelete, setThreadToDelete] = useState<{ id: string; name: string } | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   // Helper to sort threads by updated_at (most recent first)
   const sortThreads = (threadsList: ThreadWithProject[]): ThreadWithProject[] => {
@@ -180,6 +184,43 @@ export function NavAgents() {
     setLoadingThreadId(threadId)
     router.push(url)
   }
+  
+  // Function to handle thread deletion
+  const handleDeleteThread = async (threadId: string, threadName: string) => {
+    setThreadToDelete({ id: threadId, name: threadName });
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!threadToDelete) return;
+    
+    try {
+      // Set loading state
+      setIsDeleting(true);
+      
+      // Delete the thread
+      await deleteThread(threadToDelete.id);
+      
+      // Update the thread list
+      setThreads(prevThreads => prevThreads.filter(t => t.threadId !== threadToDelete.id));
+      
+      // Show success message
+      toast.success("Conversation deleted successfully");
+      
+      // If current conversation was deleted, redirect to dashboard
+      if (pathname?.includes(threadToDelete.id)) {
+        router.push('/dashboard');
+      }
+    } catch (error) {
+      console.error("Error while deleting:", error);
+      toast.error("Unable to delete the conversation");
+    } finally {
+      // Reset states
+      setIsDeleting(false);
+      setIsDeleteDialogOpen(false);
+      setThreadToDelete(null);
+    }
+  };
 
   return (
     <SidebarGroup>
@@ -293,7 +334,7 @@ export function NavAgents() {
                           </a>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDeleteThread(thread.threadId, thread.projectName)}>
                           <Trash2 className="text-muted-foreground" />
                           <span>Delete</span>
                         </DropdownMenuItem>
@@ -314,6 +355,16 @@ export function NavAgents() {
           </SidebarMenuItem>
         )}
       </SidebarMenu>
+
+      {threadToDelete && (
+        <DeleteConfirmationDialog
+          isOpen={isDeleteDialogOpen}
+          onClose={() => setIsDeleteDialogOpen(false)}
+          onConfirm={confirmDelete}
+          threadName={threadToDelete.name}
+          isDeleting={isDeleting}
+        />
+      )}
     </SidebarGroup>
   )
 }
