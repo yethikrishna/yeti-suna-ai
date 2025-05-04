@@ -79,16 +79,16 @@ function DashboardContent() {
         const newProject = await createProject({ name: projectName, description: "", // Or derive a description if desired });
 
         // 3. Create the thread using the new project ID
-        const createdThread = await createThread(newProject.id); // <-- Pass the actual project ID
+        const thread = await createThread(newProject.id); // <-- Pass the actual project ID
 
         // 4. Then add the user message
-        await addUserMessage(createdThread.thread_id, message);
+        await addUserMessage(thread.thread_id, message);
 
         // 5. Start the agent on this thread with the options
-        await startAgent(createdThread.thread_id, options);
+        await startAgent(thread.thread_id, options);
 
         // 6. Navigate to thread
-        router.push(`/agents/${createdThread.thread_id}`);
+        router.push(`/agents/${thread.thread_id}`);
       }
     } catch (error: any) {
       // Log line 85 might be here if createThread or initiateAgent fails
