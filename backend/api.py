@@ -109,7 +109,12 @@ async def log_requests_middleware(request: Request, call_next):
         raise
 
 # Define allowed origins based on environment
-allowed_origins = ["https://www.suna.so", "https://suna.so", "https://staging.suna.so", "http://localhost:3000"]
+allowed_origins = [
+    "https://www.suna.so",
+    "https://suna.so",
+    "https://staging.suna.so",
+    "http://localhost:3000"
+]
 
 # Add staging-specific origins
 if config.ENV_MODE == EnvMode.STAGING:
@@ -119,12 +124,13 @@ if config.ENV_MODE == EnvMode.STAGING:
 if config.ENV_MODE == EnvMode.LOCAL:
     allowed_origins.append("http://localhost:3000")
 
+# Add CORS middleware so the frontend can call the API
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization"],
+    allow_headers=["*"],
 )
 
 # Include the agent router with a prefix
