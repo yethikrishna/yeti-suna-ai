@@ -3,15 +3,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 
-interface PageProps {
-  params: {
-    threadId: string;
-  };
-}
 
 export const dynamic = 'force-dynamic';
 
-export default function AgentThread({ params }: PageProps) {
+export default function AgentThread({ params }: { params: { threadId: string } }) {
   const { threadId } = useParams<{ threadId: string }>();
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
