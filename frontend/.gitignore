@@ -44,3 +44,4 @@ supabase/.temp
 supabase/**/*.env
 **/.prompts/
 **/__pycache__/
+._*
