@@ -6,7 +6,7 @@ import { useParams } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
-export default function AgentThread({ params }: { params: { threadId: string } }) {
+export default function AgentThread({ params }: { params: Promise<{ threadId: string }> }) {
   const { threadId } = useParams<{ threadId: string }>();
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
