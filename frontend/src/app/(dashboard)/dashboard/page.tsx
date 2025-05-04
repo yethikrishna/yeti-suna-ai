@@ -70,6 +70,7 @@ function DashboardContent() {
           router.push(`/agents/${result.thread_id}`);
         }
       } else {
+        /*
         // ---- Text-only messages ----
         // 1. Generate a project name
         const projectName = await generateThreadName(message);
@@ -89,6 +90,7 @@ function DashboardContent() {
 
         // 6. Navigate to thread
         router.push(`/agents/${thread.thread_id}`);
+        */
       }
     } catch (error: any) {
       // Log line 85 might be here if createThread or initiateAgent fails
