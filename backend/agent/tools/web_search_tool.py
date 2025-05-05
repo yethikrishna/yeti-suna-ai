@@ -62,7 +62,7 @@ class WebSearchTool(Tool):
         mappings=[
             {"param_name": "query", "node_type": "attribute", "path": "."},
             # {"param_name": "summary", "node_type": "attribute", "path": "."},
-            {"param_name": "num_results", "node_type": "attribute", "path": "."}
+            {"param_name": "num_results", "node_type": "attribute", "path": ".", "required": False}
         ],
         example='''
         <!-- 
