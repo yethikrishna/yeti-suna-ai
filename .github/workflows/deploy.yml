@@ -1,0 +1,68 @@
+name: Deploy to Coolify
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Frontend Build & Test
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Frontend Dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build Frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Test Frontend
+        working-directory: frontend
+        run: npm test || true # Temporário até testes serem implementados
+
+      # Backend Build & Test
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+
+      - name: Install Backend Dependencies
+        working-directory: backend
+        run: |
+          poetry install
+
+      - name: Test Backend
+        working-directory: backend
+        run: |
+          poetry run pytest || true # Temporário até testes serem implementados
+
+      # Deploy to Coolify
+      - name: Deploy Frontend to Coolify
+        run: |
+          curl -X POST ${{ secrets.COOLIFY_WEBHOOK_URL }}/frontend \
+            -H "Authorization: Bearer ${{ secrets.COOLIFY_API_TOKEN }}" \
+            -H "Content-Type: application/json"
+
+      - name: Deploy Backend to Coolify
+        run: |
+          curl -X POST ${{ secrets.COOLIFY_WEBHOOK_URL }}/backend \
+            -H "Authorization: Bearer ${{ secrets.COOLIFY_API_TOKEN }}" \
+            -H "Content-Type: application/json"
