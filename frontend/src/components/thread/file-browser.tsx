@@ -22,17 +22,7 @@ export function FileBrowser({ sandboxId, onSelectFile, trigger }: FileBrowserPro
   const [fileContent, setFileContent] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [breadcrumbs, setBreadcrumbs] = useState<string[]>([]);
-  
-  // Reset state when dialog opens
-  useEffect(() => {
-    if (isOpen) {
-      loadFiles("");
-    } else {
-      setFileContent(null);
-      setSelectedFile(null);
-    }
-  }, [isOpen, sandboxId]);
-  
+
   // Load files from the current path
   const loadFiles = async (path: string) => {
     setIsLoading(true);
@@ -40,7 +30,7 @@ export function FileBrowser({ sandboxId, onSelectFile, trigger }: FileBrowserPro
       const files = await listSandboxFiles(sandboxId, path);
       setFiles(files);
       setCurrentPath(path);
-      
+
       // Update breadcrumbs
       if (path === "") {
         setBreadcrumbs([]);
@@ -55,7 +45,17 @@ export function FileBrowser({ sandboxId, onSelectFile, trigger }: FileBrowserPro
       setIsLoading(false);
     }
   };
-  
+
+  // Reset state when dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      loadFiles("");
+    } else {
+      setFileContent(null);
+      setSelectedFile(null);
+    }
+  }, [isOpen, sandboxId]);
+
   // Load file content
   const loadFileContent = async (path: string) => {
     setIsLoading(true);
@@ -76,7 +76,7 @@ export function FileBrowser({ sandboxId, onSelectFile, trigger }: FileBrowserPro
       setIsLoading(false);
     }
   };
-  
+
   // Handle file or folder click
   const handleItemClick = (file: FileInfo) => {
     if (file.is_dir) {
@@ -85,7 +85,7 @@ export function FileBrowser({ sandboxId, onSelectFile, trigger }: FileBrowserPro
       loadFileContent(file.path);
     }
   };
-  
+
   // Navigate to a specific breadcrumb
   const navigateToBreadcrumb = (index: number) => {
     if (index === -1) {
@@ -96,7 +96,7 @@ export function FileBrowser({ sandboxId, onSelectFile, trigger }: FileBrowserPro
       loadFiles(path);
     }
   };
-  
+
   // Handle select button click
   const handleSelectFile = () => {
     if (selectedFile && fileContent && onSelectFile) {
@@ -104,7 +104,7 @@ export function FileBrowser({ sandboxId, onSelectFile, trigger }: FileBrowserPro
       setIsOpen(false);
     }
   };
-  
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
@@ -114,7 +114,7 @@ export function FileBrowser({ sandboxId, onSelectFile, trigger }: FileBrowserPro
         <DialogHeader>
           <DialogTitle>Sandbox Files</DialogTitle>
         </DialogHeader>
-        
+
         {/* Breadcrumbs */}
         <div className="flex items-center space-x-1 text-sm py-2 border-b">
           <Button
@@ -140,7 +140,7 @@ export function FileBrowser({ sandboxId, onSelectFile, trigger }: FileBrowserPro
             </div>
           ))}
         </div>
-        
+
         <div className="grid grid-cols-2 gap-4 flex-1 overflow-hidden">
           {/* File list */}
           <div className="border rounded-md overflow-y-auto h-[400px]">
@@ -188,7 +188,7 @@ export function FileBrowser({ sandboxId, onSelectFile, trigger }: FileBrowserPro
               </div>
             )}
           </div>
-          
+
           {/* File preview */}
           <div className="border rounded-md overflow-hidden flex flex-col">
             <div className="p-2 bg-muted text-sm font-medium border-b">
@@ -212,7 +212,7 @@ export function FileBrowser({ sandboxId, onSelectFile, trigger }: FileBrowserPro
             </div>
           </div>
         </div>
-        
+
         {selectedFile && fileContent && onSelectFile && (
           <div className="flex justify-end pt-2">
             <Button onClick={handleSelectFile}>Select File</Button>
@@ -221,4 +221,4 @@ export function FileBrowser({ sandboxId, onSelectFile, trigger }: FileBrowserPro
       </DialogContent>
     </Dialog>
   );
-} 
+}

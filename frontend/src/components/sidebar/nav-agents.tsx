@@ -75,44 +75,44 @@ export function NavAgents() {
       if (showLoading) {
         setIsLoading(true)
       }
-      
+
       // Get all projects
       const projects = await getProjects() as Project[]
       console.log("Projects loaded:", projects.length, projects.map(p => ({ id: p.id, name: p.name })));
-      
+
       // If no projects are found, the user might not be logged in
       if (projects.length === 0) {
         setThreads([])
         return
       }
-      
+
       // Create a map of projects by ID for faster lookups
       const projectsById = new Map<string, Project>();
       projects.forEach(project => {
         projectsById.set(project.id, project);
       });
-      
+
       // Get all threads at once
-      const allThreads = await getThreads() 
+      const allThreads = await getThreads()
       console.log("Threads loaded:", allThreads.length, allThreads.map(t => ({ thread_id: t.thread_id, project_id: t.project_id })));
-      
+
       // Create display objects for threads with their project info
       const threadsWithProjects: ThreadWithProject[] = [];
-      
+
       for (const thread of allThreads) {
         const projectId = thread.project_id;
         // Skip threads without a project ID
         if (!projectId) continue;
-        
+
         // Get the associated project
         const project = projectsById.get(projectId);
         if (!project) {
           console.log(`❌ Thread ${thread.thread_id} has project_id=${projectId} but no matching project found`);
           continue;
         }
-        
+
         console.log(`✅ Thread ${thread.thread_id} matched with project "${project.name}" (${projectId})`);
-        
+
         // Add to our list
         threadsWithProjects.push({
           threadId: thread.thread_id,
@@ -122,7 +122,7 @@ export function NavAgents() {
           updatedAt: thread.updated_at || project.updated_at || new Date().toISOString()
         });
       }
-      
+
       // Set threads, ensuring consistent sort order
       setThreads(sortThreads(threadsWithProjects))
     } catch (err) {
@@ -139,7 +139,7 @@ export function NavAgents() {
   // Load threads dynamically from the API on initial load
   useEffect(() => {
     loadThreadsWithProjects(true);
-  }, []);
+  }, [loadThreadsWithProjects]);
 
   // Listen for project-updated events to update the sidebar without full reload
   useEffect(() => {
@@ -147,22 +147,22 @@ export function NavAgents() {
       const customEvent = event as CustomEvent;
       if (customEvent.detail) {
         const { projectId, updatedData } = customEvent.detail;
-        
+
         // Update just the name for the threads with the matching project ID
         setThreads(prevThreads => {
-          const updatedThreads = prevThreads.map(thread => 
-            thread.projectId === projectId 
-              ? { 
-                  ...thread, 
+          const updatedThreads = prevThreads.map(thread =>
+            thread.projectId === projectId
+              ? {
+                  ...thread,
                   projectName: updatedData.name,
-                } 
+                }
               : thread
           );
-          
+
           // Return the threads without re-sorting immediately
           return updatedThreads;
         });
-        
+
         // Silently refresh in background to fetch updated timestamp and re-sort
         setTimeout(() => loadThreadsWithProjects(false), 1000);
       }
@@ -170,12 +170,12 @@ export function NavAgents() {
 
     // Add event listener
     window.addEventListener('project-updated', handleProjectUpdate as EventListener);
-    
+
     // Cleanup
     return () => {
       window.removeEventListener('project-updated', handleProjectUpdate as EventListener);
     }
-  }, []);
+  }, [loadThreadsWithProjects]);
 
   // Reset loading state when navigation completes (pathname changes)
   useEffect(() => {
@@ -189,16 +189,16 @@ export function NavAgents() {
       document.body.style.pointerEvents = "auto";
       isNavigatingRef.current = false;
     };
-    
+
     window.addEventListener("popstate", handleNavigationComplete);
-    
+
     return () => {
       window.removeEventListener("popstate", handleNavigationComplete);
       // Ensure we clean up any leftover styles
-      document.body.style.pointerEvents = "auto"; 
+      document.body.style.pointerEvents = "auto";
     };
   }, []);
-  
+
   // Reset isNavigatingRef when pathname changes
   useEffect(() => {
     isNavigatingRef.current = false;
@@ -211,7 +211,7 @@ export function NavAgents() {
     setLoadingThreadId(threadId)
     router.push(url)
   }
-  
+
   // Function to handle thread deletion
   const handleDeleteThread = async (threadId: string, threadName: string) => {
     setThreadToDelete({ id: threadId, name: threadName });
@@ -220,25 +220,25 @@ export function NavAgents() {
 
   const confirmDelete = async () => {
     if (!threadToDelete || isPerformingActionRef.current) return;
-    
+
     // Mark action in progress
     isPerformingActionRef.current = true;
-    
+
     // Close dialog first for immediate feedback
     setIsDeleteDialogOpen(false);
-    
+
     const threadId = threadToDelete.id;
     const isActive = pathname?.includes(threadId);
-    
+
     // Store threadToDelete in a local variable since it might be cleared
     const deletedThread = { ...threadToDelete };
-    
+
     // Log operation start
     console.log("DELETION - Starting thread deletion process", {
       threadId: deletedThread.id,
       isCurrentThread: isActive
     });
-    
+
     // Use the centralized deletion system with completion callback
     await performDelete(
       threadId,
@@ -246,10 +246,10 @@ export function NavAgents() {
       async () => {
         // Delete the thread
         await deleteThread(threadId);
-        
+
         // Update the thread list
         setThreads(prev => prev.filter(t => t.threadId !== threadId));
-        
+
         // Show success message
         toast.success("Conversation deleted successfully");
       },
@@ -269,8 +269,8 @@ export function NavAgents() {
         {state !== "collapsed" ? (
           <Tooltip>
             <TooltipTrigger asChild>
-              <Link 
-                href="/dashboard" 
+              <Link
+                href="/dashboard"
                 className="text-muted-foreground hover:text-foreground h-8 w-8 flex items-center justify-center rounded-md"
               >
                 <Plus className="h-4 w-4" />
@@ -298,7 +298,7 @@ export function NavAgents() {
             </Tooltip>
           </SidebarMenuItem>
         )}
-        
+
         {isLoading ? (
           // Show skeleton loaders while loading
           Array.from({length: 3}).map((_, index) => (
@@ -316,7 +316,7 @@ export function NavAgents() {
               // Check if this thread is currently active
               const isActive = pathname?.includes(thread.threadId) || false;
               const isThreadLoading = loadingThreadId === thread.threadId;
-              
+
               return (
                 <SidebarMenuItem key={`thread-${thread.threadId}`}>
                   {state === "collapsed" ? (

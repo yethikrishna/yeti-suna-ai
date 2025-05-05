@@ -207,7 +207,7 @@ function DashboardContent() {
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [autoSubmit, inputValue, isSubmitting]);
+  }, [autoSubmit, inputValue, isSubmitting, handleSubmit]);
 
   return (
     <div className="flex flex-col items-center justify-center h-full w-full">

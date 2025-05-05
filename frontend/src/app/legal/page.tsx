@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import Link from "next/link";
 import { FlickeringGrid } from "@/components/home/ui/flickering-grid";
 import { useMediaQuery } from "@/hooks/use-media-query";
@@ -11,38 +11,38 @@ function LegalContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
-  
+
   // Get tab from URL or default to "terms"
   const tabParam = searchParams.get("tab");
   const [activeTab, setActiveTab] = useState<"terms" | "privacy">(
     (tabParam === "terms" || tabParam === "privacy") ? tabParam : "terms"
   );
-  
+
   const tablet = useMediaQuery("(max-width: 1024px)");
   const [mounted, setMounted] = useState(false);
   const [isScrolling, setIsScrolling] = useState(false);
 
   // Function to update URL without refreshing the page
-  const updateUrl = (tab: string) => {
+  const updateUrl = useCallback((tab: string) => {
     const params = new URLSearchParams(searchParams);
     params.set("tab", tab);
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-  };
+  }, [searchParams, router, pathname]);
 
   useEffect(() => {
     setMounted(true);
-    
+
     // Update the URL if it doesn't match the active tab
     if (tabParam !== activeTab) {
       updateUrl(activeTab);
     }
   }, [tabParam, activeTab, updateUrl]);
-  
+
   // Update the URL when the tab changes
   useEffect(() => {
     updateUrl(activeTab);
   }, [activeTab, updateUrl]);
-  
+
   // Update the active tab when URL changes
   useEffect(() => {
     if (tabParam === "terms" || tabParam === "privacy") {
@@ -64,7 +64,7 @@ function LegalContent() {
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-background z-10" />
             <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-background via-background/90 to-transparent z-10" />
             <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-background via-background/90 to-transparent z-10" />
-            
+
             <FlickeringGrid
               className="h-full w-full"
               squareSize={mounted && tablet ? 2 : 2.5}
@@ -74,13 +74,13 @@ function LegalContent() {
               flickerChance={isScrolling ? 0.01 : 0.03}
             />
           </div>
-          
+
           {/* Right side flickering grid with gradient fades */}
           <div className="absolute right-0 top-0 h-[600px] w-1/3 -z-10 overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-l from-transparent via-transparent to-background z-10" />
             <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-background via-background/90 to-transparent z-10" />
             <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-background via-background/90 to-transparent z-10" />
-            
+
             <FlickeringGrid
               className="h-full w-full"
               squareSize={mounted && tablet ? 2 : 2.5}
@@ -90,25 +90,25 @@ function LegalContent() {
               flickerChance={isScrolling ? 0.01 : 0.03}
             />
           </div>
-          
+
           {/* Center content background with rounded bottom */}
           <div className="absolute inset-x-1/4 top-0 h-[600px] -z-20 bg-background rounded-b-xl"></div>
-          
+
           <div className="max-w-4xl w-full mx-auto">
             <div className="flex items-center justify-center mb-10 relative">
-              <Link 
-                href="/" 
+              <Link
+                href="/"
                 className="absolute left-0 group border border-border/50 bg-background hover:bg-accent/20 hover:border-secondary/40 rounded-full text-sm h-8 px-3 flex items-center gap-2 transition-all duration-300 shadow-sm hover:shadow-md hover:scale-105"
               >
                 <ArrowLeft size={14} className="text-muted-foreground" />
                 <span className="font-medium text-muted-foreground text-xs tracking-wide">Back</span>
               </Link>
-              
+
               <h1 className="text-3xl md:text-4xl font-medium tracking-tighter text-center">
                 Legal <span className="text-secondary">Information</span>
               </h1>
             </div>
-            
+
             <div className="flex justify-center mb-8">
               <div className="flex space-x-4 border-b border-border">
                 <button
@@ -140,7 +140,7 @@ function LegalContent() {
                   <div>
                     <h2 className="text-2xl font-medium tracking-tight mb-4">Terms of Service</h2>
                     <p className="text-sm text-muted-foreground mb-6">Last updated: {new Date().toLocaleDateString()}</p>
-                    
+
                     <h3 className="text-lg font-medium tracking-tight">Terms of Service & Privacy Policy</h3>
                     <p className="text-muted-foreground text-balance mb-4">Last updated and effective date: 13 August 2024</p>
 
@@ -167,7 +167,7 @@ function LegalContent() {
 
                     <h3 className="text-lg font-medium tracking-tight">Acceptance of Terms of Use</h3>
                     <p className="text-muted-foreground text-balance mb-4">The Service is offered subject to acceptance without modification of all of these Terms of Use and all other operating rules, policies, and procedures that may be published from time to time in connection with the Services by the Company. In addition, some services offered through the Service may be subject to additional terms and conditions promulgated by the Company from time to time; your use of such services is subject to those additional terms and conditions, which are incorporated into these Terms of Use by this reference.</p>
-                    
+
                     <p className="text-muted-foreground text-balance mb-6">The Company may, in its sole discretion, refuse to offer the Service to any person or entity and change its eligibility criteria at any time. This provision is void where prohibited by law and the right to access the Service is revoked in such jurisdictions.</p>
 
                     <h3 className="text-lg font-medium tracking-tight">Rules and Conduct</h3>
@@ -203,7 +203,7 @@ function LegalContent() {
 
                     <h3 className="text-lg font-medium tracking-tight">Fees and Payments</h3>
                     <p className="text-muted-foreground text-balance mb-4">The Company may offer paid Services. You can learn more about our pricing after signing up. You may sign up for a subscription, payable in U.S. dollars, that will automatically renew. You can stop using the Service and cancel your subscription at any time through the website or by emailing us at legal@kortixai.com. If you cancel your subscription, you may not receive a refund or credit for any amounts that have already been billed or paid. The Company reserves the right to change its prices at any time. If you are on a subscription plan, changes to pricing will not apply until your next renewal.</p>
-                    
+
                     <p className="text-muted-foreground text-balance mb-6">Unless otherwise stated, your subscription fees ("Fees") do not include federal, state, local, and foreign taxes, duties, and other similar assessments ("Taxes"). You are responsible for all Taxes associated with your purchase and we may invoice you for such Taxes. You agree to timely pay such Taxes and provide us with documentation showing the payment or additional evidence that we may reasonably require. If any amount of your Fees is past due, we may suspend your access to the Services after we provide you with written notice of late payment.</p>
 
                     <h3 className="text-lg font-medium tracking-tight">Termination</h3>
@@ -211,13 +211,13 @@ function LegalContent() {
 
                     <h3 className="text-lg font-medium tracking-tight">Dispute Resolution by Binding Arbitration</h3>
                     <p className="text-muted-foreground text-balance mb-4">PLEASE READ THIS SECTION CAREFULLY, AS IT AFFECTS YOUR RIGHTS.</p>
-                    
+
                     <p className="text-muted-foreground text-balance mb-4"><strong>Agreement to Arbitrate.</strong> You and the Company agree that any and all disputes, claims, demands, or causes of action ("Claims") that have arisen or may arise between you and us, whether arising out of or relating to these Terms, the Site, or any aspect of the relationship or transactions between us, will be resolved exclusively through final and binding arbitration before a neutral arbitrator, rather than in a court by a judge or jury, in accordance with the terms of this Arbitration Agreement, except that you or we may (but are not required to) assert individual Claims in small claims court if such Claims are within the scope of such court's jurisdiction.</p>
-                    
+
                     <p className="text-muted-foreground text-balance mb-4"><strong>Prohibition of Class and Representative Actions.</strong> YOU AND WE AGREE THAT EACH OF US MAY BRING CLAIMS AGAINST THE OTHER ONLY ON AN INDIVIDUAL BASIS AND NOT AS A PLAINTIFF OR CLASS MEMBER IN ANY PURPORTED CLASS OR REPRESENTATIVE ACTION OR PROCEEDING.</p>
-                    
+
                     <p className="text-muted-foreground text-balance mb-4"><strong>Pre-Arbitration Dispute Resolution.</strong> Before commencing any arbitration, you agree to provide the Company with a written notice of Claim, and the Company agrees to provide you with a written notice of Claim to the extent reasonably possible based on the availability of your contact information to the Company. The Notice must describe the nature and basis of the Claim in sufficient detail and set forth the specific relief sought.</p>
-                    
+
                     <p className="text-muted-foreground text-balance mb-6">Both parties agree that they will attempt to resolve a Claim through informal negotiation within sixty (60) calendar days from the date the Notice is received. If the Claim is not resolved within sixty (60) calendar days after the Notice is received, you or we may commence an arbitration proceeding.</p>
 
                     <h3 className="text-lg font-medium tracking-tight">Choice of Law</h3>
@@ -262,7 +262,7 @@ function LegalContent() {
                   <div>
                     <h2 className="text-2xl font-medium tracking-tight mb-4">Privacy Policy</h2>
                     <p className="text-sm text-muted-foreground mb-6">Last updated: {new Date().toLocaleDateString()}</p>
-                    
+
                     <h3 className="text-lg font-medium tracking-tight">Privacy</h3>
                     <p className="text-muted-foreground text-balance mb-6">Our commitment to privacy and data protection is reflected in this Privacy Statement which describes how we collect and process "personal information" that identifies you, like your name or email address. Any other information besides this is "non-personal information." If we store personal information with non-personal information, we'll consider that combination to be personal information.</p>
 
@@ -333,7 +333,7 @@ function LegalContent() {
             </div>
 
             <div className="mt-12 text-center pb-10">
-              <Link 
+              <Link
                 href="/"
                 className="group inline-flex h-10 items-center justify-center gap-2 text-sm font-medium tracking-wide rounded-full text-primary-foreground dark:text-secondary-foreground px-6 shadow-[inset_0_1px_2px_rgba(255,255,255,0.25),0_3px_3px_-1.5px_rgba(16,24,40,0.06),0_1px_1px_rgba(16,24,40,0.08)] bg-primary hover:bg-primary/90 transition-all duration-200 w-fit"
               >

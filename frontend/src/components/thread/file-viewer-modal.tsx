@@ -26,7 +26,7 @@ import { createClient } from "@/lib/supabase/client";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
 // Define API_URL
-const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 
+const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL ||
   (process.env.NODE_ENV === "development" ? "http://localhost:8000" : "");
 
 interface FileViewerModalProps {
@@ -95,7 +95,7 @@ const FileViewerModal: React.FC<FileViewerModalProps> = ({
     if (isOpen && project?.sandbox_id) {
       fetchFiles(currentPath, false); // Fetch initial or current path without updating history on open
     }
-  }, [isOpen, project?.sandbox_id]); // Removed fetchFiles and currentPath dependency to avoid loop
+  }, [isOpen, project?.sandbox_id, fetchFiles, currentPath]);
 
   const handleItemClick = (item: FileInfo) => {
     if (item.is_dir) {
