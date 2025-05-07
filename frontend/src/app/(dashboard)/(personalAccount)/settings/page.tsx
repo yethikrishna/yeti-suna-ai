@@ -12,8 +12,8 @@ export default function PersonalAccountSettingsPage() {
     role: "owner" as "owner" | "member",
     is_primary_owner: true,
     personal_account: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
+    created_at: new Date(),
+    updated_at: new Date(),
     metadata: {}
   };
 
