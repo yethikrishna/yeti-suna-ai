@@ -1,4 +1,7 @@
+'use client';
+
 import { redirect } from 'next/navigation';
+import { useEffect } from 'react';
 
 type AccountParams = {
   accountSlug: string;
@@ -19,6 +22,10 @@ export default function AccountRedirect({
 }) {
   const { accountSlug } = params;
 
-  // Redirect to the settings page
-  redirect(`/${accountSlug}/settings`);
+  useEffect(() => {
+    // Redirect to the settings page on client side
+    window.location.href = `/${accountSlug}/settings`;
+  }, [accountSlug]);
+
+  return <div className="p-8 text-center">Redirecting...</div>;
 }
