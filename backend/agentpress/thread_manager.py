@@ -34,11 +34,23 @@ class ThreadManager:
     XML-based tool execution patterns.
     """
 
-    def __init__(self):
+    def __init__(self, db_connection_override: Optional[DBConnection] = None):
         """Initialize ThreadManager.
 
+        Args:
+            db_connection_override: Optional DBConnection instance to use. If None, a new one is created.
         """
-        self.db = DBConnection()
+        if db_connection_override:
+            self.db = db_connection_override
+            logger.info("ThreadManager initialized with an overridden DBConnection.")
+        else:
+            self.db = DBConnection()
+            logger.info("ThreadManager initialized with a new DBConnection.")
+        # It's assumed that if self.db is a new DBConnection(), its .initialize() will be called
+        # by its first consumer (e.g., await self.db.client).
+        # If db_connection_override is provided, it's assumed to be already initialized or
+        # will be initialized by worker_init_services.
+
         self.tool_registry = ToolRegistry()
         self.response_processor = ResponseProcessor(
             tool_registry=self.tool_registry,

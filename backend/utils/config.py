@@ -113,6 +113,7 @@ class Configuration:
     OPENAI_API_KEY: Optional[str] = None
     GROQ_API_KEY: Optional[str] = None
     OPENROUTER_API_KEY: Optional[str] = None
+    GEMINI_API_KEY: Optional[str] = None
     OPENROUTER_API_BASE: Optional[str] = "https://openrouter.ai/api/v1"
     OR_SITE_URL: Optional[str] = "https://kortix.ai"
     OR_APP_NAME: Optional[str] = "Kortix AI"    
@@ -123,7 +124,7 @@ class Configuration:
     AWS_REGION_NAME: Optional[str] = None
     
     # Model configuration
-    MODEL_TO_USE: Optional[str] = "anthropic/claude-3-7-sonnet-latest"
+    MODEL_TO_USE: Optional[str] = "gemini-2.5-pro"
     
     # Supabase configuration
     SUPABASE_URL: str
@@ -147,6 +148,7 @@ class Configuration:
     CLOUDFLARE_API_TOKEN: Optional[str] = None
     FIRECRAWL_API_KEY: str
     FIRECRAWL_URL: Optional[str] = "https://api.firecrawl.dev"
+    PERPLEXITY_API_KEY: Optional[str] = None
     
     # Stripe configuration
     STRIPE_SECRET_KEY: Optional[str] = None

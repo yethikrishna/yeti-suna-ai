@@ -9,6 +9,7 @@ from agent.tools.message_tool import MessageTool
 from agent.tools.sb_deploy_tool import SandboxDeployTool
 from agent.tools.sb_expose_tool import SandboxExposeTool
 from agent.tools.web_search_tool import WebSearchTool
+from agent.tools.perplexity_search_tool import PerplexitySearchTool
 from dotenv import load_dotenv
 from utils.config import config
 
@@ -73,6 +74,13 @@ async def run_agent(
     # Add data providers tool if RapidAPI key is available
     if config.RAPID_API_KEY:
         thread_manager.add_tool(DataProvidersTool)
+
+    # Add Perplexity search tool if Perplexity API key is available
+    if config.PERPLEXITY_API_KEY:
+        thread_manager.add_tool(PerplexitySearchTool)
+        logger.info("PerplexitySearchTool added to agent.")
+    else:
+        logger.warning("Perplexity API key not found. PerplexitySearchTool will not be available.")
 
 
     # Only include sample response if the model name does not contain "anthropic"
