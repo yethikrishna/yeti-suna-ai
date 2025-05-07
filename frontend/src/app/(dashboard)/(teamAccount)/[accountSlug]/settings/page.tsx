@@ -19,9 +19,10 @@ type AccountParams = {
 export default function TeamSettingsPage({
   params,
 }: {
-  params: AccountParams;
+  params: Promise<AccountParams>;
 }) {
-  const { accountSlug } = params;
+  const unwrappedParams = React.use(params);
+  const { accountSlug } = unwrappedParams;
 
   const [teamAccount, setTeamAccount] = React.useState<any>({
     account_id: 'team-account',
