@@ -7,14 +7,6 @@ type AccountParams = {
   accountSlug: string;
 };
 
-export function generateStaticParams() {
-  return [
-    { accountSlug: 'personal' },
-    { accountSlug: 'team' },
-    { accountSlug: 'default' }
-  ];
-}
-
 export default function AccountRedirect({
   params,
 }: {
