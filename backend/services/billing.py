@@ -201,50 +201,17 @@ async def calculate_monthly_usage(client, user_id: str) -> float:
 async def check_billing_status(client, user_id: str) -> Tuple[bool, str, Optional[Dict]]:
     """
     Check if a user can run agents based on their subscription and usage.
+    All features are now free with unlimited usage.
     
     Returns:
         Tuple[bool, str, Optional[Dict]]: (can_run, message, subscription_info)
     """
-    if config.ENV_MODE == EnvMode.LOCAL:
-        logger.info("Running in local development mode - billing checks are disabled")
-        return True, "Local development mode - billing disabled", {
-            "price_id": "local_dev",
-            "plan_name": "Local Development",
-            "minutes_limit": "no limit"
-        }
-    
-    # Get current subscription
-    subscription = await get_user_subscription(user_id)
-    # print("Current subscription:", subscription)
-    
-    # If no subscription, they can use free tier
-    if not subscription:
-        subscription = {
-            'price_id': config.STRIPE_FREE_TIER_ID,  # Free tier
-            'plan_name': 'free'
-        }
-    
-    # Extract price ID from subscription items
-    price_id = None
-    if subscription.get('items') and subscription['items'].get('data') and len(subscription['items']['data']) > 0:
-        price_id = subscription['items']['data'][0]['price']['id']
-    else:
-        price_id = subscription.get('price_id', config.STRIPE_FREE_TIER_ID)
-    
-    # Get tier info - default to free tier if not found
-    tier_info = SUBSCRIPTION_TIERS.get(price_id)
-    if not tier_info:
-        logger.warning(f"Unknown subscription tier: {price_id}, defaulting to free tier")
-        tier_info = SUBSCRIPTION_TIERS[config.STRIPE_FREE_TIER_ID]
-    
-    # Calculate current month's usage
-    current_usage = await calculate_monthly_usage(client, user_id)
-    
-    # Check if within limits
-    if current_usage >= tier_info['minutes']:
-        return False, f"Monthly limit of {tier_info['minutes']} minutes reached. Please upgrade your plan or wait until next month.", subscription
-    
-    return True, "OK", subscription
+    logger.info("All features are free - billing checks are disabled")
+    return True, "All features are free with unlimited usage", {
+        "price_id": "free-tier",
+        "plan_name": "Free Forever",
+        "minutes_limit": 999999  # Effectively unlimited
+    }
 
 # API endpoints
 @router.post("/create-checkout-session")
@@ -252,6 +219,16 @@ async def create_checkout_session(
     request: CreateCheckoutSessionRequest,
     current_user_id: str = Depends(get_current_user_id_from_jwt)
 ):
+    """Create a checkout session. All features are now free, so this just returns a success response."""
+    logger.info("Checkout session requested - returning success as all features are free")
+    
+    return {
+        "status": "no_change",
+        "message": "All features are free - no subscription required",
+        "url": None,
+        "effective_date": None,
+        "details": None
+    }
     """Create a Stripe Checkout session or modify an existing subscription."""
     try:
         # Get Supabase client
@@ -535,6 +512,12 @@ async def create_portal_session(
     request: CreatePortalSessionRequest,
     current_user_id: str = Depends(get_current_user_id_from_jwt)
 ):
+    """Create a portal session. All features are now free, so this just returns a redirect to the dashboard."""
+    logger.info("Portal session requested - returning dashboard redirect as all features are free")
+    
+    return {
+        "url": request.return_url or "/dashboard"
+    }
     """Create a Stripe Customer Portal session for subscription management."""
     try:
         # Get Supabase client
@@ -635,101 +618,46 @@ async def create_portal_session(
 async def get_subscription(
     current_user_id: str = Depends(get_current_user_id_from_jwt)
 ):
-    """Get the current subscription status for the current user, including scheduled changes."""
+    """Get the current subscription status for the current user. All features are now free."""
     try:
-        # Get subscription from Stripe (this helper already handles filtering/cleanup)
-        subscription = await get_user_subscription(current_user_id)
-        # print("Subscription data for status:", subscription)
+        # All features are now free with unlimited usage
+        logger.info(f"Returning free subscription status for user {current_user_id} - all features are free")
         
-        if not subscription:
-            # Default to free tier status if no active subscription for our product
-            free_tier_id = config.STRIPE_FREE_TIER_ID
-            free_tier_info = SUBSCRIPTION_TIERS.get(free_tier_id)
-            return SubscriptionStatus(
-                status="no_subscription",
-                plan_name=free_tier_info.get('name', 'free') if free_tier_info else 'free',
-                price_id=free_tier_id,
-                minutes_limit=free_tier_info.get('minutes') if free_tier_info else 0
-            )
+        one_year_from_now = datetime.now(timezone.utc) + timedelta(days=365)
         
-        # Extract current plan details
-        current_item = subscription['items']['data'][0]
-        current_price_id = current_item['price']['id']
-        current_tier_info = SUBSCRIPTION_TIERS.get(current_price_id)
-        if not current_tier_info:
-            # Fallback if somehow subscribed to an unknown price within our product
-             logger.warning(f"User {current_user_id} subscribed to unknown price {current_price_id}. Defaulting info.")
-             current_tier_info = {'name': 'unknown', 'minutes': 0}
-        
-        # Calculate current usage
-        db = DBConnection()
-        client = await db.client
-        current_usage = await calculate_monthly_usage(client, current_user_id)
-        
-        status_response = SubscriptionStatus(
-            status=subscription['status'], # 'active', 'trialing', etc.
-            plan_name=subscription['plan'].get('nickname') or current_tier_info['name'],
-            price_id=current_price_id,
-            current_period_end=datetime.fromtimestamp(current_item['current_period_end'], tz=timezone.utc),
-            cancel_at_period_end=subscription['cancel_at_period_end'],
-            trial_end=datetime.fromtimestamp(subscription['trial_end'], tz=timezone.utc) if subscription.get('trial_end') else None,
-            minutes_limit=current_tier_info['minutes'],
-            current_usage=round(current_usage, 2),
-            has_schedule=False # Default
+        return SubscriptionStatus(
+            status="active",
+            plan_name="Free Forever",
+            price_id="free-tier",
+            current_period_end=one_year_from_now,
+            cancel_at_period_end=False,
+            minutes_limit=999999,  # Effectively unlimited
+            current_usage=0,
+            has_schedule=False,
+            scheduled_price_id=None
         )
-
-        # Check for an attached schedule (indicates pending downgrade)
-        schedule_id = subscription.get('schedule')
-        if schedule_id:
-            try:
-                schedule = stripe.SubscriptionSchedule.retrieve(schedule_id)
-                # Find the *next* phase after the current one
-                next_phase = None
-                current_phase_end = current_item['current_period_end']
-                
-                for phase in schedule.get('phases', []):
-                    # Check if this phase starts exactly when the current one ends
-                    if phase.get('start_date') == current_phase_end:
-                        next_phase = phase
-                        break # Found the immediate next phase
-
-                if next_phase:
-                    scheduled_item = next_phase['items'][0] # Assuming single item
-                    scheduled_price_id = scheduled_item['price'] # Price ID might be string here
-                    scheduled_tier_info = SUBSCRIPTION_TIERS.get(scheduled_price_id)
-                    
-                    status_response.has_schedule = True
-                    status_response.status = 'scheduled_downgrade' # Override status
-                    status_response.scheduled_plan_name = scheduled_tier_info.get('name', 'unknown') if scheduled_tier_info else 'unknown'
-                    status_response.scheduled_price_id = scheduled_price_id
-                    status_response.scheduled_change_date = datetime.fromtimestamp(next_phase['start_date'], tz=timezone.utc)
-                    
-            except Exception as schedule_error:
-                logger.error(f"Error retrieving or parsing schedule {schedule_id} for sub {subscription['id']}: {schedule_error}")
-                # Proceed without schedule info if retrieval fails
-
-        return status_response
         
     except Exception as e:
-        logger.exception(f"Error getting subscription status for user {current_user_id}: {str(e)}") # Use logger.exception
+        logger.exception(f"Error getting subscription status for user {current_user_id}: {str(e)}")
         raise HTTPException(status_code=500, detail="Error retrieving subscription status.")
 
 @router.get("/check-status")
 async def check_status(
     current_user_id: str = Depends(get_current_user_id_from_jwt)
 ):
-    """Check if the user can run agents based on their subscription and usage."""
+    """Check if the user can run agents based on their subscription and usage. All features are now free."""
     try:
-        # Get Supabase client
-        db = DBConnection()
-        client = await db.client
-        
-        can_run, message, subscription = await check_billing_status(client, current_user_id)
+        # All features are now free with unlimited usage
+        logger.info(f"Checking billing status for user {current_user_id} - all features are free")
         
         return {
-            "can_run": can_run,
-            "message": message,
-            "subscription": subscription
+            "can_run": True,
+            "message": "All features are free with unlimited usage",
+            "subscription": {
+                "price_id": "free-tier",
+                "plan_name": "Free Forever",
+                "minutes_limit": 999999  # Effectively unlimited
+            }
         }
         
     except Exception as e:
@@ -738,81 +666,10 @@ async def check_status(
 
 @router.post("/webhook")
 async def stripe_webhook(request: Request):
-    """Handle Stripe webhook events."""
+    """Handle Stripe webhook events. All features are now free, so this just returns a success response."""
     try:
-        # Get the webhook secret from config
-        webhook_secret = config.STRIPE_WEBHOOK_SECRET
-        
-        # Get the webhook payload
-        payload = await request.body()
-        sig_header = request.headers.get('stripe-signature')
-        
-        # Verify webhook signature
-        try:
-            event = stripe.Webhook.construct_event(
-                payload, sig_header, webhook_secret
-            )
-        except ValueError as e:
-            raise HTTPException(status_code=400, detail="Invalid payload")
-        except stripe.error.SignatureVerificationError as e:
-            raise HTTPException(status_code=400, detail="Invalid signature")
-        
-        # Handle the event
-        if event.type in ['customer.subscription.created', 'customer.subscription.updated', 'customer.subscription.deleted']:
-            # Extract the subscription and customer information
-            subscription = event.data.object
-            customer_id = subscription.get('customer')
-            
-            if not customer_id:
-                logger.warning(f"No customer ID found in subscription event: {event.type}")
-                return {"status": "error", "message": "No customer ID found"}
-            
-            # Get database connection
-            db = DBConnection()
-            client = await db.client
-            
-            if event.type == 'customer.subscription.created' or event.type == 'customer.subscription.updated':
-                # Check if subscription is active
-                if subscription.get('status') in ['active', 'trialing']:
-                    # Update customer's active status to true
-                    await client.schema('basejump').from_('billing_customers').update(
-                        {'active': True}
-                    ).eq('id', customer_id).execute()
-                    logger.info(f"Webhook: Updated customer {customer_id} active status to TRUE based on {event.type}")
-                else:
-                    # Subscription is not active (e.g., past_due, canceled, etc.)
-                    # Check if customer has any other active subscriptions before updating status
-                    has_active = len(stripe.Subscription.list(
-                        customer=customer_id,
-                        status='active',
-                        limit=1
-                    ).get('data', [])) > 0
-                    
-                    if not has_active:
-                        await client.schema('basejump').from_('billing_customers').update(
-                            {'active': False}
-                        ).eq('id', customer_id).execute()
-                        logger.info(f"Webhook: Updated customer {customer_id} active status to FALSE based on {event.type}")
-            
-            elif event.type == 'customer.subscription.deleted':
-                # Check if customer has any other active subscriptions
-                has_active = len(stripe.Subscription.list(
-                    customer=customer_id,
-                    status='active',
-                    limit=1
-                ).get('data', [])) > 0
-                
-                if not has_active:
-                    # If no active subscriptions left, set active to false
-                    await client.schema('basejump').from_('billing_customers').update(
-                        {'active': False}
-                    ).eq('id', customer_id).execute()
-                    logger.info(f"Webhook: Updated customer {customer_id} active status to FALSE after subscription deletion")
-            
-            logger.info(f"Processed {event.type} event for customer {customer_id}")
-        
-        return {"status": "success"}
-        
+        logger.info("Received webhook event - ignoring as all features are free")
+        return {"status": "success", "message": "All features are free - webhook events are ignored"}
     except Exception as e:
         logger.error(f"Error processing webhook: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
