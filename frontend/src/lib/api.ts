@@ -1631,6 +1631,17 @@ export const createPortalSession = async (
 
 export const getSubscription = async (): Promise<SubscriptionStatus> => {
   try {
+    // Return a mock free subscription for all users
+    return {
+      status: 'active',
+      price_id: 'free-tier',
+      current_period_end: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+      cancel_at_period_end: false,
+      has_schedule: false,
+      scheduled_price_id: null
+    };
+    
+    /*
     const supabase = createClient();
     const {
       data: { session },
@@ -1660,14 +1671,35 @@ export const getSubscription = async (): Promise<SubscriptionStatus> => {
     }
 
     return response.json();
+    */
   } catch (error) {
     console.error('Failed to get subscription:', error);
-    throw error;
+    // Return a default free subscription even if there's an error
+    return {
+      status: 'active',
+      price_id: 'free-tier',
+      current_period_end: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+      cancel_at_period_end: false,
+      has_schedule: false,
+      scheduled_price_id: null
+    };
   }
 };
 
 export const checkBillingStatus = async (): Promise<BillingStatusResponse> => {
   try {
+    // Return a mock billing status that allows all operations
+    return {
+      can_run: true,
+      message: 'Free unlimited access',
+      subscription: {
+        price_id: 'free-tier',
+        plan_name: 'Free',
+        minutes_limit: 999999 // Effectively unlimited
+      }
+    };
+    
+    /*
     const supabase = createClient();
     const {
       data: { session },
@@ -1697,8 +1729,18 @@ export const checkBillingStatus = async (): Promise<BillingStatusResponse> => {
     }
 
     return response.json();
+    */
   } catch (error) {
     console.error('Failed to check billing status:', error);
-    throw error;
+    // Return a default free status even if there's an error
+    return {
+      can_run: true,
+      message: 'Free unlimited access',
+      subscription: {
+        price_id: 'free-tier',
+        plan_name: 'Free',
+        minutes_limit: 999999 // Effectively unlimited
+      }
+    };
   }
 };

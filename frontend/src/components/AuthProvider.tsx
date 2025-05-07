@@ -21,6 +21,8 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const MOCK_ACCESS_TOKEN = 'mock-access-token-for-open-access-' + Date.now();
+
 const createMockUser = (): User => {
   return {
     id: 'open-access-user',
@@ -35,7 +37,7 @@ const createMockUser = (): User => {
 
 const createMockSession = (user: User): Session => {
   return {
-    access_token: 'mock-access-token',
+    access_token: MOCK_ACCESS_TOKEN,
     refresh_token: 'mock-refresh-token',
     expires_in: 3600,
     expires_at: Math.floor(Date.now() / 1000) + 3600,
@@ -44,31 +46,59 @@ const createMockSession = (user: User): Session => {
   } as Session;
 };
 
+const createMockSupabaseClient = (originalClient: SupabaseClient, mockSession: Session) => {
+  const mockClient = {
+    ...originalClient,
+    auth: {
+      ...originalClient.auth,
+      getSession: async () => {
+        return { data: { session: mockSession }, error: null };
+      },
+      getUser: async () => {
+        return { data: { user: mockSession.user }, error: null };
+      },
+      signOut: async () => {
+        return { error: null };
+      },
+      onAuthStateChange: (callback: any) => {
+        setTimeout(() => {
+          callback('SIGNED_IN', { session: mockSession });
+        }, 0);
+        
+        return { 
+          data: { subscription: { unsubscribe: () => {} } },
+          error: null
+        };
+      }
+    }
+  };
+  
+  return mockClient as unknown as SupabaseClient;
+};
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const supabase = createClient();
+  const originalSupabase = createClient();
   const mockUser = createMockUser();
   const mockSession = createMockSession(mockUser);
   
+  const supabase = createMockSupabaseClient(originalSupabase, mockSession);
+  
   const [session, setSession] = useState<Session | null>(mockSession);
   const [user, setUser] = useState<User | null>(mockUser);
-  const [isLoading, setIsLoading] = useState(false); // Set to false immediately
+  const [isLoading, setIsLoading] = useState(false);
 
-  // No need for authentication checks - we're always authenticated
   useEffect(() => {
-    const initSupabase = async () => {
-      setIsLoading(false);
-    };
-
-    initSupabase();
+    localStorage.setItem('supabase.auth.token', JSON.stringify({
+      currentSession: mockSession,
+      expiresAt: Date.now() + 3600000, // 1 hour from now
+    }));
     
-    // No need for auth listener
-    return () => {
-    };
-  }, [supabase]);
+    setIsLoading(false);
+  }, [mockSession]);
 
   const signOut = async () => {
-    setSession(mockSession);
-    setUser(mockUser);
+    // Do nothing on sign out - we always stay authenticated
+    return;
   };
 
   const value = {

@@ -1,9 +1,8 @@
-'use server';
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { createBrowserClient } from '@supabase/ssr';
 
-export const createClient = async () => {
-  const cookieStore = await cookies();
+const MOCK_ACCESS_TOKEN = 'mock-access-token-for-static-export-' + Date.now();
+
+export const createClient = () => {
   let supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
@@ -13,25 +12,31 @@ export const createClient = async () => {
     supabaseUrl = `http://${supabaseUrl}`;
   }
 
-  // console.log('[SERVER] Supabase URL:', supabaseUrl);
-  // console.log('[SERVER] Supabase Anon Key:', supabaseAnonKey);
-
-  return createServerClient(supabaseUrl, supabaseAnonKey, {
-    cookies: {
-      getAll() {
-        return cookieStore.getAll();
-      },
-      setAll(cookiesToSet) {
-        try {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set({ name, value, ...options }),
-          );
-        } catch (error) {
-          // The `set` method was called from a Server Component.
-          // This can be ignored if you have middleware refreshing
-          // user sessions.
-        }
-      },
-    },
-  });
+  const client = createBrowserClient(supabaseUrl, supabaseAnonKey);
+  
+  if (typeof window !== 'undefined') {
+    const mockSession = {
+      access_token: MOCK_ACCESS_TOKEN,
+      refresh_token: 'mock-refresh-token',
+      expires_in: 3600,
+      expires_at: Math.floor(Date.now() / 1000) + 3600,
+      token_type: 'bearer',
+      user: {
+        id: 'open-access-user',
+        app_metadata: {},
+        user_metadata: { name: 'Guest User' },
+        aud: 'authenticated',
+        created_at: new Date().toISOString(),
+        role: 'authenticated',
+        email: 'guest@example.com',
+      }
+    };
+    
+    localStorage.setItem('supabase.auth.token', JSON.stringify({
+      currentSession: mockSession,
+      expiresAt: Date.now() + 3600000, // 1 hour from now
+    }));
+  }
+  
+  return client;
 };

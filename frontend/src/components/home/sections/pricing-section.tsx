@@ -607,44 +607,37 @@ export function PricingSection({
   returnUrl = typeof window !== 'undefined' ? window.location.href : '/',
   showTitleAndTabs = true,
 }: PricingSectionProps) {
+  const mockFreeSubscription: SubscriptionStatus = {
+    status: 'active',
+    price_id: 'free-tier',
+    current_period_end: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+    cancel_at_period_end: false,
+    has_schedule: false,
+    scheduled_price_id: null
+  };
+  
   const [deploymentType, setDeploymentType] = useState<'cloud' | 'self-hosted'>(
     'cloud',
   );
   const [currentSubscription, setCurrentSubscription] =
-    useState<SubscriptionStatus | null>(null);
+    useState<SubscriptionStatus | null>(mockFreeSubscription);
   const [isLoading, setIsLoading] = useState<Record<string, boolean>>({});
-  const [isFetchingPlan, setIsFetchingPlan] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isFetchingPlan, setIsFetchingPlan] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(true);
 
   const fetchCurrentPlan = async () => {
-    setIsFetchingPlan(true);
-    try {
-      const subscriptionData = await getSubscription();
-      console.log('Fetched Subscription Status:', subscriptionData);
-      setCurrentSubscription(subscriptionData);
-      setIsAuthenticated(true);
-    } catch (error) {
-      console.error('Error fetching subscription:', error);
-      setCurrentSubscription(null);
-      setIsAuthenticated(false);
-    } finally {
-      setIsFetchingPlan(false);
-    }
+    return;
   };
 
   const handlePlanSelect = (planId: string) => {
-    setIsLoading((prev) => ({ ...prev, [planId]: true }));
+    return;
   };
 
   const handleSubscriptionUpdate = () => {
-    fetchCurrentPlan();
-    setTimeout(() => {
-      setIsLoading({});
-    }, 1000);
+    return;
   };
 
   useEffect(() => {
-    fetchCurrentPlan();
   }, []);
 
   const handleTabChange = (tab: 'cloud' | 'self-hosted') => {
@@ -666,16 +659,6 @@ export function PricingSection({
     }
   };
 
-  if (isLocalMode()) {
-    return (
-      <div className="p-4 bg-muted/30 border border-border rounded-lg text-center">
-        <p className="text-sm text-muted-foreground">
-          Running in local development mode - billing features are disabled
-        </p>
-      </div>
-    );
-  }
-
   return (
     <section
       id="pricing"
@@ -685,42 +668,55 @@ export function PricingSection({
         <>
           <SectionHeader>
             <h2 className="text-3xl md:text-4xl font-medium tracking-tighter text-center text-balance">
-              Choose the right plan for your needs
+              PIA is completely free
             </h2>
             <p className="text-muted-foreground text-center text-balance font-medium">
-              Start with our free plan or upgrade to a premium plan for more
-              usage hours
+              Enjoy unlimited access to all features at no cost
             </p>
           </SectionHeader>
-          <div className="relative w-full h-full">
-            <div className="absolute -top-14 left-1/2 -translate-x-1/2">
-              <PricingTabs
-                activeTab={deploymentType}
-                setActiveTab={handleTabChange}
-                className="mx-auto"
-              />
-            </div>
-          </div>
         </>
       )}
 
-      {deploymentType === 'cloud' && (
-        <div className="grid min-[650px]:grid-cols-2 min-[900px]:grid-cols-3 gap-4 w-full max-w-6xl mx-auto px-6">
-          {siteConfig.cloudPricingItems.map((tier) => (
-            <PricingTier
-              key={tier.name}
-              tier={tier}
-              currentSubscription={currentSubscription}
-              isLoading={isLoading}
-              isFetchingPlan={isFetchingPlan}
-              onPlanSelect={handlePlanSelect}
-              onSubscriptionUpdate={handleSubscriptionUpdate}
-              isAuthenticated={isAuthenticated}
-              returnUrl={returnUrl}
-            />
-          ))}
+      <div className="p-8 bg-accent rounded-xl border border-border max-w-2xl mx-auto text-center">
+        <h3 className="text-2xl font-semibold mb-4">Free Forever Plan</h3>
+        <p className="text-muted-foreground mb-6">
+          PIA is completely free with no usage limits or restrictions
+        </p>
+        
+        <div className="flex justify-center mb-6">
+          <div className="inline-flex items-center rounded-full border px-3 py-1 text-sm font-semibold bg-primary/10 border-primary/20 text-primary">
+            Unlimited usage
+          </div>
         </div>
-      )}
+        
+        <ul className="space-y-3 text-left max-w-md mx-auto mb-6">
+          <li className="flex items-center gap-2">
+            <div className="size-5 rounded-full border border-primary/20 flex items-center justify-center">
+              <CheckIcon className="size-3 text-primary" />
+            </div>
+            <span className="text-sm">Full access to all features</span>
+          </li>
+          <li className="flex items-center gap-2">
+            <div className="size-5 rounded-full border border-primary/20 flex items-center justify-center">
+              <CheckIcon className="size-3 text-primary" />
+            </div>
+            <span className="text-sm">Unlimited usage hours</span>
+          </li>
+          <li className="flex items-center gap-2">
+            <div className="size-5 rounded-full border border-primary/20 flex items-center justify-center">
+              <CheckIcon className="size-3 text-primary" />
+            </div>
+            <span className="text-sm">No credit card required</span>
+          </li>
+        </ul>
+        
+        <Button
+          className="w-full font-medium transition-all duration-200 h-10 rounded-full text-sm bg-primary hover:bg-primary/90 text-primary-foreground"
+          onClick={() => window.location.href = '/dashboard'}
+        >
+          Start Using PIA
+        </Button>
+      </div>
     </section>
   );
 }
