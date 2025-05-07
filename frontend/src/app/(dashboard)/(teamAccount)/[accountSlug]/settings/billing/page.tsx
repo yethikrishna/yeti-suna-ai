@@ -7,13 +7,6 @@ type AccountParams = {
   accountSlug: string;
 };
 
-export function generateStaticParams() {
-  return [
-    { accountSlug: 'team' },
-    { accountSlug: 'default' }
-  ];
-}
-
 export default function TeamBillingPage({
   params,
 }: {

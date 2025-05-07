@@ -12,13 +12,6 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 
-export function generateStaticParams() {
-  return [
-    { accountSlug: 'team' },
-    { accountSlug: 'default' }
-  ];
-}
-
 type AccountParams = {
   accountSlug: string;
 };
