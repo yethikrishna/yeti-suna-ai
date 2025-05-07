@@ -1,15 +1,20 @@
 'use client';
 
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+
+type AccountParams = {
+  accountSlug: string;
+};
 
 export default function AccountRedirect({
   params,
 }: {
-  params: { accountSlug: string };
+  params: Promise<AccountParams>;
 }) {
   const router = useRouter();
-  const { accountSlug } = params;
+  const unwrappedParams = React.use(params);
+  const { accountSlug } = unwrappedParams;
 
   useEffect(() => {
     // Redirect to the settings page on client side
