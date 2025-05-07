@@ -994,9 +994,29 @@ async def initiate_agent_with_files(
                             logger.error(f"Error during sandbox upload call for {safe_filename}: {str(upload_error)}", exc_info=True)
 
                         if upload_successful:
-                            # Verification logic (simplified for this diff focus)
-                            successful_uploads_info.append({"path": target_path, "name": safe_filename})
-                            logger.info(f"Successfully uploaded file {safe_filename} to sandbox path {target_path}")
+                            try:
+                                # Introduce a short delay to allow for file system propagation if necessary
+                                await asyncio.sleep(0.25) # Slightly increased delay from original 0.2
+                                parent_dir = os.path.dirname(target_path)
+                                # Ensure parent_dir is not empty and is a valid path, default to /workspace if root
+                                if not parent_dir or parent_dir == '.': 
+                                    parent_dir = "/workspace" 
+                                    if not target_path.startswith("/"): # ensure target_path is absolute for consistency
+                                        target_path = f"/workspace/{safe_filename}"
+
+                                files_in_dir_objects = sandbox.fs.list_files(parent_dir)
+                                file_names_in_dir = [f.name for f in files_in_dir_objects]
+                                
+                                # Check if the specific filename (not the full path) is in the listed names
+                                if safe_filename in file_names_in_dir:
+                                    successful_uploads_info.append({"path": target_path, "name": safe_filename})
+                                    logger.info(f"Successfully uploaded and verified file {safe_filename} to sandbox path {target_path} in directory {parent_dir}")
+                                else:
+                                    logger.error(f"Verification failed for {safe_filename}: File not found in {parent_dir} after upload attempt. Files found: {file_names_in_dir}")
+                                    failed_uploads_names.append(safe_filename)
+                            except Exception as verify_error:
+                                logger.error(f"Error verifying file {safe_filename} after upload to {target_path} in dir {parent_dir}: {str(verify_error)}", exc_info=True)
+                                failed_uploads_names.append(safe_filename)
                         else:
                             failed_uploads_names.append(safe_filename)
                     except Exception as file_error:
@@ -1074,5 +1094,21 @@ async def initiate_agent_with_files(
 
     except Exception as e:
         logger.error(f"Error in agent initiation: {str(e)}\n{traceback.format_exc()}")
-        # TODO: Clean up created project/thread if initiation fails mid-way
+        # Attempt to clean up created project/thread if initiation fails mid-way
+        if 'project_id' in locals() and project_id:
+            try:
+                logger.warning(f"Attempting to clean up project {project_id} due to initiation failure.")
+                await client.table('projects').delete().eq('project_id', project_id).execute()
+                logger.info(f"Successfully cleaned up project {project_id}.")
+            except Exception as cleanup_project_error:
+                logger.error(f"Failed to clean up project {project_id}: {str(cleanup_project_error)}")
+        
+        if 'thread_id' in locals() and thread_id:
+            try:
+                logger.warning(f"Attempting to clean up thread {thread_id} due to initiation failure.")
+                await client.table('threads').delete().eq('thread_id', thread_id).execute()
+                logger.info(f"Successfully cleaned up thread {thread_id}.")
+            except Exception as cleanup_thread_error:
+                logger.error(f"Failed to clean up thread {thread_id}: {str(cleanup_thread_error)}")
+
         raise HTTPException(status_code=500, detail=f"Failed to initiate agent session: {str(e)}")
