@@ -3,10 +3,6 @@
 import { useEffect, useState } from 'react';
 import AccountBillingStatus from '@/components/billing/account-billing-status';
 
-export function generateStaticParams() {
-  return [{ slug: 'billing' }];
-}
-
 export default function PersonalAccountBillingPage() {
   const [accountId, setAccountId] = useState('free-account');
   

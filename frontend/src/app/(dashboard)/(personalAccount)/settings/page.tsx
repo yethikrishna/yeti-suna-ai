@@ -3,10 +3,6 @@
 import { useState } from 'react';
 import EditPersonalAccountName from '@/components/basejump/edit-personal-account-name';
 
-export function generateStaticParams() {
-  return [{ slug: 'settings' }];
-}
-
 export default function PersonalAccountSettingsPage() {
   const personalAccount = {
     account_id: 'free-account',
