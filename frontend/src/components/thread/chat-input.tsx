@@ -56,7 +56,7 @@ import { cn } from '@/lib/utils';
 const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || '';
 
 // Local storage keys
-const STORAGE_KEY_MODEL = 'suna-preferred-model';
+const STORAGE_KEY_MODEL = 'pia-preferred-model';
 const DEFAULT_MODEL_ID = 'qwen3'; // Define default model ID
 
 interface ChatInputProps {
@@ -576,7 +576,7 @@ export const ChatInput = forwardRef<ChatInputHandles, ChatInputProps>(
           >
             <div className="text-xs text-muted-foreground flex items-center gap-2">
               <Loader2 className="h-3 w-3 animate-spin" />
-              <span>Kortix Suna is working...</span>
+              <span>PIA is working...</span>
             </div>
           </motion.div>
         )}

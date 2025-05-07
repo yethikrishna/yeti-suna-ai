@@ -8,7 +8,6 @@ from agentpress.tool import Tool, ToolResult, openapi_schema, xml_schema
 from utils.config import config
 import json
 
-# TODO: add subpages, etc... in filters as sometimes its necessary 
 
 class WebSearchTool(Tool):
     """Tool for performing web searches using Tavily API and web scraping using Firecrawl."""
@@ -51,6 +50,23 @@ class WebSearchTool(Tool):
                         "type": "integer",
                         "description": "The number of search results to return. Increase for more comprehensive research or decrease for focused, high-relevance results.",
                         "default": 20
+                    },
+                    "include_subpages": {
+                        "type": "boolean",
+                        "description": "Whether to include subpages in search results. Set to true to include results from subpages of main domains.",
+                        "default": True
+                    },
+                    "time_range": {
+                        "type": "string",
+                        "description": "Filter results by time range. Options: 'day', 'week', 'month', 'year'.",
+                        "enum": ["day", "week", "month", "year"]
+                    },
+                    "domains": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "description": "List of domains to restrict the search to. Example: ['example.com', 'example.org']"
                     }
                 },
                 "required": ["query"]
@@ -62,7 +78,10 @@ class WebSearchTool(Tool):
         mappings=[
             {"param_name": "query", "node_type": "attribute", "path": "."},
             # {"param_name": "summary", "node_type": "attribute", "path": "."},
-            {"param_name": "num_results", "node_type": "attribute", "path": "."}
+            {"param_name": "num_results", "node_type": "attribute", "path": "."},
+            {"param_name": "include_subpages", "node_type": "attribute", "path": "."},
+            {"param_name": "time_range", "node_type": "attribute", "path": "."},
+            {"param_name": "domains", "node_type": "attribute", "path": "."}
         ],
         example='''
         <!-- 
@@ -92,7 +111,10 @@ class WebSearchTool(Tool):
         self, 
         query: str, 
         # summary: bool = True,
-        num_results: int = 20
+        num_results: int = 20,
+        include_subpages: bool = True,
+        time_range: Optional[str] = None,
+        domains: Optional[List[str]] = None
     ) -> ToolResult:
         """
         Search the web using the Tavily API to find relevant and up-to-date information.
@@ -115,12 +137,20 @@ class WebSearchTool(Tool):
             else:
                 num_results = 20
 
+            filters = {
+                "time_range": time_range,
+                "include_subpages": include_subpages,  # Add support for subpages
+                "domains": domains if domains else None,
+            }
+            
             # Execute the search with Tavily
             search_response = await self.tavily_client.search(
                 query=query,
                 max_results=num_results,
                 include_answer=False,
                 include_images=False,
+                search_depth="advanced" if include_subpages else "basic",
+                filter_options=filters
             )
 
             # Normalize the response format

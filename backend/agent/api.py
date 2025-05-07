@@ -1045,5 +1045,31 @@ async def initiate_agent_with_files(
 
     except Exception as e:
         logger.error(f"Error in agent initiation: {str(e)}\n{traceback.format_exc()}")
-        # TODO: Clean up created project/thread if initiation fails mid-way
+        
+        # Clean up created project/thread if initiation fails mid-way
+        try:
+            # Clean up agent run if it was created
+            if 'agent_run_id' in locals():
+                logger.info(f"Cleaning up failed agent run: {agent_run_id}")
+                await client.table('agent_runs').delete().eq('id', agent_run_id).execute()
+            
+            # Clean up message if it was created
+            if 'message_id' in locals():
+                logger.info(f"Cleaning up message: {message_id}")
+                await client.table('messages').delete().eq('message_id', message_id).execute()
+            
+            # Clean up thread if it was created
+            if 'thread_id' in locals():
+                logger.info(f"Cleaning up thread: {thread_id}")
+                await client.table('threads').delete().eq('thread_id', thread_id).execute()
+            
+            # Clean up project if it was created
+            if 'project_id' in locals():
+                logger.info(f"Cleaning up project: {project_id}")
+                await client.table('projects').delete().eq('project_id', project_id).execute()
+                
+            logger.info("Successfully cleaned up resources after failed agent initiation")
+        except Exception as cleanup_error:
+            logger.error(f"Error during cleanup after failed agent initiation: {str(cleanup_error)}")
+            
         raise HTTPException(status_code=500, detail=f"Failed to initiate agent session: {str(e)}")
