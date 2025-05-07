@@ -7,13 +7,20 @@ type AccountParams = {
   accountSlug: string;
 };
 
+export function generateStaticParams() {
+  return [
+    { accountSlug: 'personal' },
+    { accountSlug: 'team' },
+    { accountSlug: 'default' }
+  ];
+}
+
 export default function AccountRedirect({
   params,
 }: {
-  params: Promise<AccountParams>;
+  params: AccountParams;
 }) {
-  const unwrappedParams = React.use(params);
-  const { accountSlug } = unwrappedParams;
+  const { accountSlug } = params;
 
   // Redirect to the settings page
   redirect(`/${accountSlug}/settings`);

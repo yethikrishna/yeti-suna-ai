@@ -1,6 +1,15 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+
+// Generate static params for all possible threadId values
+export function generateStaticParams() {
+  return [
+    { threadId: 'demo-thread-1' },
+    { threadId: 'demo-thread-2' },
+    { threadId: 'demo-thread-3' }
+  ];
+}
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
