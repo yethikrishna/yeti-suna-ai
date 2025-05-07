@@ -30,75 +30,73 @@ interface Config {
   SUBSCRIPTION_TIERS: SubscriptionTiers;
 }
 
-// Production tier IDs
 const PROD_TIERS: SubscriptionTiers = {
   FREE: {
-    priceId: 'price_1RILb4G6l1KZGqIrK4QLrx9i',
-    name: 'Free',
+    priceId: 'free-tier',
+    name: 'Free Forever',
   },
   TIER_2_20: {
-    priceId: 'price_1RILb4G6l1KZGqIrhomjgDnO',
-    name: '2h/$20',
+    priceId: 'free-tier',
+    name: 'Free Forever',
   },
   TIER_6_50: {
-    priceId: 'price_1RILb4G6l1KZGqIr5q0sybWn',
-    name: '6h/$50',
+    priceId: 'free-tier',
+    name: 'Free Forever',
   },
   TIER_12_100: {
-    priceId: 'price_1RILb4G6l1KZGqIr5Y20ZLHm',
-    name: '12h/$100',
+    priceId: 'free-tier',
+    name: 'Free Forever',
   },
   TIER_25_200: {
-    priceId: 'price_1RILb4G6l1KZGqIrGAD8rNjb',
-    name: '25h/$200',
+    priceId: 'free-tier',
+    name: 'Free Forever',
   },
   TIER_50_400: {
-    priceId: 'price_1RILb4G6l1KZGqIruNBUMTF1',
-    name: '50h/$400',
+    priceId: 'free-tier',
+    name: 'Free Forever',
   },
   TIER_125_800: {
-    priceId: 'price_1RILb3G6l1KZGqIrbJA766tN',
-    name: '125h/$800',
+    priceId: 'free-tier',
+    name: 'Free Forever',
   },
   TIER_200_1000: {
-    priceId: 'price_1RILb3G6l1KZGqIrmauYPOiN',
-    name: '200h/$1000',
+    priceId: 'free-tier',
+    name: 'Free Forever',
   },
 } as const;
 
-// Staging tier IDs
 const STAGING_TIERS: SubscriptionTiers = {
   FREE: {
-    priceId: 'price_1RIGvuG6l1KZGqIrw14abxeL',
-    name: 'Free',
+    priceId: 'free-tier',
+    name: 'Free Forever',
   },
   TIER_2_20: {
-    priceId: 'price_1RIGvuG6l1KZGqIrCRu0E4Gi',
-    name: '2h/$20',
+    priceId: 'free-tier',
+    name: 'Free Forever',
   },
   TIER_6_50: {
-    priceId: 'price_1RIGvuG6l1KZGqIrvjlz5p5V',
-    name: '6h/$50',
+    priceId: 'free-tier',
+    name: 'Free Forever',
   },
   TIER_12_100: {
-    priceId: 'price_1RIGvuG6l1KZGqIrT6UfgblC',
-    name: '12h/$100',
+    priceId: 'free-tier',
+    name: 'Free Forever',
   },
   TIER_25_200: {
-    priceId: 'price_1RIGvuG6l1KZGqIrOVLKlOMj',
-    name: '25h/$200',
+    priceId: 'free-tier',
+    name: 'Free Forever',
   },
   TIER_50_400: {
-    priceId: 'price_1RIKNgG6l1KZGqIrvsat5PW7',
-    name: '50h/$400',
+    priceId: 'free-tier',
+    name: 'Free Forever',
   },
   TIER_125_800: {
-    priceId: 'price_1RIKNrG6l1KZGqIrjKT0yGvI',
-    name: '125h/$800',
+    priceId: 'free-tier',
+    name: 'Free Forever',
   },
   TIER_200_1000: {
-    priceId: 'price_1RIKQ2G6l1KZGqIrum9n8SI7',
-    name: '200h/$1000',
+    priceId: 'free-tier',
+    name: 'Free Forever',
   },
 } as const;
 

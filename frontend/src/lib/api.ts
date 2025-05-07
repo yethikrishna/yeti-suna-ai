@@ -1526,6 +1526,16 @@ export const createCheckoutSession = async (
   request: CreateCheckoutSessionRequest,
 ): Promise<CreateCheckoutSessionResponse> => {
   try {
+    // Return a mock response indicating success without creating a checkout session
+    return {
+      status: 'no_change',
+      message: 'All features are free - no subscription required',
+      url: null,
+      effective_date: null,
+      details: null
+    };
+    
+    /*
     const supabase = createClient();
     const {
       data: { session },
@@ -1581,9 +1591,17 @@ export const createCheckoutSession = async (
         );
         return data;
     }
+    */
   } catch (error) {
     console.error('Failed to create checkout session:', error);
-    throw error;
+    // Return a mock response even if there's an error
+    return {
+      status: 'no_change',
+      message: 'All features are free - no subscription required',
+      url: null,
+      effective_date: null,
+      details: null
+    };
   }
 };
 
@@ -1591,6 +1609,12 @@ export const createPortalSession = async (
   request: CreatePortalSessionRequest,
 ): Promise<{ url: string }> => {
   try {
+    // Return a mock response with a redirect to the dashboard
+    return {
+      url: '/dashboard'
+    };
+    
+    /*
     const supabase = createClient();
     const {
       data: { session },
@@ -1623,9 +1647,13 @@ export const createPortalSession = async (
     }
 
     return response.json();
+    */
   } catch (error) {
     console.error('Failed to create portal session:', error);
-    throw error;
+    // Return a mock response even if there's an error
+    return {
+      url: '/dashboard'
+    };
   }
 };
 
