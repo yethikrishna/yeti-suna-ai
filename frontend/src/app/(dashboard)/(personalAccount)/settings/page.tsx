@@ -10,6 +10,11 @@ export default function PersonalAccountSettingsPage() {
     slug: 'personal',
     personal: true,
     role: 'owner',
+    is_primary_owner: true,
+    personal_account: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    metadata: {}
   };
 
   return (
