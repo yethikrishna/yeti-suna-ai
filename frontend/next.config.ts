@@ -2,16 +2,10 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   output: 'export',
-  unstable_excludePages: [
-    '[accountSlug]',
-    '[accountSlug]/settings',
-    '[accountSlug]/settings/billing',
-    '[accountSlug]/settings/members',
-    'settings/billing',
-    'auth/callback',
-    'agents/[threadId]',
-    'share/[threadId]'
-  ],
+  trailingSlash: true,
+  images: {
+    unoptimized: true,
+  },
   webpack: (config) => {
     // This rule prevents issues with pdf.js and canvas
     config.externals = [...(config.externals || []), { canvas: 'canvas' }];
