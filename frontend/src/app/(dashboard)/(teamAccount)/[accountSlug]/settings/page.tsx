@@ -11,7 +11,13 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { createClient } from '@/lib/supabase/server';
+
+export function generateStaticParams() {
+  return [
+    { accountSlug: 'team' },
+    { accountSlug: 'default' }
+  ];
+}
 
 type AccountParams = {
   accountSlug: string;
@@ -20,33 +26,22 @@ type AccountParams = {
 export default function TeamSettingsPage({
   params,
 }: {
-  params: Promise<AccountParams>;
+  params: AccountParams;
 }) {
-  const unwrappedParams = React.use(params);
-  const { accountSlug } = unwrappedParams;
+  const { accountSlug } = params;
 
-  // Use an effect to load team account data
-  const [teamAccount, setTeamAccount] = React.useState<any>(null);
-  const [loading, setLoading] = React.useState(true);
+  const [teamAccount, setTeamAccount] = React.useState<any>({
+    account_id: 'team-account',
+    name: 'Team Account',
+    slug: accountSlug || 'team',
+    personal: false,
+    role: 'owner',
+  });
+  const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    async function loadData() {
-      try {
-        const supabaseClient = await createClient();
-        const { data } = await supabaseClient.rpc('get_account_by_slug', {
-          slug: accountSlug,
-        });
-        setTeamAccount(data);
-        setLoading(false);
-      } catch (err) {
-        setError('Failed to load account data');
-        setLoading(false);
-        console.error(err);
-      }
-    }
-
-    loadData();
+    setLoading(false);
   }, [accountSlug]);
 
   if (loading) {

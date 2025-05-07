@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { createClient } from '@/lib/supabase/server';
 import ManageTeamMembers from '@/components/basejump/manage-team-members';
 import ManageTeamInvitations from '@/components/basejump/manage-team-invitations';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
@@ -17,36 +16,33 @@ type AccountParams = {
   accountSlug: string;
 };
 
+export function generateStaticParams() {
+  return [
+    { accountSlug: 'team' },
+    { accountSlug: 'default' }
+  ];
+}
+
 export default function TeamMembersPage({
   params,
 }: {
-  params: Promise<AccountParams>;
+  params: AccountParams;
 }) {
-  const unwrappedParams = React.use(params);
-  const { accountSlug } = unwrappedParams;
+  const { accountSlug } = params;
 
-  // Use an effect to load team account data
-  const [teamAccount, setTeamAccount] = React.useState<any>(null);
-  const [loading, setLoading] = React.useState(true);
+  const [teamAccount, setTeamAccount] = React.useState<any>({
+    account_id: 'team-account',
+    name: 'Team Account',
+    slug: accountSlug || 'team',
+    personal: false,
+    role: 'owner',
+    account_role: 'owner',
+  });
+  const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    async function loadData() {
-      try {
-        const supabaseClient = await createClient();
-        const { data } = await supabaseClient.rpc('get_account_by_slug', {
-          slug: accountSlug,
-        });
-        setTeamAccount(data);
-        setLoading(false);
-      } catch (err) {
-        setError('Failed to load team data');
-        setLoading(false);
-        console.error(err);
-      }
-    }
-
-    loadData();
+    setLoading(false);
   }, [accountSlug]);
 
   if (loading) {

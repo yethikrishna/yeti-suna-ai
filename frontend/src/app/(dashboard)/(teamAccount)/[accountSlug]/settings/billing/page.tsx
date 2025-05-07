@@ -1,43 +1,37 @@
 'use client';
 
 import React from 'react';
-import { createClient } from '@/lib/supabase/server';
-import AccountBillingStatus from '@/components/billing/account-billing-status';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-
-const returnUrl = process.env.NEXT_PUBLIC_URL as string;
 
 type AccountParams = {
   accountSlug: string;
 };
 
+export function generateStaticParams() {
+  return [
+    { accountSlug: 'team' },
+    { accountSlug: 'default' }
+  ];
+}
+
 export default function TeamBillingPage({
   params,
 }: {
-  params: Promise<AccountParams>;
+  params: AccountParams;
 }) {
-  const unwrappedParams = React.use(params);
-  const { accountSlug } = unwrappedParams;
+  const { accountSlug } = params;
 
-  // Use an effect to load team account data
-  const [teamAccount, setTeamAccount] = React.useState<any>(null);
+  const [teamAccount, setTeamAccount] = React.useState<any>({
+    account_id: 'team-account',
+    name: 'Team Account',
+    slug: accountSlug || 'team',
+    personal: false,
+    role: 'owner',
+    account_role: 'owner',
+  });
   const [error, setError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    async function loadData() {
-      try {
-        const supabaseClient = await createClient();
-        const { data } = await supabaseClient.rpc('get_account_by_slug', {
-          slug: accountSlug,
-        });
-        setTeamAccount(data);
-      } catch (err) {
-        setError('Failed to load account data');
-        console.error(err);
-      }
-    }
-
-    loadData();
   }, [accountSlug]);
 
   if (error) {
@@ -71,7 +65,7 @@ export default function TeamBillingPage({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       <div>
         <h3 className="text-lg font-medium text-card-title">Team Billing</h3>
         <p className="text-sm text-foreground/70">
@@ -79,10 +73,22 @@ export default function TeamBillingPage({
         </p>
       </div>
 
-      <AccountBillingStatus
-        accountId={teamAccount.account_id}
-        returnUrl={`${returnUrl}/${accountSlug}/settings/billing`}
-      />
+      <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg mb-6">
+        <p className="text-green-700 dark:text-green-400">
+          PIA is completely free! There are no subscription fees or usage limits for your team.
+        </p>
+      </div>
+      
+      <div className="grid gap-4">
+        <div className="p-4 border rounded-lg">
+          <h2 className="text-lg font-medium mb-2">Current Plan</h2>
+          <p className="text-sm text-muted-foreground mb-4">Your team is on the unlimited free plan with access to all features.</p>
+          <div className="flex items-baseline gap-2">
+            <span className="text-3xl font-bold">$0</span>
+            <span className="text-muted-foreground">/month</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
