@@ -9,7 +9,7 @@ export default function PersonalAccountSettingsPage() {
     name: 'Personal Account',
     slug: 'personal',
     personal: true,
-    role: 'owner',
+    role: "owner" as "owner" | "member",
     is_primary_owner: true,
     personal_account: true,
     created_at: new Date().toISOString(),
