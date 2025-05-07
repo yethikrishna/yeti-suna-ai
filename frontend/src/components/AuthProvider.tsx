@@ -21,42 +21,54 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const createMockUser = (): User => {
+  return {
+    id: 'open-access-user',
+    app_metadata: {},
+    user_metadata: { name: 'Guest User' },
+    aud: 'authenticated',
+    created_at: new Date().toISOString(),
+    role: 'authenticated',
+    email: 'guest@example.com',
+  } as User;
+};
+
+const createMockSession = (user: User): Session => {
+  return {
+    access_token: 'mock-access-token',
+    refresh_token: 'mock-refresh-token',
+    expires_in: 3600,
+    expires_at: Math.floor(Date.now() / 1000) + 3600,
+    token_type: 'bearer',
+    user: user,
+  } as Session;
+};
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const supabase = createClient();
-  const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const mockUser = createMockUser();
+  const mockSession = createMockSession(mockUser);
+  
+  const [session, setSession] = useState<Session | null>(mockSession);
+  const [user, setUser] = useState<User | null>(mockUser);
+  const [isLoading, setIsLoading] = useState(false); // Set to false immediately
 
+  // No need for authentication checks - we're always authenticated
   useEffect(() => {
-    const getInitialSession = async () => {
-      const {
-        data: { session: currentSession },
-      } = await supabase.auth.getSession();
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
+    const initSupabase = async () => {
       setIsLoading(false);
     };
 
-    getInitialSession();
-
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      (_event, newSession) => {
-        setSession(newSession);
-        setUser(newSession?.user ?? null);
-        // No need to set loading state here as initial load is done
-        // and subsequent changes shouldn't show a loading state for the whole app
-        if (isLoading) setIsLoading(false);
-      },
-    );
-
+    initSupabase();
+    
+    // No need for auth listener
     return () => {
-      authListener?.subscription.unsubscribe();
     };
-  }, [supabase, isLoading]); // Added isLoading to dependencies to ensure it runs once after initial load completes
+  }, [supabase]);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    // State updates will be handled by onAuthStateChange
+    setSession(mockSession);
+    setUser(mockUser);
   };
 
   const value = {
