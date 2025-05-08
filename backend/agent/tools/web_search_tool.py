@@ -272,11 +272,11 @@ class WebSearchTool(Tool):
                     async with httpx.AsyncClient() as client:
                         headers = {
                             "Content-Type": "application/json",
-                            "SGAI-APIKEY": self.scrapegraphai_api_key
+                            "SGAI-APIKEY": self.scrapegraphai_api_key,
+                            "accept": "application/json"
                         }
                         payload = {
-                            "website_url": url,
-                            "user_prompt": "Extract webpage information"
+                            "website_url": url
                         }
                         response = await client.post(
                             self.scrapegraphai_url,
@@ -291,7 +291,7 @@ class WebSearchTool(Tool):
                         formatted_result = {
                             "Title": data.get("title", ""),
                             "URL": url,
-                            "Text": data.get("content", "")
+                            "Text": data.get("markdown", "")
                         }
                         
                         # Add metadata if available

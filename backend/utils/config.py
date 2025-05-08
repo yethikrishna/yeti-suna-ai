@@ -148,7 +148,7 @@ class Configuration:
     FIRECRAWL_API_KEY: str
     FIRECRAWL_URL: Optional[str] = "https://api.firecrawl.dev"
     SCRAPEGRAPHAI_API_KEY: Optional[str] = None
-    SCRAPEGRAPHAI_URL: Optional[str] = "https://api.scrapegraphai.com/v1/smartscraper"
+    SCRAPEGRAPHAI_URL: Optional[str] = "https://api.scrapegraphai.com/v1/markdownify"
     
     # Stripe configuration
     STRIPE_SECRET_KEY: Optional[str] = None
