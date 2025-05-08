@@ -53,7 +53,7 @@ CREATE TABLE public.knowledge_base_chunks (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     document_id UUID NOT NULL REFERENCES public.knowledge_base_documents(id) ON DELETE CASCADE,
     chunk_text TEXT NOT NULL,
-    embedding vector(1536), -- Dimension for OpenAI's text-embedding-ada-002. Adjust if using a different model.
+    embedding vector(1024), -- Dimension for embeddings (e.g., 1024 for intfloat/multilingual-e5-large, 1536 for ada-002). Adjust if using a different model.
     metadata JSONB, -- e.g., page number, chunk number, document source
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );

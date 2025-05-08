@@ -18,8 +18,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { listKnowledgeBaseDocuments, KBDocument, uploadKnowledgeBaseDocument, KBUpdateResponse, deleteKnowledgeBaseDocument } from "@/lib/api";
+import { listKnowledgeBaseDocuments, KBDocument, uploadKnowledgeBaseDocument, KBUpdateResponse, deleteKnowledgeBaseDocument, Project as ApiProject } from "@/lib/api";
 import { createClient } from "@/lib/supabase/client";
 import { CircleNotch, UploadSimple, Trash, WarningCircle } from "@phosphor-icons/react/dist/ssr";
 import { format } from 'date-fns';
@@ -37,6 +38,12 @@ interface KnowledgeBasePageProps {
   params: {
     accountSlug: string;
   };
+}
+
+// Simplified project type for the selector
+interface SelectableProject {
+  id: string;
+  name: string;
 }
 
 function getBadgeVariant(status: string): "success" | "secondary" | "destructive" | "outline" {
@@ -59,9 +66,10 @@ export default function KnowledgeBasePage({ params }: KnowledgeBasePageProps) {
   const queryClient = useQueryClient();
   const supabase = createClient();
 
-  const [projectId, setProjectId] = useState<string | null>(null);
-  const [isLoadingProjectId, setIsLoadingProjectId] = useState<boolean>(true);
-  const [projectIdError, setProjectIdError] = useState<string | null>(null);
+  const [allProjects, setAllProjects] = useState<SelectableProject[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [isLoadingProjects, setIsLoadingProjects] = useState<boolean>(true);
+  const [projectsError, setProjectsError] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -69,16 +77,18 @@ export default function KnowledgeBasePage({ params }: KnowledgeBasePageProps) {
   const [documentToDelete, setDocumentToDelete] = useState<KBDocument | null>(null);
 
   useEffect(() => {
-    async function fetchProjectId() {
+    async function fetchProjectsForAccount() {
       if (!accountSlug) {
-        setProjectIdError("Account slug is missing.");
-        setIsLoadingProjectId(false);
+        setProjectsError("Account slug is missing.");
+        setIsLoadingProjects(false);
         return;
       }
-      setIsLoadingProjectId(true);
-      setProjectIdError(null);
+      setIsLoadingProjects(true);
+      setProjectsError(null);
+      setAllProjects([]);
+      setSelectedProjectId(null);
+
       try {
-        // 1. Get team account ID from slug
         const { data: accountData, error: accountError } = await supabase
           .from('accounts')
           .select('id')
@@ -94,39 +104,39 @@ export default function KnowledgeBasePage({ params }: KnowledgeBasePageProps) {
         }
         const teamAccountId = accountData.id;
 
-        // 2. Get the first project ID for that team account
-        //    NOTE: This assumes one project per team or using the first one found.
-        //    A more robust solution might involve project selection if multiple projects exist.
-        const { data: projectData, error: projectError } = await supabase
+        const { data: projectsData, error: projectListError } = await supabase
           .from('projects')
-          .select('project_id')
+          .select('project_id, name') // Fetch name for the dropdown display
           .eq('account_id', teamAccountId)
-          .limit(1)
-          .single();
+          .order('name', { ascending: true }); // Optional: order projects by name
         
-        if (projectError) {
-          console.error("Error fetching project for account:", projectError);
-          if (projectError.code === 'PGRST116') {
-            throw new Error(`No project found for account '${accountSlug}'. Please create a project first.`);
-          } else {
-            throw new Error(`Failed to fetch project. ${projectError.message}`);
+        if (projectListError) {
+          console.error("Error fetching projects for account:", projectListError);
+          throw new Error(`Failed to fetch projects for account '${accountSlug}'. ${projectListError.message}`);
+        }
+        
+        if (!projectsData || projectsData.length === 0) {
+          setProjectsError(`No projects found for account '${accountSlug}'. Please create a project to use the Knowledge Base.`);
+          setAllProjects([]);
+        } else {
+          const selectableProjects: SelectableProject[] = projectsData.map(p => ({ id: p.project_id, name: p.name || `Project ${p.project_id.substring(0,6)}`}));
+          setAllProjects(selectableProjects);
+          // Automatically select the first project if available
+          if (selectableProjects.length > 0) {
+            setSelectedProjectId(selectableProjects[0].id);
           }
         }
-        if (!projectData) {
-          throw new Error(`No project data found for account '${accountSlug}', though account exists.`);
-        }
-        
-        setProjectId(projectData.project_id);
 
       } catch (err: any) {
-        console.error("Error in fetchProjectId:", err);
-        setProjectIdError(err.message || "An unexpected error occurred while fetching project ID.");
-        setProjectId(null); // Ensure projectId is null on error
+        console.error("Error in fetchProjectsForAccount:", err);
+        setProjectsError(err.message || "An unexpected error occurred while fetching projects.");
+        setAllProjects([]);
+        setSelectedProjectId(null);
       }
-      setIsLoadingProjectId(false);
+      setIsLoadingProjects(false);
     }
 
-    fetchProjectId();
+    fetchProjectsForAccount();
   }, [accountSlug, supabase]);
 
   const {
@@ -135,10 +145,13 @@ export default function KnowledgeBasePage({ params }: KnowledgeBasePageProps) {
     error: documentsError,
     refetch: refetchDocuments,
   } = useQuery<KBDocument[], Error>(
-    ['knowledgeBaseDocuments', projectId],
-    () => listKnowledgeBaseDocuments(projectId!),
+    ['knowledgeBaseDocuments', selectedProjectId], // Depends on selectedProjectId
+    () => {
+      if (!selectedProjectId) return Promise.resolve([]); // Do not fetch if no project is selected
+      return listKnowledgeBaseDocuments(selectedProjectId);
+    },
     {
-      enabled: !!projectId && !isLoadingProjectId && !projectIdError,
+      enabled: !!selectedProjectId && !isLoadingProjects && !projectsError, // Enable only if a project is selected and no errors
       refetchInterval: 5000,
     }
   );
@@ -159,7 +172,7 @@ export default function KnowledgeBasePage({ params }: KnowledgeBasePageProps) {
         setSelectedFile(null);
         setFileError(null);
         if(fileInputRef.current) fileInputRef.current.value = "";
-        if (projectId) queryClient.invalidateQueries({ queryKey: ['knowledgeBaseDocuments', projectId] });
+        if (selectedProjectId) queryClient.invalidateQueries({ queryKey: ['knowledgeBaseDocuments', selectedProjectId] });
       },
       onError: (error) => {
         toast({
@@ -184,7 +197,7 @@ export default function KnowledgeBasePage({ params }: KnowledgeBasePageProps) {
           description: `Document '${documentToDelete?.file_name}' has been deleted.`,
           variant: "success",
         });
-        if (projectId) queryClient.invalidateQueries({ queryKey: ['knowledgeBaseDocuments', projectId] });
+        if (selectedProjectId) queryClient.invalidateQueries({ queryKey: ['knowledgeBaseDocuments', selectedProjectId] });
         setDocumentToDelete(null);
       },
       onError: (error) => {
@@ -223,11 +236,11 @@ export default function KnowledgeBasePage({ params }: KnowledgeBasePageProps) {
       setFileError("Please select a file to upload.");
       return;
     }
-    if (!projectId) {
-        toast({ title: "Project ID Error", description: projectIdError || "Project ID is not available. Cannot upload.", variant: "destructive" });
+    if (!selectedProjectId) { // Check selectedProjectId
+        toast({ title: "Project Not Selected", description: projectsError || "Please select a project to upload documents to.", variant: "destructive" });
         return;
     }
-    uploadMutation.mutate({ projectId, file: selectedFile });
+    uploadMutation.mutate({ projectId: selectedProjectId, file: selectedFile }); // Use selectedProjectId
   };
 
   const handleDeleteConfirmation = (doc: KBDocument) => {
@@ -235,12 +248,12 @@ export default function KnowledgeBasePage({ params }: KnowledgeBasePageProps) {
   };
 
   const executeDelete = () => {
-    if (documentToDelete && projectId) {
-      deleteMutation.mutate({ projectId, documentId: documentToDelete.id });
+    if (documentToDelete && selectedProjectId) { // Check selectedProjectId
+      deleteMutation.mutate({ projectId: selectedProjectId, documentId: documentToDelete.id }); // Use selectedProjectId
     }
   };
 
-  if (isLoadingProjectId) {
+  if (isLoadingProjects) { // Changed from isLoadingProjectId
     return (
       <div className="flex items-center justify-center h-64">
         <CircleNotch size={32} className="animate-spin text-primary mr-2" />
@@ -249,40 +262,84 @@ export default function KnowledgeBasePage({ params }: KnowledgeBasePageProps) {
     );
   }
 
-  if (projectIdError) {
+  if (projectsError && allProjects.length === 0) { // Changed from projectIdError
     return (
       <Card className="border-destructive">
         <CardHeader>
           <CardTitle className="text-destructive flex items-center"><WarningCircle size={24} className="mr-2" /> Project Configuration Error</CardTitle>
         </CardHeader>
         <CardContent>
-          <p>{projectIdError}</p>
+          <p>{projectsError}</p>
           <p className="mt-2 text-sm text-muted-foreground">
-            Please ensure the account slug is correct and a project is associated with this team account.
-            If you are an administrator, you may need to create a project for this team.
+            Please ensure the account slug is correct. If this account should have projects, an administrator may need to create them.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  // Handling case where there are no projects for the account but no specific error occurred during fetch
+  if (!isLoadingProjects && allProjects.length === 0 && !projectsError) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>No Projects Found</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p>No projects are associated with this account. A project is required to manage a Knowledge Base.</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            If you are an account administrator, please create a project first.
           </p>
         </CardContent>
       </Card>
     );
   }
 
-  if (!projectId) {
-    return (
-        <Card>
-            <CardHeader><CardTitle>Project Not Found</CardTitle></CardHeader>
-            <CardContent><p>Could not determine the project to manage the knowledge base for.</p></CardContent>
-        </Card>
-    )
-  }
-
   return (
     <AlertDialog open={!!documentToDelete} onOpenChange={(isOpen) => !isOpen && setDocumentToDelete(null)}>
       <div className="grid gap-6">
+        {/* Project Selector Dropdown */}
+        {allProjects.length > 0 && ( // Show selector only if there are projects
+          <Card>
+            <CardHeader>
+              <CardTitle>Select Project</CardTitle>
+              <CardDescription>
+                Choose a project to manage its Knowledge Base.
+                Currently selected: <span className="font-semibold">{allProjects.find(p=>p.id === selectedProjectId)?.name || 'None'}</span>
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {allProjects.length > 1 ? (
+                <Select
+                  value={selectedProjectId || ''}
+                  onValueChange={(value) => setSelectedProjectId(value)}
+                  disabled={isLoadingDocuments || uploadMutation.isLoading || deleteMutation.isLoading}
+                >
+                  <SelectTrigger className="w-full md:w-1/2 lg:w-1/3">
+                    <SelectValue placeholder="Select a project" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {allProjects.map((project) => (
+                      <SelectItem key={project.id} value={project.id}>
+                        {project.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                 <p className="text-sm text-muted-foreground">
+                  Managing Knowledge Base for project: <span className="font-semibold">{allProjects[0]?.name}</span>.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         <Card>
           <CardHeader>
             <CardTitle>Upload New Document</CardTitle>
             <CardDescription>
-              Select a document (PDF, DOCX, TXT, MD - max 25MB) to add to the knowledge base for project: <span className="font-semibold">{projectId}</span>.
+              Select a document (PDF, DOCX, TXT, MD - max 25MB) to add to the knowledge base for project: <span className="font-semibold">{selectedProjectId ? (allProjects.find(p => p.id === selectedProjectId)?.name || selectedProjectId.substring(0,6)) : 'N/A'}</span>.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -292,7 +349,7 @@ export default function KnowledgeBasePage({ params }: KnowledgeBasePageProps) {
                 ref={fileInputRef}
                 onChange={handleFileChange}
                 accept={ALLOWED_FILE_TYPES.join(',')}
-                disabled={uploadMutation.isLoading || deleteMutation.isLoading || !projectId}
+                disabled={!selectedProjectId || uploadMutation.isLoading || deleteMutation.isLoading}
               />
               {selectedFile && (
                 <div className="text-sm text-muted-foreground">
@@ -304,7 +361,7 @@ export default function KnowledgeBasePage({ params }: KnowledgeBasePageProps) {
               )}
               <Button 
                 onClick={handleUpload} 
-                disabled={!selectedFile || !!fileError || uploadMutation.isLoading || deleteMutation.isLoading || !projectId}
+                disabled={!selectedFile || !!fileError || !selectedProjectId || uploadMutation.isLoading || deleteMutation.isLoading}
               >
                 {uploadMutation.isLoading ? (
                   <CircleNotch size={20} className="animate-spin mr-2" />
@@ -322,10 +379,10 @@ export default function KnowledgeBasePage({ params }: KnowledgeBasePageProps) {
             <div>
               <CardTitle>Uploaded Documents</CardTitle>
               <CardDescription>
-                View and manage documents in your knowledge base for project: <span className="font-semibold">{projectId}</span>.
+                View and manage documents in your knowledge base for project: <span className="font-semibold">{selectedProjectId ? (allProjects.find(p => p.id === selectedProjectId)?.name || selectedProjectId.substring(0,6)) : 'N/A'}</span>.
               </CardDescription>
             </div>
-            <Button variant="outline" size="sm" onClick={() => refetchDocuments()} disabled={isLoadingDocuments || uploadMutation.isLoading || deleteMutation.isLoading || !projectId}>
+            <Button variant="outline" size="sm" onClick={() => selectedProjectId && refetchDocuments()} disabled={!selectedProjectId || isLoadingDocuments || uploadMutation.isLoading || deleteMutation.isLoading}>
               <CircleNotch size={16} className={`mr-2 ${isLoadingDocuments ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
@@ -372,7 +429,7 @@ export default function KnowledgeBasePage({ params }: KnowledgeBasePageProps) {
                             variant="ghost" 
                             size="sm" 
                             onClick={() => handleDeleteConfirmation(doc)}
-                            disabled={(deleteMutation.isLoading && documentToDelete?.id === doc.id) || !projectId}
+                            disabled={(deleteMutation.isLoading && documentToDelete?.id === doc.id) || !selectedProjectId}
                           >
                             {(deleteMutation.isLoading && documentToDelete?.id === doc.id) ? (
                                 <CircleNotch size={16} className="animate-spin" />
@@ -401,7 +458,7 @@ export default function KnowledgeBasePage({ params }: KnowledgeBasePageProps) {
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel onClick={() => setDocumentToDelete(null)} disabled={deleteMutation.isLoading}>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={executeDelete} disabled={deleteMutation.isLoading || !projectId} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
+          <AlertDialogAction onClick={executeDelete} disabled={deleteMutation.isLoading || !selectedProjectId} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
             {deleteMutation.isLoading ? (
                 <CircleNotch size={20} className="animate-spin mr-2" />
             ) : null}

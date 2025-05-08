@@ -108,10 +108,19 @@ class KnowledgeRetrievalTool:
             return self.fail_response("top_k must be a positive integer.")
 
         embedding_model = config.EMBEDDING_MODEL_TO_USE
-        # Dimension check (optional but good practice)
-        expected_dimension = 1536 if "ada" in embedding_model else (384 if "MiniLM" in embedding_model else None)
+        
+        MODEL_DIMENSIONS = {
+            "text-embedding-ada-002": 1536,
+            "intfloat/multilingual-e5-large": 1024,
+            "sentence-transformers/all-MiniLM-L6-v2": 384, # common alternative
+            # Add other models and their dimensions as needed
+        }
+        expected_dimension = MODEL_DIMENSIONS.get(embedding_model)
+
         if not expected_dimension:
-             logger.warning(f"KB Tool: Could not determine expected embedding dimension for model '{embedding_model}'. Vector search might fail if dimension mismatch occurs.")
+             logger.warning(f"KB Tool: Could not determine expected embedding dimension for model '{embedding_model}' from known list. Ensure this model is supported and its dimension is configured if it's a new model. Vector search might fail if dimension mismatch occurs.")
+        else:
+            logger.info(f"KB Tool: Using embedding model '{embedding_model}' with expected dimension {expected_dimension}.")
 
         try:
             # 1. Get DB Client

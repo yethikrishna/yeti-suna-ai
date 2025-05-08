@@ -8,17 +8,8 @@ from typing import List, Optional
 
 from services.supabase import get_supabase_client, SupabaseClient
 from utils.auth_utils import get_current_user_id_from_jwt # Assuming you have this
-# Placeholder for Celery task - we will define this later
-# from agent.tasks import process_kb_document_task
+from agent.tasks import process_kb_document_task # Import the actual task
 from celery_app import celery_app # Assuming your celery app instance is here
-
-# Define a placeholder for the celery task for now
-@celery_app.task(name='agent.tasks.process_kb_document_task')
-def process_kb_document_task(document_id: str):
-    print(f"Placeholder: Processing KB document {document_id}")
-    # Actual processing logic will be added later
-    pass
-
 
 router = APIRouter(
     prefix="/kb",

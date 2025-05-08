@@ -4,7 +4,7 @@
 -- Function to find relevant knowledge base chunks based on vector similarity (Optimized for HNSW)
 CREATE OR REPLACE FUNCTION public.match_kb_chunks (
   p_project_id UUID,
-  query_embedding vector(1536), -- Match the dimension of your embedding model (e.g., 1536 for ada-002)
+  query_embedding vector(1024), -- Dimension for embeddings (e.g., 1024 for intfloat/multilingual-e5-large, 1536 for ada-002). Adjust if using a different model.
   match_count int,
   match_threshold float,
   p_ef_search int DEFAULT 60 -- HNSW ef_search parameter, default 60, can be tuned
@@ -35,7 +35,7 @@ BEGIN
       kbc.document_id,
       kbc.chunk_text,
       kbc.metadata,
-      (1 - (kbc.embedding <=> query_embedding))::real AS similarity -- Calculate cosine similarity from distance
+      (1 - (POWER(kbc.embedding <=> query_embedding, 2) / 2.0))::real AS similarity -- Calculate cosine similarity from L2 distance
     FROM
       public.knowledge_base_chunks kbc
     -- No pre-filtering on kbc here unless project_id is directly on it and indexed.
