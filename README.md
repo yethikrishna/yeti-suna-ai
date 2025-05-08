@@ -126,6 +126,12 @@ You'll need the following components:
    - Enter `adamcohenhillel/kortix-suna:0.0.20` as the image name
    - Set `/usr/bin/supervisord -n -c /etc/supervisor/conf.d/supervisord.conf` as the Entrypoint
 
+   **Note for Local/Legacy Daytona:** If you are self-hosting the legacy version of Daytona ([`legacy-daytona` branch](https://github.com/daytonaio/daytona/tree/legacy-daytona)), you will need to adjust the environment variables in `backend/.env` (Step 2 of Installation):
+     - `DAYTONA_SERVER_URL`: Set this to the API endpoint of your local Daytona instance (e.g., `http://localhost:YOUR_PORT/api`). You need to determine the correct port and path from your local setup.
+     - `DAYTONA_API_KEY`: This can likely be left unset or commented out, as the legacy local version may not require an API key.
+     - `DAYTONA_TARGET`: This can also likely be left unset or commented out, as the target concept might not apply locally.
+     - **Image Compatibility:** You must also verify that the Docker image `adamcohenhillel/kortix-suna:0.0.20` (specified above and used in `backend/sandbox/sandbox.py`) is compatible with your legacy Daytona setup. If it's not, you'll need to identify a compatible image and update the `image` parameter in the `create_sandbox` function within `backend/sandbox/sandbox.py`.
+
 4. **LLM API Keys**:
    - Obtain an API key [Anthropic](https://www.anthropic.com/)
    - While other providers should work via [LiteLLM](https://github.com/BerriAI/litellm), Anthropic is recommended – the prompt needs to be adjusted for other providers to output correct XML for tool calls.
@@ -173,12 +179,7 @@ REDIS_PASSWORD=your_redis_password
 REDIS_SSL=True  # Set to False for local Redis without SSL
 
 # Daytona credentials from step 3
-DAYTONA_API_KEY=your_daytona_api_key
-DAYTONA_SERVER_URL="https://app.daytona.io/api"
-DAYTONA_TARGET="us"
-
-# Anthropic
-ANTHROPIC_API_KEY=
+DAYTONA_API_KEY=
 
 # OpenAI API:
 OPENAI_API_KEY=your_openai_api_key
@@ -347,9 +348,15 @@ This guide helps you run Suna locally using Docker Compose, connecting to a Supa
         # TAVILY_API_KEY=tvly-xxx
         # FIRECRAWL_API_KEY=fc-xxx
         # RAPID_API_KEY=xxx
-        # DAYTONA_API_KEY=xxx
+        # --- Daytona Configuration ---
+        # For Cloud Daytona (Default):
+        # DAYTONA_API_KEY=your_daytona_api_key_from_cloud
         # DAYTONA_SERVER_URL="https://app.daytona.io/api"
         # DAYTONA_TARGET="us"
+        # For Local/Legacy Daytona:
+        # DAYTONA_SERVER_URL="http://localhost:YOUR_LEGACY_PORT/api" # Replace with your local endpoint
+        # DAYTONA_API_KEY= # Likely leave empty or comment out
+        # DAYTONA_TARGET= # Likely leave empty or comment out
 
         # Frontend URL (if needed by backend for specific tasks like email links)
         NEXT_PUBLIC_URL="http://localhost:3000"
