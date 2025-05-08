@@ -81,7 +81,7 @@ Use this tool when you need a comprehensive analysis or a synthesized report on 
 </execute-perplexity-deep-search>
         '''
     )
-    async def execute_deep_search(
+    async def execute_perplexity_deep_search(
         self,
         query: str,
         model_name: str = "sonar-deep-research",

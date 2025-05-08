@@ -100,8 +100,10 @@ async def run_agent(
         logger.warning("Knowledge Base tool will not be available for this run.")
     # -------------------------------------------
 
-    # Only include sample response if the model name does not contain "anthropic"
-    if "anthropic" not in model_name.lower():
+    # MODIFIED: Only include sample response if the model is not Gemini and not Anthropic
+    # This is to avoid sending XML tool call examples from sample_responses/1.txt to Gemini (which will use native) 
+    # or Anthropic (which has its own XML handling nuances).
+    if not model_name.lower().startswith("gemini/") and "anthropic" not in model_name.lower():
         sample_response_path = os.path.join(os.path.dirname(__file__), 'sample_responses/1.txt')
         with open(sample_response_path, 'r') as file:
             sample_response = file.read()
@@ -220,18 +222,9 @@ async def run_agent(
             llm_temperature=0,
             llm_max_tokens=max_tokens,
             tool_choice="auto",
-            max_xml_tool_calls=1,
-            temporary_message=temporary_message,
-            processor_config=ProcessorConfig(
-                xml_tool_calling=True,
-                native_tool_calling=False,
-                execute_tools=True,
-                execute_on_stream=True,
-                tool_execution_strategy="parallel",
-                xml_adding_strategy="user_message"
-            ),
             native_max_auto_continues=native_max_auto_continues,
             include_xml_examples=True,
+            temporary_message=temporary_message,
             enable_thinking=enable_thinking,
             reasoning_effort=reasoning_effort,
             enable_context_manager=enable_context_manager

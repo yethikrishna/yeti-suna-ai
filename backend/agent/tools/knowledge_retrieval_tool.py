@@ -97,7 +97,7 @@ class KnowledgeRetrievalTool:
         </retrieve-from-knowledge-base>
         '''
     )
-    async def retrieve(self, query_text: str, top_k: int = 3) -> ToolResult:
+    async def retrieve_from_knowledge_base(self, query_text: str, top_k: int = 3) -> ToolResult:
         """Retrieves the top_k most relevant text chunks from the knowledge base for the given query."""
         logger.info(f"KB Tool: Retrieving top {top_k} chunks for project {self.project_id} with query: '{query_text[:50]}...'")
         

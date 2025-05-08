@@ -124,7 +124,7 @@ class Configuration:
     AWS_REGION_NAME: Optional[str] = None
     
     # Model configuration
-    MODEL_TO_USE: str = os.getenv("MODEL_TO_USE", "gemini/gemini-2.5-pro")
+    MODEL_TO_USE: str = os.getenv("MODEL_TO_USE", "gemini/gemini-2.5-pro-preview-05-06")
     EMBEDDING_MODEL_TO_USE: str = os.getenv("EMBEDDING_MODEL_TO_USE", "intfloat/multilingual-e5-large")
     
     # Supabase configuration
