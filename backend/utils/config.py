@@ -37,7 +37,7 @@ class Configuration:
     """
     
     # Environment mode
-    ENV_MODE: EnvMode = EnvMode.LOCAL
+    ENV_MODE: EnvMode = EnvMode(os.getenv("ENV_MODE", "local"))
     
     # Subscription tier IDs - Production
     STRIPE_FREE_TIER_ID_PROD: str = 'price_1RILb4G6l1KZGqIrK4QLrx9i'
@@ -109,7 +109,7 @@ class Configuration:
         return self.STRIPE_TIER_200_1000_ID_PROD
     
     # LLM API keys
-    ANTHROPIC_API_KEY: str = None
+    ANTHROPIC_API_KEY: Optional[str] = None
     OPENAI_API_KEY: Optional[str] = None
     GROQ_API_KEY: Optional[str] = None
     OPENROUTER_API_KEY: Optional[str] = None
@@ -124,7 +124,8 @@ class Configuration:
     AWS_REGION_NAME: Optional[str] = None
     
     # Model configuration
-    MODEL_TO_USE: Optional[str] = "gemini-2.5-pro"
+    MODEL_TO_USE: str = os.getenv("MODEL_TO_USE", "gemini/gemini-2.5-pro")
+    EMBEDDING_MODEL_TO_USE: str = os.getenv("EMBEDDING_MODEL_TO_USE", "intfloat/multilingual-e5-large")
     
     # Supabase configuration
     SUPABASE_URL: str

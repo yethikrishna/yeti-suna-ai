@@ -24,6 +24,7 @@ from utils import logger
 from utils.auth_utils import get_account_id_from_thread
 from services.billing import check_billing_status
 from agent.tools.sb_vision_tool import SandboxVisionTool
+from agent.tools.knowledge_retrieval_tool import KnowledgeRetrievalTool
 
 load_dotenv()
 
@@ -44,7 +45,8 @@ async def run_agent(
 
     thread_manager = ThreadManager()
 
-    client = await thread_manager.db.client
+    db_connection = await thread_manager.get_db_connection()
+    client = await db_connection.client
 
     # Get account ID from thread for billing checks
     account_id = await get_account_id_from_thread(client, thread_id)
@@ -82,6 +84,21 @@ async def run_agent(
     else:
         logger.warning("Perplexity API key not found. PerplexitySearchTool will not be available.")
 
+    # --- Add Knowledge Base Retrieval Tool --- 
+    # Initialize KB tool with project_id and the db client
+    # We pass the client instance directly, assuming add_tool can handle this or adapt the tool's __init__ if needed.
+    # Alternatively, pass arguments that allow the tool to fetch the client.
+    # Let's try passing it as an init argument.
+    try:
+        # Pass the already obtained Supabase client instance to the tool
+        thread_manager.add_tool(KnowledgeRetrievalTool, project_id=project_id, db=client)
+        logger.info(f"KnowledgeRetrievalTool added for project {project_id}.")
+    except Exception as e_kb_tool:
+        logger.error(f"Failed to initialize or add KnowledgeRetrievalTool: {e_kb_tool}", exc_info=True)
+        # Decide if this should prevent the agent from running or just log a warning
+        # For now, log and continue without the KB tool.
+        logger.warning("Knowledge Base tool will not be available for this run.")
+    # -------------------------------------------
 
     # Only include sample response if the model name does not contain "anthropic"
     if "anthropic" not in model_name.lower():
