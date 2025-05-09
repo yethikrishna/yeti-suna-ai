@@ -291,7 +291,9 @@ class WebSearchTool(Tool):
                         formatted_result = {
                             "Title": data.get("title", ""),
                             "URL": url,
-                            "Text": data.get("markdown", "")
+                            "Text": data.get("result", ""),
+                            "RequestID": data.get("request_id", ""),
+                            "Status": data.get("status", "")
                         }
                         
                         # Add metadata if available
