@@ -9,6 +9,8 @@ import { Analytics } from '@vercel/analytics/react';
 import { GoogleAnalytics } from '@next/third-parties/google';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import Script from 'next/script';
+import { AuthProvider } from '@/components/AuthProvider';
+import { GlobalNotificationInitializer } from '@/components/GlobalNotificationInitializer';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -140,20 +142,23 @@ export default function RootLayout({
         </noscript>
         {/* End Google Tag Manager (noscript) */}
 
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <Providers>
-            {children}
-            <Toaster />
-          </Providers>
-          <Analytics />
-          <GoogleAnalytics gaId="G-6ETJFB3PT3" />
-          <SpeedInsights />
-        </ThemeProvider>
+        <AuthProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <Providers>
+              {children}
+              <Toaster />
+              <GlobalNotificationInitializer />
+            </Providers>
+            <Analytics />
+            <GoogleAnalytics gaId="G-6ETJFB3PT3" />
+            <SpeedInsights />
+          </ThemeProvider>
+        </AuthProvider>
       </body>
     </html>
   );
