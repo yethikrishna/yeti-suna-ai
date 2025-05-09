@@ -2,7 +2,7 @@ import json
 from typing import List, Dict, Any, Optional
 import uuid
 from agentpress.tool import ToolResult, openapi_schema, xml_schema
-from services.supabase import SupabaseClient, get_supabase_client # Assuming get_supabase_client works here or we adapt
+from supabase import AsyncClient
 from litellm import embedding
 from utils.config import config
 from utils.logger import logger
@@ -23,7 +23,7 @@ from sentence_transformers.cross_encoder import CrossEncoder
 class KnowledgeRetrievalTool:
     """Tool for retrieving relevant information from the project's Knowledge Base."""
 
-    def __init__(self, project_id: uuid.UUID, db: Optional[SupabaseClient] = None):
+    def __init__(self, project_id: uuid.UUID, db: Optional[AsyncClient] = None):
         """
         Initializes the tool with the project context.
         Args:
@@ -47,7 +47,7 @@ class KnowledgeRetrievalTool:
             # Tool will function without reranking if model fails to load.
         # ---------------------------------
 
-    async def _get_db_client(self) -> SupabaseClient:
+    async def _get_db_client(self) -> AsyncClient:
         """Gets the Supabase client instance provided during initialization."""
         if not self._db:
             # This should not happen if the tool is initialized correctly with a DB client.

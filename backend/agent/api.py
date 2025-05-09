@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 import uuid
 from typing import Optional, List, Dict, Any
 import jwt
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import tempfile
 import os
 
@@ -60,15 +60,36 @@ MODEL_NAME_ALIASES = {
 }
 
 class AgentStartRequest(BaseModel):
-    model_name: Optional[str] = None  # Will be set from config.MODEL_TO_USE in the endpoint
-    enable_thinking: Optional[bool] = False
-    reasoning_effort: Optional[str] = 'low'
-    stream: Optional[bool] = True
-    enable_context_manager: Optional[bool] = False
+    model_name: Optional[str] = Field(None, description="The name of the language model to use for the agent. If not provided, a default model will be used based on server configuration.")
+    enable_thinking: Optional[bool] = Field(False, description="If true, enables the agent to show its thinking process or intermediate steps during execution.")
+    reasoning_effort: Optional[str] = Field('low', description="The level of reasoning effort the agent should apply. E.g., 'low', 'medium', 'high'.")
+    stream: Optional[bool] = Field(True, description="If true, indicates that the agent's responses should be streamed back to the client.")
+    enable_context_manager: Optional[bool] = Field(False, description="If true, enables the context manager for the agent, potentially affecting how it handles session data or state.")
+
+    model_config = { # For Pydantic V2
+        "json_schema_extra": {
+            "example": {
+                "model_name": "gpt-4o",
+                "enable_thinking": True,
+                "reasoning_effort": "medium",
+                "stream": True,
+                "enable_context_manager": True
+            }
+        }
+    }
 
 class InitiateAgentResponse(BaseModel):
-    thread_id: str
-    agent_run_id: Optional[str] = None
+    thread_id: str = Field(description="The unique identifier for the newly created or existing thread associated with the agent interaction.")
+    agent_run_id: Optional[str] = Field(None, description="The unique identifier for the specific agent run that was initiated. May be null if only a thread was created without an immediate run.")
+
+    model_config = { # For Pydantic V2
+        "json_schema_extra": {
+            "example": {
+                "thread_id": "thread_abc123xyz",
+                "agent_run_id": "run_def456uvw"
+            }
+        }
+    }
 
 def initialize(
     _thread_manager: ThreadManager,

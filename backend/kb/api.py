@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import mimetypes
 import uuid
 from datetime import datetime, timezone
@@ -22,15 +22,28 @@ class KBUpdateResponse(BaseModel):
     status: str
     message: str
 
+# Pydantic model for adding a URL
+class AddUrlRequest(BaseModel):
+    url: str = Field(..., description="The public URL of the webpage to add to the Knowledge Base.", examples=["https://www.example.com/article"])
+
+# Pydantic model for the response when a URL is queued for processing
+class UrlProcessResponse(BaseModel):
+    task_id: str = Field(description="The ID of the background task queued for processing the URL.")
+    document_id: Optional[uuid.UUID] = Field(None, description="The preliminary ID for the document if created before processing.")
+    url: str = Field(description="The URL that was queued.")
+    status: str = Field(description="The current status of the URL submission (e.g., 'queued').")
+    message: str = Field(description="A message indicating the result of the submission.")
+
 # New Pydantic model for listing documents
 class KBDocumentDisplay(BaseModel):
     id: uuid.UUID
-    file_name: str
+    file_name: str # For URLs, this might be the URL itself or a derived title
     created_at: datetime
     status: str
     error_message: Optional[str] = None
     mime_type: str
-    file_size: int
+    file_size: int # For URLs, this could be the size of the extracted text
+    source_url: Optional[str] = Field(None, description="The original URL if the document was sourced from a webpage.")
 
 # Define allowed MIME types for KB documents
 # You can expand this list based on your needs
@@ -265,6 +278,58 @@ async def delete_kb_document(
     except Exception as e:
         print(f"Unexpected error deleting KB document {document_id} for project {project_id}: {e}")
         raise HTTPException(status_code=500, detail=f"An unexpected error occurred while deleting the document: {str(e)}")
+
+@router.post("/projects/{project_id}/urls", response_model=UrlProcessResponse, summary="Add Webpage URL to Knowledge Base")
+async def add_kb_url(
+    project_id: uuid.UUID,
+    payload: AddUrlRequest,
+    db: SupabaseClient = Depends(get_supabase_client),
+    user_id: str = Depends(get_current_user_id_from_jwt)
+):
+    """
+    Adds a webpage URL to the Knowledge Base for a specific project.
+    The URL is validated and then queued for background fetching, content extraction, 
+    embedding, and storage. A Celery task ID is returned for tracking.
+    """
+    # Basic URL validation (can be enhanced with Pydantic HttpUrl type)
+    if not payload.url.startswith("http://") and not payload.url.startswith("https://"):
+        raise HTTPException(status_code=400, detail="Invalid URL format. Must start with http:// or https://")
+
+    try:
+        # Verify project access and get account_id (similar to upload_kb_document)
+        project_data_query = db.table("projects").select("account_id").eq("project_id", str(project_id)).maybe_single().execute()
+        project_info = project_data_query.data
+        if not project_info:
+            raise HTTPException(status_code=404, detail=f"Project {project_id} not found or access denied.")
+        
+        account_id = project_info.get('account_id')
+        if not account_id:
+             raise HTTPException(status_code=500, detail="Project is missing account information.")
+
+        # Ensure the task name matches the one defined in your Celery tasks file
+        # Example: "backend.agent.tasks.process_kb_url_task" or "backend.kb.tasks.process_kb_url_task"
+        # Ensure celery_app is correctly imported and available here.
+        task_result = celery_app.send_task(
+            "agent.tasks.process_kb_url_task", # ADJUST THIS NAME TO YOUR ACTUAL TASK NAME
+            args=[str(project_id), str(account_id), payload.url, user_id] 
+        )
+        
+        # Log the task submission
+        logger.info(f"Queued URL {payload.url} for project {project_id} for KB processing. Task ID: {task_result.id}")
+
+        return UrlProcessResponse(
+            task_id=task_result.id,
+            url=payload.url,
+            status="queued",
+            message="URL successfully queued for processing."
+        )
+
+    except HTTPException as http_exc:
+        logger.error(f"HTTPException while adding KB URL {payload.url} for project {project_id}: {http_exc.detail}")
+        raise http_exc
+    except Exception as e:
+        logger.error(f"Unexpected error during KB URL submission for {payload.url}, project {project_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
 
 # You would also need to include this router in your main FastAPI application
 # in api.py or wherever your main app is defined, e.g.:

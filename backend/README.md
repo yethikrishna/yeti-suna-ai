@@ -21,6 +21,36 @@ docker compose up redis
 docker compose up api
 ```
 
+### Running Celery Workers
+
+Celery workers are responsible for handling background tasks, such as those initiated by the agent.
+
+**Using Docker Compose (Recommended for most scenarios):**
+
+If a `worker` service is defined in your `docker-compose.yml` file, you can start it with:
+
+```bash
+docker compose up worker
+```
+
+To build and start the worker service:
+
+```bash
+docker compose up --build worker
+```
+
+**Running locally with Poetry (for development):**
+
+Ensure your environment is configured (e.g., `.env` file with `REDIS_HOST=localhost` if Redis is running in Docker and you're running the worker locally).
+
+Navigate to the `backend` directory and run:
+
+```bash
+poetry run celery -A celery_app worker -l info --pool=prefork
+```
+
+Replace `--pool=prefork` with a different pool if needed (e.g., `gevent` for I/O-bound tasks, but ensure `gevent` is added as a dependency). The default prefork pool is often suitable for CPU-bound tasks.
+
 ## Development Setup
 
 For local development, you might only need to run Redis while working on the API locally. This is useful when:

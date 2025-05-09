@@ -1,17 +1,22 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 from agentpress.thread_manager import ThreadManager
 from services.supabase import DBConnection
 from datetime import datetime, timezone
-from dotenv import load_dotenv
 from utils.config import config, EnvMode
 import asyncio
-from utils.logger import logger
+from utils.logger import logger, request_id as logger_request_id
 import uuid
 import time
-from collections import OrderedDict
+import os
+
+# SlowAPI imports
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 # Import the agent API module
 from agent import api as agent_api
@@ -19,17 +24,20 @@ from sandbox import api as sandbox_api
 from services import billing as billing_api
 from kb import api as kb_api_router
 
-# Load environment variables (these will be available through config)
-load_dotenv()
-
 # Initialize managers
 db = DBConnection()
 thread_manager = None
 instance_id = "single"
 
-# Rate limiter state
-ip_tracker = OrderedDict()
-MAX_CONCURRENT_IPS = 25
+# Rate limiter state (Old - to be removed)
+# ip_tracker = OrderedDict() # Removed
+# MAX_CONCURRENT_IPS = 25 # Removed
+
+# Initialize Limiter for SlowAPI
+# It's good practice to ensure the REDIS_URL is set
+# Using a similar pattern as in celery_app.py for Redis URL
+redis_url_for_slowapi = os.getenv('REDIS_URL', getattr(config, 'REDIS_URL', 'redis://localhost:6379/0'))
+limiter = Limiter(key_func=get_remote_address, storage_uri=redis_url_for_slowapi, strategy="fixed-window") # Added strategy
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -87,6 +95,30 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+# Add SlowAPI state and middleware
+app.state.limiter = limiter
+app.add_middleware(SlowAPIMiddleware) # Add the middleware
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Middleware to set up request_id for logging
+@app.middleware("http")
+async def correlation_id_middleware(request: Request, call_next):
+    # Try to get request_id from header, otherwise generate a new one
+    req_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
+    
+    # Set the request_id in the context variable for the logger
+    token = logger_request_id.set(req_id)
+    
+    response = await call_next(request)
+    
+    # Add request_id to response headers
+    response.headers["X-Request-ID"] = req_id
+    
+    # Reset the context variable
+    logger_request_id.reset(token)
+    
+    return response
+
 @app.middleware("http")
 async def log_requests_middleware(request: Request, call_next):
     start_time = time.time()
@@ -128,20 +160,29 @@ app.add_middleware(
     allow_headers=["Content-Type", "Authorization"],
 )
 
-# Include the agent router with a prefix
-app.include_router(agent_api.router, prefix="/api")
+# Include the agent router with a prefix and rate limit
+# Example: Apply a specific limit to agent_api router
+# You can define different limits for different routers or endpoints
+AGENT_API_LIMIT = os.getenv("AGENT_API_LIMIT", "100/minute") 
+app.include_router(agent_api.router, prefix="/api", dependencies=[Depends(limiter.limit(AGENT_API_LIMIT))])
 
-# Include the sandbox router with a prefix
-app.include_router(sandbox_api.router, prefix="/api")
+# Include the sandbox router with a prefix (example of a different limit or no limit)
+SANDBOX_API_LIMIT = os.getenv("SANDBOX_API_LIMIT", "50/minute")
+app.include_router(sandbox_api.router, prefix="/api", dependencies=[Depends(limiter.limit(SANDBOX_API_LIMIT))])
 
 # Include the billing router with a prefix
-app.include_router(billing_api.router, prefix="/api")
+BILLING_API_LIMIT = os.getenv("BILLING_API_LIMIT", "100/minute")
+app.include_router(billing_api.router, prefix="/api", dependencies=[Depends(limiter.limit(BILLING_API_LIMIT))])
 
-# Include the kb router
-app.include_router(kb_api_router.router)
+# Include the kb router (example with a different limit)
+KB_API_LIMIT = os.getenv("KB_API_LIMIT", "200/minute")
+app.include_router(kb_api_router.router, dependencies=[Depends(limiter.limit(KB_API_LIMIT))])
 
-@app.get("/api/health")
-async def health_check():
+@app.get("/api/health", 
+         summary="Check API Health", 
+         response_description="Returns the current operational status and timestamp.")
+@limiter.limit("500/minute") # Example: Higher limit for health checks
+async def health_check(request: Request): # Add request: Request for limiter
     """Health check endpoint to verify API is working."""
     logger.info("Health check endpoint called")
     return {

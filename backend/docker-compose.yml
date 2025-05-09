@@ -47,7 +47,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: celery -A backend.celery_app worker -l info -Q celery --concurrency=4
+    command: celery -A celery_app worker -l info -Q celery --concurrency=4
     env_file:
       - .env
     volumes:
@@ -109,6 +109,41 @@ services:
         reservations:
           cpus: '1'
           memory: 8G
+
+  beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: celery -A celery_app beat -l info --pidfile=
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+      - ./logs:/app/logs
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - app-network
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=
+      - LOG_LEVEL=INFO
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
 
 networks:
   app-network:

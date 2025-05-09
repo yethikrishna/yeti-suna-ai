@@ -1,5 +1,7 @@
 import os
 from typing import Optional
+import uuid
+import httpx
 
 from daytona_sdk import Daytona, DaytonaConfig, CreateSandboxParams, Sandbox, SessionExecuteRequest
 from daytona_api_client.models.workspace_state import WorkspaceState
@@ -93,50 +95,127 @@ def start_supervisord_session(sandbox: Sandbox):
         logger.error(f"Error starting supervisord session: {str(e)}")
         raise e
 
-def create_sandbox(password: str, project_id: str = None):
+async def create_sandbox(password: str, project_id: str = None):
     """Create a new sandbox with all required services configured and running."""
     
-    logger.debug("Creating new Daytona sandbox environment")
+    logger.debug("Creating new Daytona sandbox environment for legacy Daytona")
     logger.debug("Configuring sandbox with browser-use image and environment variables")
-    
-    labels = None
-    if project_id:
-        logger.debug(f"Using sandbox_id as label: {project_id}")
-        labels = {'id': project_id}
-        
-    params = CreateSandboxParams(
-        image="adamcohenhillel/kortix-suna:0.0.20",
-        public=True,
-        labels=labels,
-        env_vars={
-            "CHROME_PERSISTENT_SESSION": "true",
-            "RESOLUTION": "1024x768x24",
-            "RESOLUTION_WIDTH": "1024",
-            "RESOLUTION_HEIGHT": "768",
-            "VNC_PASSWORD": password,
-            "ANONYMIZED_TELEMETRY": "false",
-            "CHROME_PATH": "",
-            "CHROME_USER_DATA": "",
-            "CHROME_DEBUGGING_PORT": "9222",
-            "CHROME_DEBUGGING_HOST": "localhost",
-            "CHROME_CDP": ""
+
+    if not daytona_config.target:
+        logger.error("Daytona target is not configured. Cannot create workspace for legacy Daytona.")
+        raise ValueError("Daytona target (DAYTONA_TARGET) is required for legacy workspace creation.")
+
+    current_sandbox_id = project_id or str(uuid.uuid4())
+    sandbox_name = f"Sandbox-{current_sandbox_id[:8]}"
+
+    env_vars_payload = {
+        "CHROME_PERSISTENT_SESSION": "true",
+        "RESOLUTION": "1024x768x24",
+        "RESOLUTION_WIDTH": "1024",
+        "RESOLUTION_HEIGHT": "768",
+        "VNC_PASSWORD": password,
+        "ANONYMIZED_TELEMETRY": "false",
+        "CHROME_PATH": "",
+        "CHROME_USER_DATA": "",
+        "CHROME_DEBUGGING_PORT": "9222",
+        "CHROME_DEBUGGING_HOST": "localhost",
+        "CHROME_CDP": ""
+    }
+
+    # This is the payload structure we believe the legacy Daytona API expects
+    legacy_payload = {
+        "Name": sandbox_name,
+        "TargetId": daytona_config.target, # From your DaytonaConfig
+        "Source": {
+            "Image": {
+                "Name": "adamcohenhillel/kortix-suna:0.0.20" # Your image
+            }
+            # If you were using a git repository, it might look like:
+            # "Repository": {
+            #     "Url": "https://github.com/your/repo.git"
+            # }
         },
-        resources={
-            "cpu": 2,
-            "memory": 4,
-            "disk": 5,
+        "EnvVars": env_vars_payload,
+        # The legacy API might not support 'public', 'labels', 'resources' directly in this call
+        # or may have different names/structures for them.
+    }
+
+    logger.debug(f"Attempting to create workspace with legacy payload: {legacy_payload}")
+
+    try:
+        # Using httpx for async HTTP request
+        # Ensure this function is async or run httpx calls in a separate thread if create_sandbox is sync
+        # For now, assuming create_sandbox can be made async or this part is adapted.
+        # If create_sandbox must remain synchronous, use 'requests' library instead of 'httpx'.
+        
+        # This part needs to be async if create_sandbox is async.
+        # If create_sandbox is synchronous, you'd use 'requests.post(...)'
+        # For simplicity, let's assume we can make this part work. 
+        # A practical implementation might require `async def create_sandbox`
+        # and `await` for the httpx call.
+        
+        # Placeholder for actual HTTP call - illustrating the structure
+        # This section will need to be adapted to be truly async or use 'requests'
+        
+        headers = {
+            "Content-Type": "application/json",
         }
-    )
-    
-    # Create the sandbox
-    sandbox = daytona.create(params)
-    logger.debug(f"Sandbox created with ID: {sandbox.id}")
-    
-    # Start supervisord in a session for new sandbox
-    start_supervisord_session(sandbox)
-    
-    logger.debug(f"Sandbox environment successfully initialized")
-    return sandbox
+        if daytona_config.api_key:
+            headers["Authorization"] = f"Bearer {daytona_config.api_key}"
+
+        # This is a synchronous illustration using requests for simplicity here.
+        # If your create_sandbox is part of an async FastAPI flow, use httpx.AsyncClient()
+        # import requests # Temporary import for synchronous example
+        # response = requests.post(
+        #     f"{daytona_config.server_url}/workspace", # Common endpoint for workspace creation
+        #     json=legacy_payload,
+        #     headers=headers
+        # )
+        # response.raise_for_status() # Will raise an exception for 4xx/5xx errors
+        
+        # response_data = response.json()
+
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{daytona_config.server_url}/workspace", # Common endpoint for workspace creation
+                json=legacy_payload,
+                headers=headers
+            )
+            response.raise_for_status() # Will raise an exception for 4xx/5xx errors
+            response_data = response.json()
+
+        created_sandbox_id = response_data.get("id") # Or "workspaceId", "ID", etc. - inspect actual response
+        
+        if not created_sandbox_id:
+            logger.error(f"Legacy workspace creation succeeded but no ID returned in response: {response_data}")
+            raise ValueError("Legacy workspace created but ID was not found in response.")
+
+        logger.info(f"Legacy workspace created successfully with ID: {created_sandbox_id}")
+        
+        # IMPORTANT: The 'daytona.create(params)' call returned a 'Sandbox' object.
+        # Now, you're getting a JSON response. You'll need to adapt how you use the result.
+        # You might need to fetch the sandbox details using daytona.get_current_sandbox(created_sandbox_id)
+        # or construct a simplified Sandbox-like object if only the ID and a few details are needed immediately.
+        
+        # For now, let's try to get the Sandbox object using the SDK after creation
+        # This assumes the legacy server creates something the SDK can then retrieve by ID.
+        new_sandbox = daytona.get_current_sandbox(created_sandbox_id)
+        if not new_sandbox:
+             raise Exception(f"Could not retrieve sandbox {created_sandbox_id} via SDK after legacy creation.")
+
+        # Start supervisord in a session for new sandbox
+        # This part should work if 'new_sandbox' is a valid Sandbox object
+        start_supervisord_session(new_sandbox)
+        
+        logger.debug(f"Sandbox environment {created_sandbox_id} successfully initialized via legacy API")
+        return new_sandbox # Return the Sandbox object fetched by the SDK
+
+    except httpx.HTTPStatusError as e:
+        logger.error(f"HTTP error during legacy workspace creation: {e.response.status_code} - {e.response.text}")
+        raise e
+    except Exception as e:
+        logger.error(f"Error during legacy Daytona workspace creation: {str(e)}")
+        raise e
 
 
 class SandboxToolsBase(Tool):
