@@ -5,7 +5,7 @@ from datetime import timedelta # Added for beat schedule
 from celery.schedules import crontab # Added for beat schedule
 
 # It's good practice to ensure the REDIS_URL is set
-redis_url = os.getenv('REDIS_URL', getattr(config, 'REDIS_URL', 'redis://localhost:6379/0'))
+redis_url = os.getenv('REDIS_URL', getattr(config, 'REDIS_URL', 'redis://redis:6379/0'))
 
 celery_app = Celery(
     'suna_tasks', # Name of the celery application

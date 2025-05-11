@@ -36,8 +36,9 @@ instance_id = "single"
 # Initialize Limiter for SlowAPI
 # It's good practice to ensure the REDIS_URL is set
 # Using a similar pattern as in celery_app.py for Redis URL
-redis_url_for_slowapi = os.getenv('REDIS_URL', getattr(config, 'REDIS_URL', 'redis://localhost:6379/0'))
-limiter = Limiter(key_func=get_remote_address, storage_uri=redis_url_for_slowapi, strategy="fixed-window") # Added strategy
+# redis_url_for_slowapi = os.getenv('REDIS_URL', getattr(config, 'REDIS_URL', 'redis://redis:6379/0')) # Original line
+redis_url_for_slowapi = 'redis://redis:6379/0' # DEBUG: Hardcoded Redis URL
+limiter = Limiter(key_func=get_remote_address, storage_uri=redis_url_for_slowapi, strategy="fixed-window")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
