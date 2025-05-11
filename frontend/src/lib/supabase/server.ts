@@ -4,18 +4,16 @@ import { cookies } from 'next/headers';
 
 export const createClient = async () => {
   const cookieStore = await cookies();
-  // Determina l'URL di Supabase in base all'ambiente
-  let supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!; // Assicurati che questa sia la sorgente
+  let supabaseUrl = process.env.SUPABASE_INTERNAL_URL!;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-  // Ensure the URL is in the proper format with http/https protocol
+  // Ensure the URL is in the proper format with http/https protocol (optional if var is always full)
   if (supabaseUrl && !supabaseUrl.startsWith('http')) {
-    // If it's just a hostname without protocol, add http://
     supabaseUrl = `http://${supabaseUrl}`;
   }
 
-  console.log('!!!!!!!!!! [SERVER.TS] CREATING SUPABASE CLIENT WITH URL:', supabaseUrl, 'AND KEY:', supabaseAnonKey); // Assicurati che usi la variabile aggiornata
-  return createServerClient(supabaseUrl, supabaseAnonKey, { // E che venga passata qui
+  console.log('!!!!!!!!!! [SERVER.TS] CREATING SUPABASE CLIENT WITH INTERNAL URL:', supabaseUrl, 'AND KEY:', supabaseAnonKey);
+  return createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
       getAll() {
         return cookieStore.getAll();

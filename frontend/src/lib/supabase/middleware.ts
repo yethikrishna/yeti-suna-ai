@@ -24,9 +24,9 @@ export const validateSession = async (request: NextRequest) => {
       },
     });
 
-    console.log('!!!!!!!!!! [MIDDLEWARE.TS] CREATING SUPABASE CLIENT WITH URL:', process.env.NEXT_PUBLIC_SUPABASE_URL!, 'AND KEY:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+    console.log('!!!!!!!!!! [MIDDLEWARE.TS] CREATING SUPABASE CLIENT WITH INTERNAL URL:', process.env.SUPABASE_INTERNAL_URL!, 'AND KEY:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
     const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_INTERNAL_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
