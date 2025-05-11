@@ -12,16 +12,22 @@ export const useAccounts = (options?: SWRConfiguration) => {
 
   const swrOptions = { ...defaultOptions, ...options };
 
-  return useSWR<GetAccountsResponse>(
+  return useSWR<GetAccountsResponse | null>(
     !!supabaseClient && ['accounts'],
     async () => {
       // DIAGNOSTIC: Add a small delay
       await new Promise(resolve => setTimeout(resolve, 500)); // Ritardo di 0.5 secondi
 
       const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
-      console.log('[useAccounts] Supabase session:', session);
+      console.log('[useAccounts] Supabase session (in fetcher):', session);
       if (sessionError) {
+        console.error('[useAccounts] Error getting session:', sessionError);
         throw new Error(sessionError.message);
+      }
+
+      if (!session) {
+        console.log('[useAccounts] No active session, returning null.');
+        return null; // Return null if no session
       }
 
       const { data, error } = await supabaseClient.rpc('get_accounts');
