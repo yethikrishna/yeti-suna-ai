@@ -10,6 +10,7 @@ import React, {
 import { createClient } from '@/lib/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 import { SupabaseClient } from '@supabase/supabase-js';
+import { useSWRConfig } from 'swr';
 
 type AuthContextType = {
   supabase: SupabaseClient;
@@ -26,6 +27,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { mutate } = useSWRConfig();
 
   useEffect(() => {
     const getInitialSession = async () => {
@@ -41,8 +43,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const { data: authListener } = supabase.auth.onAuthStateChange(
       (_event, newSession) => {
+        const currentSession = session; // Capture session before update
         setSession(newSession);
         setUser(newSession?.user ?? null);
+
+        // Invalidate SWR cache for accounts if login status changed
+        const isLoggedIn = !!newSession?.user;
+        const wasLoggedIn = !!currentSession?.user;
+
+        if (isLoggedIn !== wasLoggedIn) {
+          console.log('[AuthProvider] Auth state changed, invalidating accounts cache.');
+          mutate(['accounts']);
+          // Potresti voler invalidare altre chiavi SWR che dipendono dalla sessione qui
+        }
+
         // No need to set loading state here as initial load is done
         // and subsequent changes shouldn't show a loading state for the whole app
         if (isLoading) setIsLoading(false);
@@ -52,7 +66,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       authListener?.subscription.unsubscribe();
     };
-  }, [supabase, isLoading]); // Added isLoading to dependencies to ensure it runs once after initial load completes
+  }, [supabase, isLoading, session, mutate]); // Added session and mutate to dependencies
 
   const signOut = async () => {
     await supabase.auth.signOut();
