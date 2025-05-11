@@ -2,7 +2,7 @@
 -- Replace YYYYMMDDHHMMSS with the actual timestamp of when this migration is created.
 
 -- Ensure the vector extension is enabled (though it's best to enable it via Supabase UI or a separate prior migration if strictly ordered)
--- CREATE EXTENSION IF NOT EXISTS vector;
+CREATE EXTENSION IF NOT EXISTS vector;
 
 -- 1. Table for storing metadata about uploaded documents for the knowledge base
 CREATE TABLE public.knowledge_base_documents (

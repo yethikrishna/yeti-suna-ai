@@ -11,7 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/client';
 
 type AccountParams = {
   accountSlug: string;
@@ -20,10 +20,9 @@ type AccountParams = {
 export default function TeamSettingsPage({
   params,
 }: {
-  params: Promise<AccountParams>;
+  params: AccountParams;
 }) {
-  const unwrappedParams = React.use(params);
-  const { accountSlug } = unwrappedParams;
+  const { accountSlug } = params;
 
   // Use an effect to load team account data
   const [teamAccount, setTeamAccount] = React.useState<any>(null);

@@ -280,7 +280,7 @@ export default function ThreadPage({
   params: Promise<ThreadParams>;
 }) {
   const unwrappedParams = React.use(params);
-  const threadId = unwrappedParams.threadId;
+  const { threadId } = unwrappedParams;
   const isMobile = useIsMobile();
 
   const router = useRouter();
@@ -326,10 +326,6 @@ export default function ThreadPage({
   const messagesLoadedRef = useRef(false);
   const agentRunsCheckedRef = useRef(false);
   const previousAgentStatus = useRef<typeof agentStatus>('idle');
-
-  const handleProjectRenamed = useCallback((newName: string) => {
-    setProjectName(newName);
-  }, []);
 
   const { state: leftSidebarState, setOpen: setLeftSidebarOpen } = useSidebar();
   const initialLayoutAppliedRef = useRef(false);
@@ -1366,6 +1362,10 @@ export default function ThreadPage({
     isLoading,
   ]);
 
+  const handleProjectRenamed = useCallback((newName: string) => {
+    setProjectName(newName);
+  }, []);
+
   if (isLoading && !initialLoadCompleted.current) {
     return (
       <div className="flex h-screen">
@@ -1482,6 +1482,7 @@ export default function ThreadPage({
             projectId={project?.id || ''}
             onViewFiles={handleOpenFileViewer}
             onToggleSidePanel={toggleSidePanel}
+            onProjectRenamed={handleProjectRenamed}
             isMobileView={isMobile}
           />
           <div className="flex flex-1 items-center justify-center p-4">

@@ -249,8 +249,7 @@ export default function ThreadPage({
   params: Promise<ThreadParams>;
 }) {
   const unwrappedParams = React.use(params);
-  const threadId = unwrappedParams.threadId;
-
+  const { threadId } = unwrappedParams;
   const router = useRouter();
   const [messages, setMessages] = useState<UnifiedMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);

@@ -95,9 +95,9 @@ class Settings(BaseSettings):
     REDIS_SSL: bool = True
     
     # Daytona sandbox configuration
-    DAYTONA_API_KEY: Optional[str] = None
+    DAYTONA_API_KEY: str
     DAYTONA_SERVER_URL: str
-    DAYTONA_TARGET: Optional[str] = None
+    DAYTONA_TARGET: str
     
     # Search and other API keys
     TAVILY_API_KEY: str

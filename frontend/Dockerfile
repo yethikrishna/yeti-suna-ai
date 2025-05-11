@@ -19,10 +19,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     librsvg2-dev \
     && rm -rf /var/lib/apt/lists/*
 
-RUN npm install
-
-# Copy the frontend code
+# Copy the frontend code before installing dependencies
 COPY . .
+
+RUN npm install
 
 RUN npm run build
 

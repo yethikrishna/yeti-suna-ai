@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from 'sonner';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,7 +22,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { listKnowledgeBaseDocuments, KBDocument, uploadKnowledgeBaseDocument, KBUpdateResponse, deleteKnowledgeBaseDocument, Project as ApiProject } from "@/lib/api";
 import { createClient } from "@/lib/supabase/client";
-import { CircleNotch, UploadSimple, Trash, WarningCircle } from "@phosphor-icons/react/dist/ssr";
+import { CircleNotch, UploadSimple, Trash, WarningCircle } from "@phosphor-icons/react";
 import { format } from 'date-fns';
 
 // Constants for file upload
@@ -34,11 +34,10 @@ const ALLOWED_FILE_TYPES = [
 ];
 const MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024; // 25MB
 
-interface KnowledgeBasePageProps {
-  params: {
-    accountSlug: string;
-  };
-}
+// Tipo per i parametri della pagina
+type KnowledgeBasePageParams = {
+  accountSlug: string;
+};
 
 // Simplified project type for the selector
 interface SelectableProject {
@@ -46,10 +45,10 @@ interface SelectableProject {
   name: string;
 }
 
-function getBadgeVariant(status: string): "success" | "secondary" | "destructive" | "outline" {
+function getBadgeVariant(status: string): "default" | "secondary" | "destructive" | "outline" {
   switch (status?.toLowerCase()) {
     case 'indexed':
-      return 'success';
+      return 'default';
     case 'pending':
     case 'processing':
       return 'secondary';
@@ -60,9 +59,9 @@ function getBadgeVariant(status: string): "success" | "secondary" | "destructive
   }
 }
 
-export default function KnowledgeBasePage({ params }: KnowledgeBasePageProps) {
-  const { accountSlug } = params;
-  const { toast } = useToast();
+export default function KnowledgeBasePage({ params }: { params: Promise<KnowledgeBasePageParams> }) {
+  const unwrappedParams = React.use(params);
+  const { accountSlug } = unwrappedParams;
   const queryClient = useQueryClient();
   const supabase = createClient();
 
@@ -144,72 +143,59 @@ export default function KnowledgeBasePage({ params }: KnowledgeBasePageProps) {
     isLoading: isLoadingDocuments,
     error: documentsError,
     refetch: refetchDocuments,
-  } = useQuery<KBDocument[], Error>(
-    ['knowledgeBaseDocuments', selectedProjectId], // Depends on selectedProjectId
-    () => {
+  } = useQuery<KBDocument[], Error>({
+    queryKey: ['knowledgeBaseDocuments', selectedProjectId],
+    queryFn: () => {
       if (!selectedProjectId) return Promise.resolve([]); // Do not fetch if no project is selected
       return listKnowledgeBaseDocuments(selectedProjectId);
     },
-    {
-      enabled: !!selectedProjectId && !isLoadingProjects && !projectsError, // Enable only if a project is selected and no errors
-      refetchInterval: 5000,
-    }
-  );
+    enabled: !!selectedProjectId && !isLoadingProjects && !projectsError, // Enable only if a project is selected and no errors
+    refetchInterval: 5000,
+    initialData: undefined,
+  });
 
   const uploadMutation = useMutation<
     KBUpdateResponse,
     Error,
     { projectId: string; file: File }
-  >(
-    (variables) => uploadKnowledgeBaseDocument(variables.projectId, variables.file),
-    {
-      onSuccess: (data) => {
-        toast({
-          title: "Upload Successful",
-          description: `File '${data.file_name}' uploaded and is now '${data.status}'.`,
-          variant: "success",
-        });
-        setSelectedFile(null);
-        setFileError(null);
-        if(fileInputRef.current) fileInputRef.current.value = "";
-        if (selectedProjectId) queryClient.invalidateQueries({ queryKey: ['knowledgeBaseDocuments', selectedProjectId] });
-      },
-      onError: (error) => {
-        toast({
-          title: "Upload Failed",
-          description: error.message || "An unexpected error occurred.",
-          variant: "destructive",
-        });
-      },
-    }
-  );
+  >({
+    mutationFn: (variables) => uploadKnowledgeBaseDocument(variables.projectId, variables.file),
+    onSuccess: (data) => {
+      toast.success(`File '${data.file_name}' uploaded`, {
+        description: `Status is now '${data.status}'.`,
+      });
+      setSelectedFile(null);
+      setFileError(null);
+      if(fileInputRef.current) fileInputRef.current.value = "";
+      if (selectedProjectId) queryClient.invalidateQueries({ queryKey: ['knowledgeBaseDocuments', selectedProjectId] });
+    },
+    onError: (error) => {
+      toast.error("Upload Failed", {
+        description: error.message || "An unexpected error occurred.",
+      });
+    },
+  });
 
   const deleteMutation = useMutation<
     void,
     Error,
     { projectId: string; documentId: string }
-  >(
-    (variables) => deleteKnowledgeBaseDocument(variables.projectId, variables.documentId),
-    {
-      onSuccess: () => {
-        toast({
-          title: "Document Deleted",
-          description: `Document '${documentToDelete?.file_name}' has been deleted.`,
-          variant: "success",
-        });
-        if (selectedProjectId) queryClient.invalidateQueries({ queryKey: ['knowledgeBaseDocuments', selectedProjectId] });
-        setDocumentToDelete(null);
-      },
-      onError: (error) => {
-        toast({
-          title: "Deletion Failed",
-          description: error.message || "An unexpected error occurred while deleting the document.",
-          variant: "destructive",
-        });
-        setDocumentToDelete(null);
-      },
-    }
-  );
+  >({
+    mutationFn: (variables) => deleteKnowledgeBaseDocument(variables.projectId, variables.documentId),
+    onSuccess: () => {
+      toast.success("Document Deleted", {
+        description: `Document '${documentToDelete?.file_name}' has been deleted.`,
+      });
+      if (selectedProjectId) queryClient.invalidateQueries({ queryKey: ['knowledgeBaseDocuments', selectedProjectId] });
+      setDocumentToDelete(null);
+    },
+    onError: (error) => {
+      toast.error("Deletion Failed", {
+        description: error.message || "An unexpected error occurred while deleting the document.",
+      });
+      setDocumentToDelete(null);
+    },
+  });
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -237,7 +223,7 @@ export default function KnowledgeBasePage({ params }: KnowledgeBasePageProps) {
       return;
     }
     if (!selectedProjectId) { // Check selectedProjectId
-        toast({ title: "Project Not Selected", description: projectsError || "Please select a project to upload documents to.", variant: "destructive" });
+        toast.error("Project Not Selected", { description: projectsError || "Please select a project to upload documents to." });
         return;
     }
     uploadMutation.mutate({ projectId: selectedProjectId, file: selectedFile }); // Use selectedProjectId
@@ -313,7 +299,7 @@ export default function KnowledgeBasePage({ params }: KnowledgeBasePageProps) {
                 <Select
                   value={selectedProjectId || ''}
                   onValueChange={(value) => setSelectedProjectId(value)}
-                  disabled={isLoadingDocuments || uploadMutation.isLoading || deleteMutation.isLoading}
+                  disabled={isLoadingDocuments || uploadMutation.isPending || deleteMutation.isPending}
                 >
                   <SelectTrigger className="w-full md:w-1/2 lg:w-1/3">
                     <SelectValue placeholder="Select a project" />
@@ -349,7 +335,7 @@ export default function KnowledgeBasePage({ params }: KnowledgeBasePageProps) {
                 ref={fileInputRef}
                 onChange={handleFileChange}
                 accept={ALLOWED_FILE_TYPES.join(',')}
-                disabled={!selectedProjectId || uploadMutation.isLoading || deleteMutation.isLoading}
+                disabled={!selectedProjectId || uploadMutation.isPending || deleteMutation.isPending}
               />
               {selectedFile && (
                 <div className="text-sm text-muted-foreground">
@@ -361,14 +347,15 @@ export default function KnowledgeBasePage({ params }: KnowledgeBasePageProps) {
               )}
               <Button 
                 onClick={handleUpload} 
-                disabled={!selectedFile || !!fileError || !selectedProjectId || uploadMutation.isLoading || deleteMutation.isLoading}
+                disabled={!selectedFile || !!fileError || !selectedProjectId || uploadMutation.isPending || deleteMutation.isPending}
+                className="w-full md:w-auto"
               >
-                {uploadMutation.isLoading ? (
-                  <CircleNotch size={20} className="animate-spin mr-2" />
+                {uploadMutation.isPending ? (
+                  <CircleNotch className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
-                  <UploadSimple size={20} className="mr-2" />
+                  <UploadSimple className="mr-2 h-4 w-4" />
                 )}
-                {uploadMutation.isLoading ? 'Uploading...' : 'Upload Document'}
+                Upload Document
               </Button>
             </div>
           </CardContent>
@@ -382,7 +369,7 @@ export default function KnowledgeBasePage({ params }: KnowledgeBasePageProps) {
                 View and manage documents in your knowledge base for project: <span className="font-semibold">{selectedProjectId ? (allProjects.find(p => p.id === selectedProjectId)?.name || selectedProjectId.substring(0,6)) : 'N/A'}</span>.
               </CardDescription>
             </div>
-            <Button variant="outline" size="sm" onClick={() => selectedProjectId && refetchDocuments()} disabled={!selectedProjectId || isLoadingDocuments || uploadMutation.isLoading || deleteMutation.isLoading}>
+            <Button variant="outline" size="sm" onClick={() => selectedProjectId && refetchDocuments()} disabled={!selectedProjectId || isLoadingDocuments || uploadMutation.isPending || deleteMutation.isPending}>
               <CircleNotch size={16} className={`mr-2 ${isLoadingDocuments ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
@@ -426,16 +413,12 @@ export default function KnowledgeBasePage({ params }: KnowledgeBasePageProps) {
                       <TableCell className="text-right">
                         <AlertDialogTrigger asChild>
                           <Button 
-                            variant="ghost" 
-                            size="sm" 
+                            variant="outline" 
+                            size="sm"
+                            disabled={uploadMutation.isPending || deleteMutation.isPending}
                             onClick={() => handleDeleteConfirmation(doc)}
-                            disabled={(deleteMutation.isLoading && documentToDelete?.id === doc.id) || !selectedProjectId}
                           >
-                            {(deleteMutation.isLoading && documentToDelete?.id === doc.id) ? (
-                                <CircleNotch size={16} className="animate-spin" />
-                            ) : (
-                                <Trash size={16} />
-                            )}
+                            <Trash className="mr-1 h-4 w-4" /> Delete
                           </Button>
                         </AlertDialogTrigger>
                       </TableCell>
@@ -457,9 +440,9 @@ export default function KnowledgeBasePage({ params }: KnowledgeBasePageProps) {
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel onClick={() => setDocumentToDelete(null)} disabled={deleteMutation.isLoading}>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={executeDelete} disabled={deleteMutation.isLoading || !selectedProjectId} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
-            {deleteMutation.isLoading ? (
+          <AlertDialogCancel onClick={() => setDocumentToDelete(null)} disabled={deleteMutation.isPending}>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={executeDelete} disabled={deleteMutation.isPending || !selectedProjectId} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
+            {deleteMutation.isPending ? (
                 <CircleNotch size={20} className="animate-spin mr-2" />
             ) : null}
             Delete

@@ -24,7 +24,7 @@ RUN useradd -m -u 1000 appuser && \
 # Install Python dependencies
 COPY --chown=appuser:appuser pyproject.toml poetry.lock* ./
 # RUN pip install --no-cache-dir -r requirements.txt gunicorn # Old way
-RUN poetry install --no-dev --no-interaction --no-ansi --no-root
+RUN poetry install --without dev --no-interaction --no-ansi --no-root
 
 # Switch to non-root user
 USER appuser
@@ -50,4 +50,4 @@ ENV WORKER_CONNECTIONS=1000
 # Default Gunicorn workers ($GUNICORN_WORKERS) are dynamically set based on os.cpu_count() (fallback to 2).
 # Override by setting the WORKERS environment variable (e.g., 'docker run -e WORKERS=N ...').
 # The $THREADS and $WORKER_CONNECTIONS variables are taken directly from the environment.
-CMD ["sh", "-c", "AUTO_WORKERS=$(python3 -c \\"import os; print(os.cpu_count() or 2)\\"); GUNICORN_WORKERS=${WORKERS:-$AUTO_WORKERS}; exec gunicorn api:app --workers $GUNICORN_WORKERS --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 --timeout 60 --graceful-timeout 30 --keep-alive 5 --max-requests 2000 --max-requests-jitter 400 --forwarded-allow-ips '*' --worker-connections $WORKER_CONNECTIONS --worker-tmp-dir /dev/shm --preload --log-level info --access-logfile - --error-logfile - --capture-output --enable-stdio-inheritance --threads $THREADS"]
+CMD ["sh", "-c", "AUTO_WORKERS=$(python3 -c 'import os; print(os.cpu_count() or 2)'); GUNICORN_WORKERS=${WORKERS:-$AUTO_WORKERS}; exec gunicorn api:app --workers $GUNICORN_WORKERS --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 --timeout 60 --graceful-timeout 30 --keep-alive 5 --max-requests 2000 --max-requests-jitter 400 --forwarded-allow-ips '*' --worker-connections $WORKER_CONNECTIONS --worker-tmp-dir /dev/shm --preload --log-level info --access-logfile - --error-logfile - --capture-output --enable-stdio-inheritance --threads $THREADS"]

@@ -1,0 +1,16 @@
+node_modules
+.next
+
+# Common editor/OS files
+.DS_Store
+*.swp
+*.swo
+._*
+
+# Log files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Optional: Add if you have local env files you don't want in the image context
+# .env.local 
