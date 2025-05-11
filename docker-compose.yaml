@@ -45,6 +45,15 @@ services:
     command: ["npm", "run", "start"]
     depends_on:
       - backend
+    networks:
+      - default
+      - suna_supabase_net
 
 volumes:
   redis-data:
+
+networks:
+  default:
+  suna_supabase_net:
+    external: true
+    name: supabase_network_suna
