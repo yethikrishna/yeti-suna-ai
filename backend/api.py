@@ -11,6 +11,7 @@ from utils.logger import logger, request_id as logger_request_id
 import uuid
 import time
 import os
+import redis as redis_sync
 
 # SlowAPI imports
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -35,10 +36,49 @@ instance_id = "single"
 
 # Initialize Limiter for SlowAPI
 # It's good practice to ensure the REDIS_URL is set
-# Using a similar pattern as in celery_app.py for Redis URL
-# redis_url_for_slowapi = os.getenv('REDIS_URL', getattr(config, 'REDIS_URL', 'redis://redis:6379/0')) # Original line
-redis_url_for_slowapi = 'redis://redis:6379/0' # DEBUG: Hardcoded Redis URL
-limiter = Limiter(key_func=get_remote_address, storage_uri=redis_url_for_slowapi, strategy="fixed-window")
+
+# Get Redis configuration for SlowAPI explicitly like in services/redis.py
+# slowapi_redis_host = os.getenv('REDIS_HOST', 'redis') # Commented out previous attempts
+# slowapi_redis_port = int(os.getenv('REDIS_PORT', 6379)) # Commented out previous attempts
+
+# Revert to the dynamic os.getenv but ensure it's logged to understand what URL is being formed.
+# original_redis_url = os.getenv('REDIS_URL') # Commented out previous attempts
+# config_redis_url = getattr(config, 'REDIS_URL', 'redis://redis:6379/0') # Default fallback # Commented out previous attempts
+# redis_url_for_slowapi = original_redis_url or config_redis_url # Commented out previous attempts
+
+# logger.info(f"Attempting to initialize SlowAPI Limiter with REDIS_URL: '{original_redis_url}', Config REDIS_URL: '{config_redis_url}', Effective URL for SlowAPI: '{redis_url_for_slowapi}'") # Commented out previous attempts
+
+# Fallback to hardcoded if dynamic results in localhost or is empty, for safety in this test
+# if "localhost" in redis_url_for_slowapi or not redis_url_for_slowapi: # Commented out previous attempts
+# logger.warning(f"SlowAPI Redis URL was resolved to localhost or empty ('{redis_url_for_slowapi}'), forcing 'redis://redis:6379/0'") # Commented out previous attempts
+# redis_url_for_slowapi = 'redis://redis:6379/0' # Commented out previous attempts
+
+# TEST: Synchronous Redis connection test # Commented out previous attempts
+# import redis as redis_sync # Commented out previous attempts
+# try: # Commented out previous attempts
+# logger.info(f"Attempting synchronous Redis connection to: {redis_url_for_slowapi}") # Commented out previous attempts
+# sync_r = redis_sync.from_url(redis_url_for_slowapi) # Commented out previous attempts
+# sync_r.ping() # Commented out previous attempts
+# logger.info("Synchronous Redis connection test successful (ping successful).") # Commented out previous attempts
+# except Exception as e: # Commented out previous attempts
+# logger.error(f"Synchronous Redis connection test FAILED: {e}") # Commented out previous attempts
+# END TEST # Commented out previous attempts
+
+# redis_url_for_slowapi = 'redis://redis:6379/0' # DEBUG: Hardcoded Redis URL from previous step, keeping it for now. # Commented out previous attempts
+# The previous edit confirmed hardcoding didn't resolve it, so the issue isn't just the URL string formation from env/config. # Commented out previous attempts
+# The traceback shows redis.ConnectionError: Error 111 connecting to localhost:6379. # Commented out previous attempts
+# This means the redis client used by 'limits' is attempting a 'localhost' connection. # Commented out previous attempts
+
+# The library 'limits' uses redis.from_url(self.storage_uri). # Commented out previous attempts
+# Let's try to bypass 'limits' own Redis client creation slightly, if possible, or ensure options are passed. # Commented out previous attempts
+# However, 'limits' RedisStorage takes 'uri' as its main arg. # Commented out previous attempts
+
+# Let's add more logging directly before the Limiter to see what it's getting. # Commented out previous attempts
+# logger.info(f"Final redis_url_for_slowapi for Limiter: {redis_url_for_slowapi}") # Commented out previous attempts
+
+limiter_storage_uri = 'redis://redis:6379/0' # Forcing known good URI for now.
+logger.critical(f"XXXXXXXXXX INITIALIZING SLOWAPI LIMITER WITH URI: {limiter_storage_uri} XXXXXXXXXX")
+limiter = Limiter(key_func=get_remote_address, storage_uri=limiter_storage_uri, strategy="fixed-window")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
