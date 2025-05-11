@@ -1,4 +1,4 @@
-from backend.celery_app import celery_app
+from celery_app import celery_app
 from utils.logger import logger # Assuming your logger is accessible here
 # We will need to import more things here later, like DBConnection, 
 # parts of agent/api.py logic, update_agent_run_status, etc.
@@ -10,7 +10,8 @@ import traceback
 from datetime import datetime, timezone, timedelta
 
 # Imports from Suna RAG/Agent codebase
-from services.supabase import DBConnection, get_supabase_client, SupabaseClient # For type hinting if needed, actual client via run_utils
+from services.supabase import DBConnection # For type hinting if needed, actual client via run_utils
+from supabase import AsyncClient # Added for type hinting
 from services import redis as redis_service # For direct use if any, actual init via run_utils
 from agentpress.thread_manager import ThreadManager
 from agent.run import run_agent # This is the core agent execution logic
@@ -304,7 +305,7 @@ except Exception as e:
     sentence_model = None 
 
 # Helper function to update document status in the database
-async def _update_kb_document_status(db: SupabaseClient, document_id: str, status: str, error_message: str = None):
+async def _update_kb_document_status(db: AsyncClient, document_id: str, status: str, error_message: str = None):
     try:
         update_data = {"status": status, "updated_at": datetime.now(timezone.utc).isoformat()}
         if error_message:

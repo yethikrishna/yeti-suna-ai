@@ -2787,6 +2787,25 @@ docs = ["sphinx", "sphinx-rtd-theme", "zope.interface"]
 tests = ["coverage[toml] (==5.0.4)", "pytest (>=6.0.0,<7.0.0)"]
 
 [[package]]
+name = "pypdf"
+version = "4.3.1"
+description = "A pure-python PDF library capable of splitting, merging, cropping, and transforming PDF files"
+optional = false
+python-versions = ">=3.6"
+groups = ["main"]
+files = [
+    {file = "pypdf-4.3.1-py3-none-any.whl", hash = "sha256:64b31da97eda0771ef22edb1bfecd5deee4b72c3d1736b7df2689805076d6418"},
+    {file = "pypdf-4.3.1.tar.gz", hash = "sha256:b2f37fe9a3030aa97ca86067a56ba3f9d3565f9a791b305c7355d8392c30d91b"},
+]
+
+[package.extras]
+crypto = ["PyCryptodome ; python_version == \"3.6\"", "cryptography ; python_version >= \"3.7\""]
+dev = ["black", "flit", "pip-tools", "pre-commit (<2.18.0)", "pytest-cov", "pytest-socket", "pytest-timeout", "pytest-xdist", "wheel"]
+docs = ["myst_parser", "sphinx", "sphinx_rtd_theme"]
+full = ["Pillow (>=8.0.0)", "PyCryptodome ; python_version == \"3.6\"", "cryptography ; python_version >= \"3.7\""]
+image = ["Pillow (>=8.0.0)"]
+
+[[package]]
 name = "pytesseract"
 version = "0.3.13"
 description = "Python-tesseract is a python wrapper for Google's Tesseract-OCR"
@@ -4694,4 +4713,4 @@ testing = ["coverage[toml]", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.11"
-content-hash = "1f3d01aa57718f14cc3aa6d3a671f41a4758438a39f7a84ec0c91fa6feefd19c"
+content-hash = "84095fd2e8d27f251102c6147dedaa58b156feddc3323e466b19a5ded6369df3"
