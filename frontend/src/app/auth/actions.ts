@@ -16,19 +16,37 @@ export async function signIn(prevState: any, formData: FormData) {
     return { message: 'Password must be at least 6 characters' };
   }
 
-  const supabase = await createClient();
+  try {
+    const supabase = await createClient();
+    console.log('[ACTIONS.TS SIGNIN] Attempting to sign in with email:', email);
 
-  const { error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
+    const { error, data } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-  if (error) {
-    return { message: error.message || 'Could not authenticate user' };
+    if (error) {
+      console.error('[ACTIONS.TS SIGNIN] Supabase auth error:', error);
+      return { message: error.message || 'Could not authenticate user (Supabase error)' };
+    }
+
+    if (!data.user && !data.session) {
+        console.warn('[ACTIONS.TS SIGNIN] Signed in successfully according to Supabase, but no user or session data returned.');
+    }
+    
+    console.log('[ACTIONS.TS SIGNIN] Sign-in successful, redirecting to:', returnUrl || '/dashboard');
+    return { success: true, redirectTo: returnUrl || '/dashboard' };
+
+  } catch (e: any) {
+    console.error('[ACTIONS.TS SIGNIN] Caught an unexpected error:', e);
+    let errorMessage = 'An unexpected error occurred during sign-in.';
+    if (e instanceof Error) {
+      errorMessage = e.message;
+    } else if (typeof e === 'string') {
+      errorMessage = e;
+    }
+    return { message: errorMessage };
   }
-
-  // Use client-side navigation instead of server-side redirect
-  return { success: true, redirectTo: returnUrl || '/dashboard' };
 }
 
 export async function signUp(prevState: any, formData: FormData) {

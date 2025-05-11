@@ -114,19 +114,23 @@ function LoginContent() {
     }
     const result = await signIn(prevState, formData);
 
-    // Check for success and redirectTo properties
+    console.log('[PAGE.TSX handleSignIn] Result from signIn action:', result);
+
     if (
       result &&
       typeof result === 'object' &&
       'success' in result &&
       result.success &&
-      'redirectTo' in result
+      'redirectTo' in result &&
+      result.redirectTo
     ) {
+      console.log('[PAGE.TSX handleSignIn] Redirecting to:', result.redirectTo);
       // Use window.location for hard navigation to avoid stale state
       window.location.href = result.redirectTo as string;
-      return null; // Return null to prevent normal form action completion
+      return null;
     }
 
+    console.warn('[PAGE.TSX handleSignIn] No redirect, signIn action result was:', result);
     return result;
   };
 
