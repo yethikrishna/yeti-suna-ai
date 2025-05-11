@@ -7,7 +7,7 @@ export const createClient = async () => {
   // let supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!; // Vecchia riga
   // Determina l'URL di Supabase in base all'ambiente (server o client)
   // Per il server-side (dentro Docker), usa il nome del servizio Docker e la porta interna.
-  let supabaseUrl = 'http://kong:8000'; // Ripristinato per il server-side
+  let supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
   // Ensure the URL is in the proper format with http/https protocol
