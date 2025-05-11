@@ -114,74 +114,50 @@ function LoginContent() {
     }
     const result = await signIn(prevState, formData);
 
-    console.log('[PAGE.TSX handleSignIn] Result from signIn action:', result);
+    console.log('[PAGE.TSX handleSignIn] Result from signIn action (if any):', result);
 
-    if (
-      result &&
-      typeof result === 'object' &&
-      'success' in result &&
-      result.success &&
-      'redirectTo' in result &&
-      result.redirectTo
-    ) {
-      console.log('[PAGE.TSX handleSignIn] Redirecting to:', result.redirectTo);
-      // Use window.location for hard navigation to avoid stale state
-      window.location.href = result.redirectTo as string;
-      return null;
+    if (result && typeof result === 'object' && 'message' in result) {
+      console.warn('[PAGE.TSX handleSignIn] signIn action returned an error/message:', result.message);
+      return result;
     }
 
-    console.warn('[PAGE.TSX handleSignIn] No redirect, signIn action result was:', result);
-    return result;
+    console.error('[PAGE.TSX handleSignIn] signIn action finished without server-side redirect or explicit error message. Result:', result);
+    return result || { message: 'An unexpected client-side state occurred after sign-in attempt.' };
   };
 
   const handleSignUp = async (prevState: any, formData: FormData) => {
-    // Store email for success state
     const email = formData.get('email') as string;
     setRegistrationEmail(email);
 
     if (returnUrl) {
       formData.append('returnUrl', returnUrl);
     }
-
-    // Add origin for email redirects
     formData.append('origin', window.location.origin);
 
     const result = await signUp(prevState, formData);
+    console.log('[PAGE.TSX handleSignUp] Result from signUp action:', result);
 
-    // Check for success and redirectTo properties (direct login case)
-    if (
-      result &&
-      typeof result === 'object' &&
-      'success' in result &&
-      result.success &&
-      'redirectTo' in result
-    ) {
-      // Use window.location for hard navigation to avoid stale state
-      window.location.href = result.redirectTo as string;
-      return null; // Return null to prevent normal form action completion
-    }
-
-    // Check if registration was successful but needs email verification
     if (result && typeof result === 'object' && 'message' in result) {
-      const resultMessage = result.message as string;
-      if (resultMessage.includes('Check your email')) {
+      if ('success' in result && result.success === false) {
+        console.log('[PAGE.TSX handleSignUp] SignUp requires email verification or immediate login failed:', result.message);
         setRegistrationSuccess(true);
 
-        // Update URL without causing a refresh
         const params = new URLSearchParams(window.location.search);
-        params.set('message', resultMessage);
-
-        const newUrl =
-          window.location.pathname +
-          (params.toString() ? '?' + params.toString() : '');
-
+        params.set('message', result.message as string);
+        const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
         window.history.pushState({ path: newUrl }, '', newUrl);
-
+        
+        return result;
+      } else if (!('success' in result)) {
+        console.warn('[PAGE.TSX handleSignUp] signUp action returned a direct error message:', result.message);
+        setRegistrationSuccess(false);
         return result;
       }
     }
 
-    return result;
+    console.error('[PAGE.TSX handleSignUp] signUp action finished without server-side redirect or handled message. Result:', result);
+    setRegistrationSuccess(false);
+    return result || { message: 'An unexpected client-side state occurred during sign-up.' };
   };
 
   const handleForgotPassword = async (e: React.FormEvent<HTMLFormElement>) => {

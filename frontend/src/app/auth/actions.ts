@@ -16,37 +16,26 @@ export async function signIn(prevState: any, formData: FormData) {
     return { message: 'Password must be at least 6 characters' };
   }
 
-  try {
-    const supabase = await createClient();
-    console.log('[ACTIONS.TS SIGNIN] Attempting to sign in with email:', email);
+  const supabase = await createClient();
+  console.log('[ACTIONS.TS SIGNIN] Attempting to sign in with email:', email);
 
-    const { error, data } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+  const { error, data } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
 
-    if (error) {
-      console.error('[ACTIONS.TS SIGNIN] Supabase auth error:', error);
-      return { message: error.message || 'Could not authenticate user (Supabase error)' };
-    }
-
-    if (!data.user && !data.session) {
-        console.warn('[ACTIONS.TS SIGNIN] Signed in successfully according to Supabase, but no user or session data returned.');
-    }
-    
-    console.log('[ACTIONS.TS SIGNIN] Sign-in successful, redirecting to:', returnUrl || '/dashboard');
-    return { success: true, redirectTo: returnUrl || '/dashboard' };
-
-  } catch (e: any) {
-    console.error('[ACTIONS.TS SIGNIN] Caught an unexpected error:', e);
-    let errorMessage = 'An unexpected error occurred during sign-in.';
-    if (e instanceof Error) {
-      errorMessage = e.message;
-    } else if (typeof e === 'string') {
-      errorMessage = e;
-    }
-    return { message: errorMessage };
+  if (error) {
+    console.error('[ACTIONS.TS SIGNIN] Supabase auth error:', error);
+    return { message: error.message || 'Could not authenticate user (Supabase error)' };
   }
+
+  if (!data.user && !data.session) {
+      console.warn('[ACTIONS.TS SIGNIN] Signed in successfully according to Supabase, but no user or session data returned. This might indicate an issue.');
+  }
+  
+  console.log('[ACTIONS.TS SIGNIN] Sign-in successful. Session should be set. Redirecting server-side to:', returnUrl || '/dashboard');
+  
+  redirect(returnUrl || '/dashboard');
 }
 
 export async function signUp(prevState: any, formData: FormData) {
@@ -74,7 +63,7 @@ export async function signUp(prevState: any, formData: FormData) {
     email,
     password,
     options: {
-      emailRedirectTo: `${origin}/auth/callback?returnUrl=${returnUrl}`,
+      emailRedirectTo: `${origin}/auth/callback?returnUrl=${encodeURIComponent(returnUrl || '/dashboard')}`,
     },
   });
 
@@ -82,21 +71,31 @@ export async function signUp(prevState: any, formData: FormData) {
     return { message: error.message || 'Could not create account' };
   }
 
-  // Try to sign in immediately
-  const { error: signInError } = await supabase.auth.signInWithPassword({
+  const { error: signInError, data: signInData } = await supabase.auth.signInWithPassword({
     email,
     password,
   });
 
   if (signInError) {
+    console.warn('[ACTIONS.TS SIGNUP] Immediate sign-in after signup failed. User needs to verify email.', signInError);
     return {
+      success: false,
       message:
         'Account created! Check your email to confirm your registration.',
     };
   }
 
-  // Use client-side navigation instead of server-side redirect
-  return { success: true, redirectTo: returnUrl || '/dashboard' };
+  if (!signInData.user && !signInData.session) {
+    console.warn('[ACTIONS.TS SIGNUP] Immediate sign-in after signup successful, but no user/session data. User likely needs to verify email.');
+    return {
+      success: false,
+      message:
+        'Account created! Check your email to confirm your registration and complete sign-in.',
+    };
+  }
+
+  console.log('[ACTIONS.TS SIGNUP] SignUp and immediate sign-in successful. Redirecting server-side to:', returnUrl || '/dashboard');
+  redirect(returnUrl || '/dashboard');
 }
 
 export async function forgotPassword(prevState: any, formData: FormData) {
