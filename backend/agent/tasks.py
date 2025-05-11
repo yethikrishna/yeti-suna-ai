@@ -291,7 +291,8 @@ try:
     logger.info(f"Attempting to download NLTK 'punkt' model if not present...")
     try:
         nltk.data.find('tokenizers/punkt')
-    except nltk.downloader.DownloadError:
+    except LookupError: # Changed from nltk.downloader.DownloadError
+        logger.info(f"NLTK 'punkt' model not found. Downloading...")
         nltk.download('punkt', quiet=True)
     logger.info(f"NLTK 'punkt' model should be available.")
     

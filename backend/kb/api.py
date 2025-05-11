@@ -6,8 +6,13 @@ import uuid
 from datetime import datetime, timezone
 from typing import List, Optional
 
-from services.supabase import get_supabase_client, SupabaseClient
+# MODIFIED IMPORTS for Supabase
+from services.supabase import DBConnection 
+from supabase import AsyncClient as SupabaseAsyncClient # Aliased to avoid conflict if SupabaseClient was used elsewhere
+# END MODIFIED IMPORTS
+
 from utils.auth_utils import get_current_user_id_from_jwt # Assuming you have this
+from utils.logger import logger # ADDED LOGGER IMPORT
 from agent.tasks import process_kb_document_task # Import the actual task
 from celery_app import celery_app # Assuming your celery app instance is here
 
@@ -58,11 +63,17 @@ ALLOWED_KB_MIME_TYPES = [
 MAX_FILE_SIZE_MB = 25 # Max 25MB for example
 MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
 
+# NEW Dependency function for Supabase client
+async def get_db_client() -> SupabaseAsyncClient:
+    db_conn = DBConnection()
+    return await db_conn.client
+# END NEW Dependency function
+
 @router.post("/projects/{project_id}/documents", response_model=KBUpdateResponse)
 async def upload_kb_document(
     project_id: uuid.UUID,
     file: UploadFile = File(...),
-    db: SupabaseClient = Depends(get_supabase_client),
+    db: SupabaseAsyncClient = Depends(get_db_client),
     user_id: str = Depends(get_current_user_id_from_jwt)
 ):
     """
@@ -174,7 +185,7 @@ async def upload_kb_document(
 @router.get("/projects/{project_id}/documents", response_model=List[KBDocumentDisplay])
 async def list_kb_documents(
     project_id: uuid.UUID,
-    db: SupabaseClient = Depends(get_supabase_client),
+    db: SupabaseAsyncClient = Depends(get_db_client),
     user_id: str = Depends(get_current_user_id_from_jwt) # RLS will be enforced by Supabase policies
 ):
     """
@@ -211,7 +222,7 @@ async def list_kb_documents(
 async def delete_kb_document(
     project_id: uuid.UUID,
     document_id: uuid.UUID,
-    db: SupabaseClient = Depends(get_supabase_client),
+    db: SupabaseAsyncClient = Depends(get_db_client),
     user_id: str = Depends(get_current_user_id_from_jwt) # RLS enforcement
 ):
     """
@@ -283,7 +294,7 @@ async def delete_kb_document(
 async def add_kb_url(
     project_id: uuid.UUID,
     payload: AddUrlRequest,
-    db: SupabaseClient = Depends(get_supabase_client),
+    db: SupabaseAsyncClient = Depends(get_db_client),
     user_id: str = Depends(get_current_user_id_from_jwt)
 ):
     """
