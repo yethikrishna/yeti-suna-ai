@@ -107,48 +107,56 @@ export function useGlobalAgentNotifications() {
           // relying on RLS to only send relevant updates.
         },
         async (payload) => {
-          // When event is 'UPDATE', payload.new and payload.old are available.
-          const oldRun = payload.old as Partial<AgentRun>; // Old data can be partial for UPDATE
-          const newRun = payload.new as AgentRun; // New data should conform to AgentRun
+          if (payload.eventType === 'UPDATE') {
+            // All'interno di questo blocco, payload è effettivamente RealtimePostgresUpdatePayload<AgentRun>
+            // TypeScript potrebbe non inferirlo automaticamente, quindi le conversioni esplicite sono ancora utili.
 
-          if (!newRun?.id || !newRun?.status || !oldRun?.status) {
-            console.warn('[GlobalNotifications] Insufficient data in payload:', payload);
+            const oldRun = payload.old as Partial<AgentRun>; // Per UPDATE, .old è Partial<T>
+            const newRun = payload.new as unknown as AgentRun; // Per UPDATE, .new è T - con doppia asserzione
+
+            if (!newRun?.id || !newRun?.status || !oldRun?.status) {
+              console.warn('[GlobalNotifications] Insufficient data in payload for UPDATE:', payload);
+              return;
+            }
+
+            const wasActive = !activeTerminalStates.includes(oldRun.status);
+            const isNowTerminal = activeTerminalStates.includes(newRun.status);
+
+            if (wasActive && isNowTerminal && !notifiedRunIds.has(newRun.id)) {
+              setNotifiedRunIds((prev) => new Set(prev).add(newRun.id));
+
+              const taskContext = await getAgentRunContext(supabase, newRun.thread_id);
+              let toastMessage = '';
+              let osNotificationTitle = '';
+              let osNotificationBody = '';
+
+              if (newRun.status === 'completed') {
+                toastMessage = `${taskContext} completed successfully.`;
+                osNotificationTitle = 'Task Completed';
+                osNotificationBody = `${taskContext} has finished successfully.`;
+                toast.success(toastMessage);
+              } else if (newRun.status === 'failed' || newRun.status === 'error') {
+                toastMessage = `${taskContext} failed. ${newRun.error || ''}`;
+                osNotificationTitle = 'Task Failed';
+                osNotificationBody = `${taskContext} failed. ${newRun.error || ''}`;
+                toast.error(toastMessage);
+              } else if (newRun.status === 'stopped' || newRun.status === 'cancelled') {
+                toastMessage = `${taskContext} was stopped or cancelled.`;
+                osNotificationTitle = 'Task Stopped/Cancelled';
+                osNotificationBody = `${taskContext} was stopped or cancelled.`;
+                toast.info(toastMessage);
+              }
+
+              // Show OS notification if a relevant title was set
+              if (osNotificationTitle) {
+                showOSNotification(osNotificationTitle, { body: osNotificationBody });
+                // playNotificationSound(); // Sound is now played by showOSNotification upon success
+              }
+            }
+          } else {
+            // Questo non dovrebbe accadere data la sottoscrizione
+            console.warn('[GlobalNotifications] Received non-UPDATE event:', payload);
             return;
-          }
-
-          const wasActive = !activeTerminalStates.includes(oldRun.status);
-          const isNowTerminal = activeTerminalStates.includes(newRun.status);
-
-          if (wasActive && isNowTerminal && !notifiedRunIds.has(newRun.id)) {
-            setNotifiedRunIds((prev) => new Set(prev).add(newRun.id));
-
-            const taskContext = await getAgentRunContext(supabase, newRun.thread_id);
-            let toastMessage = '';
-            let osNotificationTitle = '';
-            let osNotificationBody = '';
-
-            if (newRun.status === 'completed') {
-              toastMessage = `${taskContext} completed successfully.`;
-              osNotificationTitle = 'Task Completed';
-              osNotificationBody = `${taskContext} has finished successfully.`;
-              toast.success(toastMessage);
-            } else if (newRun.status === 'failed' || newRun.status === 'error') {
-              toastMessage = `${taskContext} failed. ${newRun.error || ''}`;
-              osNotificationTitle = 'Task Failed';
-              osNotificationBody = `${taskContext} failed. ${newRun.error || ''}`;
-              toast.error(toastMessage);
-            } else if (newRun.status === 'stopped' || newRun.status === 'cancelled') {
-              toastMessage = `${taskContext} was stopped or cancelled.`;
-              osNotificationTitle = 'Task Stopped/Cancelled';
-              osNotificationBody = `${taskContext} was stopped or cancelled.`;
-              toast.info(toastMessage);
-            }
-
-            // Show OS notification if a relevant title was set
-            if (osNotificationTitle) {
-              showOSNotification(osNotificationTitle, { body: osNotificationBody });
-              // playNotificationSound(); // Sound is now played by showOSNotification upon success
-            }
           }
         }
       )
