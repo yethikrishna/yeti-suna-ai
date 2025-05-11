@@ -28,5 +28,9 @@ RUN npm run build
 
 EXPOSE 3000
 
-# Default command is dev, but can be overridden in docker-compose
-CMD ["npm", "start"]
+# Copy the start script and make it executable
+COPY start.sh ./
+RUN chmod +x ./start.sh
+
+# Use the custom start script to handle both standalone and regular mode
+CMD ["./start.sh"]

@@ -6,6 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "start:standalone": "node .next/standalone/server.js",
+    "start:auto": "bash ./start.sh",
     "lint": "next lint"
   },
   "dependencies": {
