@@ -24,9 +24,9 @@ export const validateSession = async (request: NextRequest) => {
       },
     });
 
-    console.log('!!!!!!!!!! [MIDDLEWARE.TS] CREATING SUPABASE CLIENT WITH URL:', 'http://kong:8000', 'AND KEY:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+    console.log('!!!!!!!!!! [MIDDLEWARE.TS] CREATING SUPABASE CLIENT WITH URL:', process.env.NEXT_PUBLIC_SUPABASE_URL!, 'AND KEY:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
     const supabase = createServerClient(
-      'http://kong:8000',
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
