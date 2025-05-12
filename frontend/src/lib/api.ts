@@ -375,16 +375,21 @@ export const deleteProject = async (projectId: string): Promise<void> => {
 
 // Thread APIs
 export const getThreads = async (projectId?: string): Promise<Thread[]> => {
+  // MODIFIED: In self-hosted mode without auth, cannot reliably get user-specific threads via Supabase RLS.
+  // Returning empty array. If threads associated with dummy_user_id are needed,
+  // a dedicated backend endpoint would be required.
+  console.log('[API] getThreads called in self-hosted mode, returning empty array.');
+  return [];
+
+  /* Original code using Supabase client removed:
   const supabase = createClient();
 
-  // Get the current user's ID to filter threads
   const { data: userData, error: userError } = await supabase.auth.getUser();
   if (userError) {
     console.error('Error getting current user:', userError);
     return [];
   }
 
-  // If no user is logged in, return an empty array
   if (!userData.user) {
     console.log('[API] No user logged in, returning empty threads array');
     return [];
@@ -392,7 +397,6 @@ export const getThreads = async (projectId?: string): Promise<Thread[]> => {
 
   let query = supabase.from('threads').select('*');
 
-  // Always filter by the current user's account ID
   query = query.eq('account_id', userData.user.id);
 
   if (projectId) {
@@ -409,7 +413,6 @@ export const getThreads = async (projectId?: string): Promise<Thread[]> => {
 
   console.log('[API] Raw threads from DB:', data?.length, data);
 
-  // Map database fields to ensure consistency with our Thread type
   const mappedThreads: Thread[] = (data || []).map((thread) => ({
     thread_id: thread.thread_id,
     account_id: thread.account_id,
@@ -419,9 +422,37 @@ export const getThreads = async (projectId?: string): Promise<Thread[]> => {
   }));
 
   return mappedThreads;
+  */
 };
 
 export const getThread = async (threadId: string): Promise<Thread> => {
+  // MODIFIED: Use fetch instead of Supabase client
+  try {
+    console.log(`[API] Getting thread ${threadId}`);
+    const response = await fetch(`${API_URL}/threads/${threadId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': 'Bearer dummy_self_host_token',
+      },
+      cache: 'no-store',
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Failed to get thread, unknown error' }));
+      console.error('Error getting thread:', response.status, errorData);
+      // It might be better to throw here if a thread is essential for a page
+      // For now, let's allow the page to handle a null-like or error state.
+      throw new Error(errorData.message || `Failed to get thread: ${response.statusText}`);
+    }
+    const thread: Thread = await response.json();
+    console.log('[API] Thread fetched successfully:', thread);
+    return thread;
+  } catch (error) {
+    console.error(`Error fetching thread ${threadId}:`, error);
+    throw error; // Re-throw to be handled by the calling component
+  }
+
+  /* Original code using Supabase client removed:
   const supabase = createClient();
   const { data, error } = await supabase
     .from('threads')
@@ -432,6 +463,7 @@ export const getThread = async (threadId: string): Promise<Thread> => {
   if (error) throw error;
 
   return data;
+  */
 };
 
 export const createThread = async (projectId: string): Promise<Thread> => {
@@ -490,6 +522,37 @@ export const addUserMessage = async (
 };
 
 export const getMessages = async (threadId: string): Promise<Message[]> => {
+  // MODIFIED: Use fetch instead of Supabase client
+  try {
+    console.log(`[API] Getting messages for thread ${threadId}`);
+    const response = await fetch(`${API_URL}/threads/${threadId}/messages`, {
+      method: 'GET',
+      headers: {
+        // Backend should allow fetching messages with dummy token
+        'Authorization': 'Bearer dummy_self_host_token',
+      },
+      cache: 'no-store', // Ensure fresh data
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Failed to get messages, unknown error' }));
+      console.error('Error getting messages:', response.status, errorData);
+      // Return empty array on error to prevent UI crash
+      return [];
+      // throw new Error(errorData.message || `Failed to get messages: ${response.statusText}`);
+    }
+    const messages: Message[] = await response.json();
+    console.log('[API] Messages fetched successfully:', messages.length);
+    return messages;
+
+  } catch (error) {
+     console.error('Error in getMessages:', error);
+     // Return empty array on error
+     return [];
+     // throw new Error(`Error getting messages: ${error instanceof Error ? error.message : String(error)}`);
+  }
+
+  /* Original code using Supabase client removed:
   const supabase = createClient();
 
   const { data, error } = await supabase
@@ -508,6 +571,7 @@ export const getMessages = async (threadId: string): Promise<Message[]> => {
   console.log('[API] Messages fetched:', data);
 
   return data || [];
+  */
 };
 
 // Agent APIs
@@ -591,98 +655,90 @@ export const stopAgent = async (agentRunId: string): Promise<void> => {
 export const getAgentStatus = async (agentRunId: string): Promise<AgentRun> => {
   console.log(`[API] Requesting agent status for ${agentRunId}`);
 
-  // If we already know this agent is not running, throw an error
   if (nonRunningAgentRuns.has(agentRunId)) {
-    console.log(
-      `[API] Agent run ${agentRunId} is known to be non-running, returning error`,
-    );
-    throw new Error(`Agent run ${agentRunId} is not running`);
+    console.log(`[API] Agent run ${agentRunId} is known to be non-running, returning error status.`);
+    // Return an error-like AgentRun object instead of throwing
+    return {
+      id: agentRunId,
+      thread_id: '', // Or try to get from context if available
+      status: 'error',
+      started_at: new Date().toISOString(),
+      completed_at: new Date().toISOString(),
+      responses: [],
+      error: `Agent run ${agentRunId} is not running (cached status).`,
+    };
   }
 
   try {
-    const supabase = createClient();
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-
-    if (!session?.access_token) {
-      console.error('[API] No access token available for getAgentStatus');
-      throw new Error('No access token available');
-    }
-
-    const url = `${API_URL}/agent-run/${agentRunId}`;
-    console.log(`[API] Fetching from: ${url}`);
-
-    const response = await fetch(url, {
+    console.log(`[API] Fetching agent status from: ${API_URL}/agent-run/${agentRunId}`);
+    const response = await fetch(`${API_URL}/agent-run/${agentRunId}`, {
       headers: {
-        Authorization: `Bearer ${session.access_token}`,
+        'Authorization': 'Bearer dummy_self_host_token',
       },
-      // Add cache: 'no-store' to prevent caching
       cache: 'no-store',
     });
 
     if (!response.ok) {
-      const errorText = await response
-        .text()
-        .catch(() => 'No error details available');
-      console.error(
-        `[API] Error getting agent status: ${response.status} ${response.statusText}`,
-        errorText,
-      );
-
-      // If we get a 404, add to non-running set
+      const errorText = await response.text().catch(() => 'No error details available');
+      console.error(`[API] Error getting agent status: ${response.status} ${response.statusText}`, errorText);
       if (response.status === 404) {
         nonRunningAgentRuns.add(agentRunId);
       }
-
-      throw new Error(
-        `Error getting agent status: ${response.statusText} (${response.status})`,
-      );
+      // Return an error-like AgentRun object
+      return {
+        id: agentRunId,
+        thread_id: '',
+        status: 'error',
+        started_at: new Date().toISOString(),
+        completed_at: new Date().toISOString(),
+        responses: [],
+        error: `Error getting agent status: ${response.statusText} (${response.status}) - ${errorText}`,
+      };
     }
 
-    const data = await response.json();
+    const data: AgentRun = await response.json();
     console.log(`[API] Successfully got agent status:`, data);
-
-    // If agent is not running, add to non-running set
     if (data.status !== 'running') {
       nonRunningAgentRuns.add(agentRunId);
     }
-
     return data;
   } catch (error) {
     console.error('[API] Failed to get agent status:', error);
-    throw error;
+    return {
+      id: agentRunId,
+      thread_id: '',
+      status: 'error',
+      started_at: new Date().toISOString(),
+      completed_at: new Date().toISOString(),
+      responses: [],
+      error: `Failed to get agent status: ${error instanceof Error ? error.message : String(error)}`,
+    };
   }
 };
 
 export const getAgentRuns = async (threadId: string): Promise<AgentRun[]> => {
   try {
-    const supabase = createClient();
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-
-    if (!session?.access_token) {
-      throw new Error('No access token available');
-    }
-
-    const response = await fetch(`${API_URL}/thread/${threadId}/agent-runs`, {
+    console.log(`[API] Fetching agent runs for thread ${threadId}`);
+    const response = await fetch(`${API_URL}/threads/${threadId}/agent-runs`, { // Corrected endpoint based on backend
       headers: {
-        Authorization: `Bearer ${session.access_token}`,
+        'Authorization': 'Bearer dummy_self_host_token',
       },
-      // Add cache: 'no-store' to prevent caching
       cache: 'no-store',
     });
 
     if (!response.ok) {
-      throw new Error(`Error getting agent runs: ${response.statusText}`);
+      const errorData = await response.json().catch(() => ({ message: 'Failed to get agent runs, unknown error' }));
+      console.error('Error getting agent runs:', response.status, errorData);
+      return []; // Return empty on error
+      // throw new Error(errorData.message || `Failed to get agent runs: ${response.statusText}`);
     }
-
     const data = await response.json();
+    console.log('[API] Agent runs fetched successfully:', data.agent_runs?.length);
     return data.agent_runs || [];
   } catch (error) {
     console.error('Failed to get agent runs:', error);
-    throw error;
+    return []; // Return empty on error
+    // throw new Error(`Failed to get agent runs: ${error instanceof Error ? error.message : String(error)}`);
   }
 };
 
@@ -760,22 +816,13 @@ export const streamAgent = (
         return;
       }
 
-      const supabase = createClient();
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (!session?.access_token) {
-        console.error('[STREAM] No auth token available');
-        callbacks.onError(new Error('Authentication required'));
-        callbacks.onClose();
-        return;
-      }
+      // Use a dummy token for self-hosted mode
+      const dummyToken = 'dummy_self_host_token';
 
       const url = new URL(`${API_URL}/agent-run/${agentRunId}/stream`);
-      url.searchParams.append('token', session.access_token);
+      url.searchParams.append('token', dummyToken); // Pass dummy token as URL param
 
-      console.log(`[STREAM] Creating EventSource for ${agentRunId}`);
+      console.log(`[STREAM] Creating EventSource for ${agentRunId} with dummy token`);
       const eventSource = new EventSource(url.toString());
 
       // Store the EventSource in the active streams map

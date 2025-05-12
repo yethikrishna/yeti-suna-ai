@@ -4,7 +4,6 @@ import React, { forwardRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Paperclip, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { createClient } from '@/lib/supabase/client';
 import {
   Tooltip,
   TooltipContent,
@@ -65,19 +64,23 @@ const uploadFiles = async (
       const uploadPath = `/workspace/${file.name}`;
       formData.append('path', uploadPath);
 
-      const supabase = createClient();
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      // const supabase = createClient(); // Commented out Supabase client creation
+      // const {
+      //   data: { session },
+      // } = await supabase.auth.getSession(); // Commented out session retrieval
 
-      if (!session?.access_token) {
-        throw new Error('No access token available');
-      }
+      // if (!session?.access_token) {
+      //   throw new Error('No access token available');
+      // }
+
+      // Use DUMMY_SUPABASE_TOKEN directly
+      const token = 'DUMMY_SUPABASE_TOKEN';
 
       const response = await fetch(`${API_URL}/sandboxes/${sandboxId}/files`, {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${session.access_token}`,
+          // Authorization: `Bearer ${session.access_token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: formData,
       });

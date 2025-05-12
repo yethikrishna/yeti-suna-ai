@@ -3,11 +3,14 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { Menu } from 'lucide-react';
-
-import { NavAgents } from '@/components/sidebar/nav-agents';
-import { NavUserWithTeams } from '@/components/sidebar/nav-user-with-teams';
-import { KortixLogo } from '@/components/sidebar/kortix-logo';
-import { CTACard } from '@/components/sidebar/cta';
+import { useAuth } from '@/components/AuthProvider';
+import { useEffect } from 'react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { useIsMobile } from '@/hooks/use-mobile';
 import {
   Sidebar,
   SidebarContent,
@@ -17,61 +20,24 @@ import {
   SidebarTrigger,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { NavAgents } from '@/components/sidebar/nav-agents';
+import { NavUserWithTeams } from '@/components/sidebar/nav-user-with-teams';
+import { KortixLogo } from '@/components/sidebar/kortix-logo';
+import { CTACard } from '@/components/sidebar/cta';
 
 export function SidebarLeft({
   ...props
 }: React.ComponentProps<typeof Sidebar>) {
   const { state, setOpen, setOpenMobile } = useSidebar();
   const isMobile = useIsMobile();
-  const [user, setUser] = useState<{
-    name: string;
-    email: string;
-    avatar: string;
-  }>({
-    name: 'Loading...',
-    email: 'loading@example.com',
-    avatar: '',
-  });
-
-  // Fetch user data
-  useEffect(() => {
-    const fetchUserData = async () => {
-      const supabase = createClient();
-      const { data } = await supabase.auth.getUser();
-
-      if (data.user) {
-        setUser({
-          name:
-            data.user.user_metadata?.name ||
-            data.user.email?.split('@')[0] ||
-            'User',
-          email: data.user.email || '',
-          avatar: data.user.user_metadata?.avatar_url || '',
-        });
-      }
-    };
-
-    fetchUserData();
-  }, []);
+  const { user } = useAuth();
 
   // Handle keyboard shortcuts (CMD+B) for consistency
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key === 'b') {
         event.preventDefault();
-        // We'll handle this in the parent page component
-        // to ensure proper coordination between panels
         setOpen(!state.startsWith('expanded'));
-
-        // Broadcast a custom event to notify other components
         window.dispatchEvent(
           new CustomEvent('sidebar-left-toggled', {
             detail: { expanded: !state.startsWith('expanded') },

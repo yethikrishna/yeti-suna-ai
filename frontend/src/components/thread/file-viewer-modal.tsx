@@ -8,7 +8,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
 import {
   File,
   Folder,
@@ -379,57 +378,6 @@ export function FileViewerModal({
       }
     };
   }, [rawContent, selectedFilePath]); // Re-run when rawContent or selectedFilePath changes
-
-  // Handle file download - Define after helpers
-  const handleDownload = useCallback(async () => {
-    if (!selectedFilePath || isDownloading) return;
-
-    setIsDownloading(true);
-
-    try {
-      // Use cached content if available
-      if (rawContent) {
-        const blob =
-          rawContent instanceof Blob
-            ? rawContent
-            : new Blob([rawContent], { type: 'text/plain' });
-
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = selectedFilePath.split('/').pop() || 'file';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url); // Clean up the URL
-
-        toast.success('File downloaded');
-      } else {
-        // Fetch directly if not cached
-        const content = await getSandboxFileContent(
-          sandboxId,
-          selectedFilePath,
-        );
-        const blob =
-          content instanceof Blob ? content : new Blob([String(content)]);
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = selectedFilePath.split('/').pop() || 'file';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url); // Clean up the URL
-
-        toast.success('File downloaded');
-      }
-    } catch (error) {
-      console.error('Download failed:', error);
-      toast.error('Failed to download file');
-    } finally {
-      setIsDownloading(false);
-    }
-  }, [selectedFilePath, isDownloading, rawContent, sandboxId]);
 
   // Handle file upload - Define after helpers
   const handleUpload = useCallback(() => {
@@ -827,16 +775,6 @@ export function FileViewerModal({
 
         {/* Navigation Bar */}
         <div className="px-4 py-2 border-b flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={navigateHome}
-            className="h-8 w-8"
-            title="Go to home directory"
-          >
-            <Home className="h-4 w-4" />
-          </Button>
-
           <div className="flex items-center overflow-x-auto flex-1 min-w-0 scrollbar-hide whitespace-nowrap">
             <Button
               variant="ghost"
@@ -880,7 +818,7 @@ export function FileViewerModal({
           <div className="flex items-center gap-2 flex-shrink-0">
             {selectedFilePath && (
               <>
-                <Button
+                {/* <Button
                   variant="outline"
                   size="sm"
                   onClick={handleDownload}
@@ -893,7 +831,7 @@ export function FileViewerModal({
                     <Download className="h-4 w-4" />
                   )}
                   <span className="hidden sm:inline">Download</span>
-                </Button>
+                </Button> */}
 
                 {/* Replace the Export as PDF button with a dropdown */}
                 {isMarkdownFile(selectedFilePath) && (

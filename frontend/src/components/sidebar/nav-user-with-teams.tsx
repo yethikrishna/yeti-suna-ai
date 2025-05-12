@@ -13,13 +13,14 @@ import {
   LogOut,
   Plus,
   Settings,
-  User,
+  User as UserIcon,
   AudioWaveform,
   Sun,
   Moon,
 } from 'lucide-react';
 import { useAccounts } from '@/hooks/use-accounts';
 import NewTeamForm from '@/components/basejump/new-team-form';
+import { User } from '@supabase/supabase-js';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -46,18 +47,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { createClient } from '@/lib/supabase/client';
 import { useTheme } from 'next-themes';
 
-export function NavUserWithTeams({
-  user,
-}: {
-  user: {
-    name: string;
-    email: string;
-    avatar: string;
-  };
-}) {
+export function NavUserWithTeams({ user }: { user: User | null }) {
   const router = useRouter();
   const { isMobile } = useSidebar();
   const { data: accounts } = useAccounts();
@@ -127,22 +119,34 @@ export function NavUserWithTeams({
     }
   }, [accounts, activeTeam.account_id]);
 
+  // Usa i dati dell'utente fittizio se user è null inizialmente
+  const displayName = user?.user_metadata?.name || user?.email?.split('@')[0] || 'User';
+  const displayEmail = user?.email || 'dummy@example.com';
+  const displayAvatar = user?.user_metadata?.avatar_url || '';
+
   // Handle team selection
   const handleTeamSelect = (team) => {
     setActiveTeam(team);
 
     // Navigate to the appropriate dashboard
     if (team.personal_account) {
+      // Assumendo che la dashboard personale sia sempre alla radice /dashboard
       router.push('/dashboard');
+    } else if (team.slug) {
+      // Usa lo slug per le dashboard dei team
+      router.push(`/${team.slug}/dashboard`); // O solo `/${team.slug}` se la struttura è diversa
     } else {
-      router.push(`/${team.slug}`);
+      console.warn('Team selected has no slug, staying put.');
     }
   };
 
+  // Modifico handleLogout per modalità self-hosted
   const handleLogout = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push('/auth');
+    console.log("Logout attempt in self-hosted mode (no-op)");
+    // Non fa nulla, il pulsante sarà disabilitato
+    // const supabase = createClient(); 
+    // await supabase.auth.signOut();
+    // router.push('/auth');
   };
 
   const getInitials = (name: string) => {
@@ -163,20 +167,20 @@ export function NavUserWithTeams({
       <SidebarMenu>
         <SidebarMenuItem>
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+            <DropdownMenuTrigger asChild disabled={!user}>
               <SidebarMenuButton
                 size="lg"
                 className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
               >
                 <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage src={user.avatar} alt={user.name} />
+                  <AvatarImage src={displayAvatar} alt={displayName} />
                   <AvatarFallback className="rounded-lg">
-                    {getInitials(user.name)}
+                    {getInitials(displayName)}
                   </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">{user.name}</span>
-                  <span className="truncate text-xs">{user.email}</span>
+                  <span className="truncate font-medium">{displayName}</span>
+                  <span className="truncate text-xs">{displayEmail}</span>
                 </div>
                 <ChevronsUpDown className="ml-auto size-4" />
               </SidebarMenuButton>
@@ -190,14 +194,14 @@ export function NavUserWithTeams({
               <DropdownMenuLabel className="p-0 font-normal">
                 <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                   <Avatar className="h-8 w-8 rounded-lg">
-                    <AvatarImage src={user.avatar} alt={user.name} />
+                    <AvatarImage src={displayAvatar} alt={displayName} />
                     <AvatarFallback className="rounded-lg">
-                      {getInitials(user.name)}
+                      {getInitials(displayName)}
                     </AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-medium">{user.name}</span>
-                    <span className="truncate text-xs">{user.email}</span>
+                    <span className="truncate font-medium">{displayName}</span>
+                    <span className="truncate text-xs">{displayEmail}</span>
                   </div>
                 </div>
               </DropdownMenuLabel>
@@ -281,31 +285,33 @@ export function NavUserWithTeams({
               {/* User Settings Section */}
               <DropdownMenuGroup>
                 <DropdownMenuItem asChild>
-                  <Link href="/settings/billing">
-                    <CreditCard className="mr-2 h-4 w-4" />
+                  <Link href="/settings" className="gap-2">
+                    <Settings className="size-4 shrink-0" />
+                    Settings
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/settings/billing" className="gap-2">
+                    <CreditCard className="size-4 shrink-0" />
                     Billing
                   </Link>
                 </DropdownMenuItem>
-                {/* <DropdownMenuItem asChild>
-                  <Link href="/settings">
-                    <Settings className="mr-2 h-4 w-4" />
-                    Settings
-                  </Link>
-                </DropdownMenuItem> */}
-                <DropdownMenuItem
-                  onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-                >
-                  <div className="flex items-center gap-2">
-                    <Sun className="mr-2 h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                    <Moon className="absolute mr-2 h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-                    <span>Theme</span>
-                  </div>
-                </DropdownMenuItem>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout}>
-                <LogOut className="mr-2 h-4 w-4" />
-                Log out
+              {/* Theme Toggle */}
+              <DropdownMenuItem onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')} className="gap-2">
+                {theme === 'light' ? (
+                   <Moon className="size-4 shrink-0" />
+                 ) : (
+                   <Sun className="size-4 shrink-0" />
+                 )}
+                Toggle theme
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              {/* Logout Button - Disabilitato */}
+              <DropdownMenuItem onClick={handleLogout} disabled className="gap-2">
+                <LogOut className="size-4 shrink-0" />
+                Logout (Disabled)
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
