@@ -21,7 +21,6 @@ import {
   Info,
   ArrowUp,
 } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
@@ -357,21 +356,25 @@ export const ChatInput = forwardRef<ChatInputHandles, ChatInputProps>(
           const uploadPath = `/workspace/${file.name}`;
           formData.append('path', uploadPath);
 
-          const supabase = createClient();
-          const {
-            data: { session },
-          } = await supabase.auth.getSession();
+          // const supabase = createClient(); // Commenting out this client creation as it might cause issues
+          // const {
+          //   data: { session },
+          // } = await supabase.auth.getSession(); // Commented out session retrieval
 
-          if (!session?.access_token) {
-            throw new Error('No access token available');
-          }
+          // if (!session?.access_token) {
+          //   throw new Error('No access token available');
+          // }
+
+          // Use DUMMY_SUPABASE_TOKEN directly
+          const token = 'DUMMY_SUPABASE_TOKEN';
 
           const response = await fetch(
             `${API_URL}/sandboxes/${sandboxId}/files`,
             {
               method: 'POST',
               headers: {
-                Authorization: `Bearer ${session.access_token}`,
+                // Authorization: `Bearer ${session.access_token}`,
+                Authorization: `Bearer ${token}`,
               },
               body: formData,
             },

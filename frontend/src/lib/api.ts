@@ -192,18 +192,21 @@ export const getProject = async (projectId: string): Promise<Project> => {
       // Fire off sandbox activation without blocking
       const ensureSandboxActive = async () => {
         try {
-          const {
-            data: { session },
-          } = await supabase.auth.getSession();
+          // const {
+          //   data: { session },
+          // } = await supabase.auth.getSession(); // Removed session retrieval
 
           // For public projects, we don't need authentication
+          // For self-hosted, we always use the dummy token
+          const token = 'DUMMY_SUPABASE_TOKEN';
           const headers: Record<string, string> = {
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
           };
 
-          if (session?.access_token) {
-            headers['Authorization'] = `Bearer ${session.access_token}`;
-          }
+          // if (session?.access_token) { // Logic removed, always use dummy token
+          //   headers['Authorization'] = `Bearer ${session.access_token}`;
+          // }
 
           console.log(`Ensuring sandbox is active for project ${projectId}...`);
           const response = await fetch(
@@ -1549,20 +1552,23 @@ export const createPortalSession = async (
   request: CreatePortalSessionRequest,
 ): Promise<{ url: string }> => {
   try {
-    const supabase = createClient();
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
+    // const supabase = createClient(); // Removed
+    // const {
+    //   data: { session },
+    // } = await supabase.auth.getSession(); // Removed
 
-    if (!session?.access_token) {
-      throw new Error('No access token available');
-    }
+    // if (!session?.access_token) { // Removed
+    //   throw new Error('No access token available');
+    // }
+
+    const token = 'DUMMY_SUPABASE_TOKEN'; // Use dummy token
 
     const response = await fetch(`${API_URL}/billing/create-portal-session`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${session.access_token}`,
+        // Authorization: `Bearer ${session.access_token}`, // Removed
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(request),
     });
@@ -1634,13 +1640,14 @@ export interface KBUpdateResponse {
 }
 
 export const listKnowledgeBaseDocuments = async (projectId: string): Promise<KBDocument[]> => {
-  const supabase = createClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  const token = session?.access_token;
+  // const supabase = createClient(); // Removed
+  // const { data: { session } } = await supabase.auth.getSession(); // Removed
+  // const token = session?.access_token; // Removed
 
-  if (!token) {
-    throw new Error('User not authenticated');
-  }
+  // if (!token) { // Removed
+  //   throw new Error('User not authenticated');
+  // }
+  const token = 'DUMMY_SUPABASE_TOKEN'; // Use dummy token
 
   const response = await fetch(`${API_URL}/kb/projects/${projectId}/documents`, {
     method: 'GET',
@@ -1659,13 +1666,14 @@ export const listKnowledgeBaseDocuments = async (projectId: string): Promise<KBD
 };
 
 export const deleteKnowledgeBaseDocument = async (projectId: string, documentId: string): Promise<void> => {
-  const supabase = createClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  const token = session?.access_token;
+  // const supabase = createClient(); // Removed
+  // const { data: { session } } = await supabase.auth.getSession(); // Removed
+  // const token = session?.access_token; // Removed
 
-  if (!token) {
-    throw new Error('User not authenticated');
-  }
+  // if (!token) { // Removed
+  //   throw new Error('User not authenticated');
+  // }
+  const token = 'DUMMY_SUPABASE_TOKEN'; // Use dummy token
 
   const response = await fetch(`${API_URL}/kb/projects/${projectId}/documents/${documentId}`, {
     method: 'DELETE',
@@ -1687,13 +1695,14 @@ export const deleteKnowledgeBaseDocument = async (projectId: string, documentId:
 };
 
 export const uploadKnowledgeBaseDocument = async (projectId: string, file: File): Promise<KBUpdateResponse> => {
-  const supabase = createClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  const token = session?.access_token;
+  // const supabase = createClient(); // Removed
+  // const { data: { session } } = await supabase.auth.getSession(); // Removed
+  // const token = session?.access_token; // Removed
 
-  if (!token) {
-    throw new Error('User not authenticated');
-  }
+  // if (!token) { // Removed
+  //   throw new Error('User not authenticated');
+  // }
+  const token = 'DUMMY_SUPABASE_TOKEN'; // Use dummy token
 
   const formData = new FormData();
   formData.append('file', file);
