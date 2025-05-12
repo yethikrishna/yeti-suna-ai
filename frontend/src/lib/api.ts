@@ -100,29 +100,33 @@ export interface FileInfo {
 // Project APIs
 export const getProjects = async (): Promise<Project[]> => {
   try {
+    // MODIFIED: In self-hosted mode without auth, there are no user-specific projects
+    // to fetch via Supabase RLS in the standard way. Return empty array.
+    // Alternatively, we could fetch from a backend endpoint if one existed
+    // that listed projects accessible by the dummy_user_id, but that's not standard.
+    console.log('[API] getProjects called in self-hosted mode, returning empty array.');
+    return [];
+
+    /* Original code using Supabase client removed:
     const supabase = createClient();
 
-    // Get the current user's ID to filter projects
     const { data: userData, error: userError } = await supabase.auth.getUser();
     if (userError) {
       console.error('Error getting current user:', userError);
       return [];
     }
 
-    // If no user is logged in, return an empty array
     if (!userData.user) {
       console.log('[API] No user logged in, returning empty projects array');
       return [];
     }
 
-    // Query only projects where account_id matches the current user's ID
     const { data, error } = await supabase
       .from('projects')
       .select('*')
       .eq('account_id', userData.user.id);
 
     if (error) {
-      // Handle permission errors specifically
       if (
         error.code === '42501' &&
         error.message.includes('has_role_on_account')
@@ -130,14 +134,13 @@ export const getProjects = async (): Promise<Project[]> => {
         console.error(
           'Permission error: User does not have proper account access',
         );
-        return []; // Return empty array instead of throwing
+        return [];
       }
       throw error;
     }
 
     console.log('[API] Raw projects from DB:', data?.length, data);
 
-    // Map database fields to our Project type
     const mappedProjects: Project[] = (data || []).map((project) => ({
       id: project.project_id,
       name: project.name || '',
@@ -156,9 +159,10 @@ export const getProjects = async (): Promise<Project[]> => {
     console.log('[API] Mapped projects for frontend:', mappedProjects.length);
 
     return mappedProjects;
+    */
   } catch (err) {
+    // This catch block might now be unreachable unless the modified code throws.
     console.error('Error fetching projects:', err);
-    // Return empty array for permission errors to avoid crashing the UI
     return [];
   }
 };
@@ -257,43 +261,43 @@ export const getProject = async (projectId: string): Promise<Project> => {
 
 export const createProject = async (
   projectData: { name: string; description: string },
-  accountId?: string,
+  // accountId is no longer needed from frontend, backend will use dummy_user_id
 ): Promise<Project> => {
-  const supabase = createClient();
+  try {
+    console.log('[API] createProject called with data:', projectData);
+    const response = await fetch(`${API_URL}/projects`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        // Backend's get_current_user_id_from_jwt expects a Bearer token,
+        // even if it's a dummy one for self-hosted mode.
+        'Authorization': 'Bearer dummy_self_host_token',
+      },
+      body: JSON.stringify({
+        name: projectData.name,
+        description: projectData.description,
+        // account_id will be set by the backend based on dummy_user_id
+      }),
+    });
 
-  // If accountId is not provided, we'll need to get the user's ID
-  if (!accountId) {
-    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Failed to create project, unknown error' }));
+      console.error('Error creating project:', response.status, errorData);
+      // Check for billing-related errors specifically if they can occur here
+      if (response.status === 402) { // Payment Required (typical for billing errors)
+        throw new BillingError(response.status, errorData.detail || errorData, errorData.message);
+      }
+      throw new Error(errorData.message || `Failed to create project: ${response.statusText}`);
+    }
 
-    if (userError) throw userError;
-    if (!userData.user)
-      throw new Error('You must be logged in to create a project');
-
-    // In Basejump, the personal account ID is the same as the user ID
-    accountId = userData.user.id;
+    const createdProject: Project = await response.json();
+    console.log('[API] Project created successfully:', createdProject);
+    return createdProject;
+  } catch (error) {
+    console.error('Error in createProject:', error);
+    if (error instanceof BillingError) throw error; // Re-throw billing errors
+    throw new Error(`Error creating project: ${error instanceof Error ? error.message : String(error)}`);
   }
-
-  const { data, error } = await supabase
-    .from('projects')
-    .insert({
-      name: projectData.name,
-      description: projectData.description || null,
-      account_id: accountId,
-    })
-    .select()
-    .single();
-
-  if (error) throw error;
-
-  // Map the database response to our Project type
-  return {
-    id: data.project_id,
-    name: data.name,
-    description: data.description || '',
-    account_id: data.account_id,
-    created_at: data.created_at,
-    sandbox: { id: '', pass: '', vnc_preview: '' },
-  };
 };
 
 export const updateProject = async (
@@ -431,53 +435,57 @@ export const getThread = async (threadId: string): Promise<Thread> => {
 };
 
 export const createThread = async (projectId: string): Promise<Thread> => {
-  const supabase = createClient();
+  try {
+    console.log(`[API] Creating thread for project ${projectId}`);
+    const response = await fetch(`${API_URL}/projects/${projectId}/threads`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer dummy_self_host_token',
+      },
+      // No body needed for creating a thread, projectId is in URL
+    });
 
-  // If user is not logged in, redirect to login
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    throw new Error('You must be logged in to create a thread');
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Failed to create thread, unknown error' }));
+      console.error('Error creating thread:', response.status, errorData);
+      throw new Error(errorData.message || `Failed to create thread: ${response.statusText}`);
+    }
+
+    const createdThread: Thread = await response.json();
+    console.log('[API] Thread created successfully:', createdThread);
+    return createdThread;
+  } catch (error) {
+    console.error('Error in createThread:', error);
+    throw new Error(`Error creating thread: ${error instanceof Error ? error.message : String(error)}`);
   }
-
-  const { data, error } = await supabase
-    .from('threads')
-    .insert({
-      project_id: projectId,
-      account_id: user.id, // Use the current user's ID as the account ID
-    })
-    .select()
-    .single();
-
-  if (error) throw error;
-
-  return data;
 };
 
 export const addUserMessage = async (
   threadId: string,
   content: string,
 ): Promise<void> => {
-  const supabase = createClient();
+  try {
+    console.log(`[API] Adding user message to thread ${threadId}`);
+    const response = await fetch(`${API_URL}/threads/${threadId}/messages`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer dummy_self_host_token',
+      },
+      body: JSON.stringify({ role: 'user', content: content }),
+    });
 
-  // Format the message in the format the LLM expects - keep it simple with only required fields
-  const message = {
-    role: 'user',
-    content: content,
-  };
-
-  // Insert the message into the messages table
-  const { error } = await supabase.from('messages').insert({
-    thread_id: threadId,
-    type: 'user',
-    is_llm_message: true,
-    content: JSON.stringify(message),
-  });
-
-  if (error) {
-    console.error('Error adding user message:', error);
-    throw new Error(`Error adding message: ${error.message}`);
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Failed to add user message, unknown error' }));
+      console.error('Error adding user message:', response.status, errorData);
+      throw new Error(errorData.message || `Failed to add user message: ${response.statusText}`);
+    }
+    console.log('[API] User message added successfully.');
+    // No specific data to return for this endpoint
+  } catch (error) {
+    console.error('Error in addUserMessage:', error);
+    throw new Error(`Error adding user message: ${error instanceof Error ? error.message : String(error)}`);
   }
 };
 
@@ -509,102 +517,36 @@ export const startAgent = async (
     model_name?: string;
     enable_thinking?: boolean;
     reasoning_effort?: string;
-    stream?: boolean;
+    stream?: boolean; // Stream option is handled by streamAgent, but backend might accept it
   },
 ): Promise<{ agent_run_id: string }> => {
   try {
-    const supabase = createClient();
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-
-    if (!session?.access_token) {
-      throw new Error('No access token available');
-    }
-
-    // Check if backend URL is configured
-    if (!API_URL) {
-      throw new Error(
-        'Backend URL is not configured. Set NEXT_PUBLIC_BACKEND_URL in your environment.',
-      );
-    }
-
-    console.log(
-      `[API] Starting agent for thread ${threadId} using ${API_URL}/thread/${threadId}/agent/start`,
-    );
-
-    const response = await fetch(`${API_URL}/thread/${threadId}/agent/start`, {
+    console.log(`[API] Starting agent for thread ${threadId} with options:`, options);
+    const response = await fetch(`${API_URL}/threads/${threadId}/runs`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${session.access_token}`,
+        'Authorization': 'Bearer dummy_self_host_token',
       },
-      // Add cache: 'no-store' to prevent caching
-      cache: 'no-store',
-      // Add the body, stringifying the options or an empty object
-      body: JSON.stringify(options || {}),
+      body: JSON.stringify(options || {}), // Send options if provided
     });
 
     if (!response.ok) {
-      // Check for 402 Payment Required first
-      if (response.status === 402) {
-        try {
-          const errorData = await response.json();
-          console.error(`[API] Billing error starting agent (402):`, errorData);
-          // Ensure detail exists and has a message property
-          const detail = errorData?.detail || { message: 'Payment Required' };
-          if (typeof detail.message !== 'string') {
-            detail.message = 'Payment Required'; // Default message if missing
-          }
-          throw new BillingError(response.status, detail);
-        } catch (parseError) {
-          // Handle cases where parsing fails or the structure isn't as expected
-          console.error(
-            '[API] Could not parse 402 error response body:',
-            parseError,
-          );
-          throw new BillingError(
-            response.status,
-            { message: 'Payment Required' },
-            `Error starting agent: ${response.statusText} (402)`,
-          );
-        }
+       const errorData = await response.json().catch(() => ({ message: 'Failed to start agent, unknown error' }));
+       console.error('Error starting agent:', response.status, errorData);
+       if (response.status === 402) { // Check specifically for billing errors
+        throw new BillingError(response.status, errorData.detail || errorData, errorData.message);
       }
-
-      // Handle other errors
-      const errorText = await response
-        .text()
-        .catch(() => 'No error details available');
-      console.error(
-        `[API] Error starting agent: ${response.status} ${response.statusText}`,
-        errorText,
-      );
-      throw new Error(
-        `Error starting agent: ${response.statusText} (${response.status})`,
-      );
+      throw new Error(errorData.message || `Failed to start agent: ${response.statusText}`);
     }
 
-    return response.json();
+    const result: { agent_run_id: string } = await response.json();
+    console.log('[API] Agent started successfully:', result);
+    return result;
   } catch (error) {
-    // Rethrow BillingError instances directly
-    if (error instanceof BillingError) {
-      throw error;
-    }
-
-    console.error('[API] Failed to start agent:', error);
-
-    // Provide clearer error message for network errors
-    if (
-      error instanceof TypeError &&
-      error.message.includes('Failed to fetch')
-    ) {
-      throw new Error(
-        `Cannot connect to backend server. Please check your internet connection and make sure the backend is running.`,
-      );
-    }
-
-    // Rethrow other caught errors
-    throw error;
+    console.error('Error in startAgent:', error);
+    if (error instanceof BillingError) throw error; // Re-throw billing errors
+    throw new Error(`Error starting agent: ${error instanceof Error ? error.message : String(error)}`);
   }
 };
 
@@ -1375,65 +1317,34 @@ export const initiateAgent = async (
   formData: FormData,
 ): Promise<InitiateAgentResponse> => {
   try {
-    const supabase = createClient();
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-
-    if (!session?.access_token) {
-      throw new Error('No access token available');
-    }
-
-    // Check if backend URL is configured
-    if (!API_URL) {
-      throw new Error(
-        'Backend URL is not configured. Set NEXT_PUBLIC_BACKEND_URL in your environment.',
-      );
-    }
-
-    console.log(
-      `[API] Initiating agent with files using ${API_URL}/agent/initiate`,
-    );
+    console.log('[API] initiateAgent called with FormData:', Array.from(formData.entries()));
 
     const response = await fetch(`${API_URL}/agent/initiate`, {
       method: 'POST',
       headers: {
-        // Note: Don't set Content-Type for FormData
-        Authorization: `Bearer ${session.access_token}`,
+        // 'Content-Type' is set automatically for FormData by the browser
+        // Add the dummy Authorization header
+        'Authorization': 'Bearer dummy_self_host_token',
       },
       body: formData,
-      // Add cache: 'no-store' to prevent caching
-      cache: 'no-store',
     });
 
     if (!response.ok) {
-      const errorText = await response
-        .text()
-        .catch(() => 'No error details available');
-      console.error(
-        `[API] Error initiating agent: ${response.status} ${response.statusText}`,
-        errorText,
-      );
-      throw new Error(
-        `Error initiating agent: ${response.statusText} (${response.status})`,
-      );
+      const errorData = await response.json().catch(() => ({ message: 'Failed to initiate agent, unknown error' }));
+      console.error('Error initiating agent:', response.status, errorData);
+       if (response.status === 402) {
+        throw new BillingError(response.status, errorData.detail || errorData, errorData.message);
+      }
+      throw new Error(errorData.message || `Failed to initiate agent: ${response.statusText}`);
     }
 
-    return response.json();
+    const result: InitiateAgentResponse = await response.json();
+    console.log('[API] Agent initiated successfully:', result);
+    return result;
   } catch (error) {
-    console.error('[API] Failed to initiate agent:', error);
-
-    // Provide clearer error message for network errors
-    if (
-      error instanceof TypeError &&
-      error.message.includes('Failed to fetch')
-    ) {
-      throw new Error(
-        `Cannot connect to backend server. Please check your internet connection and make sure the backend is running.`,
-      );
-    }
-
-    throw error;
+    console.error('Error in initiateAgent:', error);
+    if (error instanceof BillingError) throw error;
+    throw new Error(`Error initiating agent: ${error instanceof Error ? error.message : String(error)}`);
   }
 };
 
@@ -1630,77 +1541,31 @@ export const createPortalSession = async (
 };
 
 export const getSubscription = async (): Promise<SubscriptionStatus> => {
-  try {
-    const supabase = createClient();
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-
-    if (!session?.access_token) {
-      throw new Error('No access token available');
-    }
-
-    const response = await fetch(`${API_URL}/billing/subscription`, {
-      headers: {
-        Authorization: `Bearer ${session.access_token}`,
-      },
-    });
-
-    if (!response.ok) {
-      const errorText = await response
-        .text()
-        .catch(() => 'No error details available');
-      console.error(
-        `Error getting subscription: ${response.status} ${response.statusText}`,
-        errorText,
-      );
-      throw new Error(
-        `Error getting subscription: ${response.statusText} (${response.status})`,
-      );
-    }
-
-    return response.json();
-  } catch (error) {
-    console.error('Failed to get subscription:', error);
-    throw error;
-  }
+  // MODIFIED: Return dummy data as billing is disabled for self-hosting
+  console.log('[API] getSubscription called, returning dummy non-billing data.');
+  return {
+    status: 'stripe_disabled', // Or 'no_subscription' or a custom status
+    plan_name: 'N/A (Self-hosted)',
+    price_id: 'self_hosted_free',
+    cancel_at_period_end: false,
+    minutes_limit: Infinity, // Or a very high number, or null/undefined
+    current_usage: 0,
+    has_schedule: false,
+  };
 };
 
 export const checkBillingStatus = async (): Promise<BillingStatusResponse> => {
-  try {
-    const supabase = createClient();
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-
-    if (!session?.access_token) {
-      throw new Error('No access token available');
-    }
-
-    const response = await fetch(`${API_URL}/billing/check-status`, {
-      headers: {
-        Authorization: `Bearer ${session.access_token}`,
-      },
-    });
-
-    if (!response.ok) {
-      const errorText = await response
-        .text()
-        .catch(() => 'No error details available');
-      console.error(
-        `Error checking billing status: ${response.status} ${response.statusText}`,
-        errorText,
-      );
-      throw new Error(
-        `Error checking billing status: ${response.statusText} (${response.status})`,
-      );
-    }
-
-    return response.json();
-  } catch (error) {
-    console.error('Failed to check billing status:', error);
-    throw error;
-  }
+  // MODIFIED: Return dummy data as billing is disabled for self-hosting
+  console.log('[API] checkBillingStatus called, returning dummy non-billing data.');
+  return {
+    can_run: true, // Always allow running in self-hosted mode without billing
+    message: 'Billing is disabled for self-hosted version.',
+    subscription: {
+      price_id: 'self_hosted_free',
+      plan_name: 'N/A (Self-hosted)',
+      // minutes_limit can be omitted if not applicable, or set to Infinity
+    },
+  };
 };
 
 // Knowledge Base APIs
