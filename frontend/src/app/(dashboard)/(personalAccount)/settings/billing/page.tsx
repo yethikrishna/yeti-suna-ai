@@ -9,6 +9,15 @@ export default async function PersonalAccountBillingPage() {
     'get_personal_account',
   );
 
+  if (!personalAccount || !personalAccount.account_id) {
+    return (
+      <div>
+        <h2>Gestione Fatturazione</h2>
+        <p>La gestione della fatturazione non è disponibile in questa modalità.</p>
+      </div>
+    );
+  }
+
   return (
     <div>
       <AccountBillingStatus

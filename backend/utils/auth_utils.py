@@ -8,6 +8,7 @@ from utils.logger import logger
 async def get_current_user_id_from_jwt(request: Request) -> str:
     """
     Extract and verify the user ID from the JWT in the Authorization header.
+    MODIFIED: Returns 'dummy_user_id' if no valid token is found.
     
     This function is used as a dependency in FastAPI routes to ensure the user
     is authenticated and to provide the user ID for authorization checks.
@@ -16,19 +17,22 @@ async def get_current_user_id_from_jwt(request: Request) -> str:
         request: The FastAPI request object
         
     Returns:
-        str: The user ID extracted from the JWT
+        str: The user ID extracted from the JWT or 'dummy_user_id'
         
     Raises:
-        HTTPException: If no valid token is found or if the token is invalid
+        HTTPException: If the token is invalid (but not if missing)
     """
     auth_header = request.headers.get('Authorization')
     
     if not auth_header or not auth_header.startswith('Bearer '):
-        raise HTTPException(
-            status_code=401,
-            detail="No valid authentication credentials found",
-            headers={"WWW-Authenticate": "Bearer"}
-        )
+        # Return dummy ID instead of raising error
+        logger.warning("No auth header found, returning dummy_user_id for backend API access.")
+        return "dummy_user_id" 
+        # raise HTTPException(
+        #     status_code=401,
+        #     detail="No valid authentication credentials found",
+        #     headers={"WWW-Authenticate": "Bearer"}
+        # )
     
     token = auth_header.split(' ')[1]
     
@@ -41,20 +45,26 @@ async def get_current_user_id_from_jwt(request: Request) -> str:
         user_id = payload.get('sub')
         
         if not user_id:
-            raise HTTPException(
-                status_code=401,
-                detail="Invalid token payload",
-                headers={"WWW-Authenticate": "Bearer"}
-            )
+            # Return dummy ID if payload is invalid (e.g., no 'sub')
+            logger.warning("Invalid token payload (no 'sub'), returning dummy_user_id.")
+            return "dummy_user_id"
+            # raise HTTPException(
+            #     status_code=401,
+            #     detail="Invalid token payload",
+            #     headers={"WWW-Authenticate": "Bearer"}
+            # )
         
         return user_id
         
     except PyJWTError:
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid token",
-            headers={"WWW-Authenticate": "Bearer"}
-        )
+        # Return dummy ID if token is generally invalid
+        logger.warning(f"Invalid JWT token format: {PyJWTError}, returning dummy_user_id.")
+        return "dummy_user_id"
+        # raise HTTPException(
+        #     status_code=401,
+        #     detail="Invalid token",
+        #     headers={"WWW-Authenticate": "Bearer"}
+        # )
 
 async def get_account_id_from_thread(client, thread_id: str) -> str:
     """
@@ -101,6 +111,8 @@ async def get_user_id_from_stream_auth(
 ) -> str:
     """
     Extract and verify the user ID from either the Authorization header or query parameter token.
+    MODIFIED: Returns 'dummy_user_id' if no valid token is found in either source.
+    
     This function is specifically designed for streaming endpoints that need to support both
     header-based and query parameter-based authentication (for EventSource compatibility).
     
@@ -109,11 +121,12 @@ async def get_user_id_from_stream_auth(
         token: Optional token from query parameters
         
     Returns:
-        str: The user ID extracted from the JWT
+        str: The user ID extracted from the JWT or 'dummy_user_id'
         
     Raises:
-        HTTPException: If no valid token is found or if the token is invalid
+        HTTPException: Only if there's an internal error, not for missing/invalid tokens.
     """
+    user_id = None
     # Try to get user_id from token in query param (for EventSource which can't set headers)
     if token:
         try:
@@ -122,8 +135,9 @@ async def get_user_id_from_stream_auth(
             user_id = payload.get('sub')
             if user_id:
                 return user_id
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"Error decoding query param token: {e}")
+            pass # Don't fail yet, try header next
     
     # If no valid token in query param, try to get it from the Authorization header
     auth_header = request.headers.get('Authorization')
@@ -135,15 +149,18 @@ async def get_user_id_from_stream_auth(
             user_id = payload.get('sub')
             if user_id:
                 return user_id
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"Error decoding header token: {e}")
+            pass # Don't fail yet, return dummy ID below
     
-    # If we still don't have a user_id, return authentication error
-    raise HTTPException(
-        status_code=401,
-        detail="No valid authentication credentials found",
-        headers={"WWW-Authenticate": "Bearer"}
-    )
+    # If we still don't have a user_id, return dummy ID instead of raising error
+    logger.warning("No valid token found in header or query param for stream, returning dummy_user_id.")
+    return "dummy_user_id"
+    # raise HTTPException(
+    #     status_code=401,
+    #     detail="No valid authentication credentials found",
+    #     headers={"WWW-Authenticate": "Bearer"}
+    # )
 
 async def verify_thread_access(client, thread_id: str, user_id: str):
     """
