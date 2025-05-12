@@ -53,15 +53,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     return () => clearInterval(interval);
   }, []);
 
-  // Check authentication status
-  useEffect(() => {
-    if (!isLoading && !user) {
-      router.push('/auth');
-    }
-  }, [user, isLoading, router]);
-
   // Show loading state while checking auth or health
-  if (isLoading || isCheckingHealth) {
+  if (isCheckingHealth) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -70,9 +63,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   }
 
   // Don't render anything if not authenticated
-  if (!user) {
-    return null;
-  }
+  // if (!user) {
+  //   return null;
+  // }
 
   // Show maintenance page if API is not healthy
   if (!isApiHealthy) {

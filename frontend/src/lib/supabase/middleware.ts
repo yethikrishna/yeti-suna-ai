@@ -81,13 +81,13 @@ export const validateSession = async (request: NextRequest) => {
 
     const protectedRoutes = ['/dashboard', '/invitation'];
 
-    if (
-      !user &&
-      protectedRoutes.some((path) => request.nextUrl.pathname.startsWith(path))
-    ) {
-      // redirect to /auth
-      return forceLoginWithReturn(request);
-    }
+    // if (
+    //   !user &&
+    //   protectedRoutes.some((path) => request.nextUrl.pathname.startsWith(path))
+    // ) {
+    //   // redirect to /auth
+    //   return forceLoginWithReturn(request);
+    // }
 
     return response;
   } catch (e) {

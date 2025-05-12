@@ -1,7 +1,13 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { validateSession } from '@/lib/supabase/middleware'; // Assumendo che @ sia src/
 
 export async function middleware(request: NextRequest) {
+  // Reindirizza dalla radice alla dashboard
+  if (request.nextUrl.pathname === '/') {
+    return NextResponse.redirect(new URL('/dashboard', request.url));
+  }
+
+  // Per tutte le altre rotte nel matcher, valida la sessione
   return await validateSession(request);
 }
 
