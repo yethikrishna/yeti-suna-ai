@@ -5,8 +5,7 @@ import { SidebarLeft } from '@/components/sidebar/sidebar-left';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 // import { PricingAlert } from "@/components/billing/pricing-alert"
 import { MaintenanceAlert } from '@/components/maintenance-alert';
-import { useAccounts } from '@/hooks/use-accounts';
-import { useAuth } from '@/components/AuthProvider';
+// import { useAccounts } from '@/hooks/use-accounts'; - REMOVED
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { checkApiHealth } from '@/lib/api';
@@ -23,9 +22,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [showMaintenanceAlert, setShowMaintenanceAlert] = useState(false);
   const [isApiHealthy, setIsApiHealthy] = useState(true);
   const [isCheckingHealth, setIsCheckingHealth] = useState(true);
-  const { data: accounts } = useAccounts();
-  const personalAccount = accounts?.find((account) => account.personal_account);
-  const { user, isLoading } = useAuth();
+  // const { data: accounts } = useAccounts(); - REMOVED
+  // const personalAccount = accounts?.find((account) => account.personal_account); - REMOVED
   const router = useRouter();
 
   useEffect(() => {

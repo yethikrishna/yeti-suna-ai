@@ -29,25 +29,6 @@ export const Highlight = ({
 
 export const BLUR_FADE_DELAY = 0.15;
 
-interface UpgradePlan {
-  hours: string;
-  price: string;
-  stripePriceId: string;
-}
-
-export interface PricingTier {
-  name: string;
-  price: string;
-  description: string;
-  buttonText: string;
-  buttonColor: string;
-  isPopular: boolean;
-  hours: string;
-  features: string[];
-  stripePriceId: string;
-  upgradePlans: UpgradePlan[];
-}
-
 export const siteConfig = {
   name: 'Kortix Suna',
   description: 'The Generalist AI Agent that can act on your behalf.',
@@ -103,79 +84,6 @@ export const siteConfig = {
       'Suna by Kortix – is a generalist AI Agent that acts on your behalf.',
     inputPlaceholder: 'Ask Suna to...',
   },
-  cloudPricingItems: [
-    {
-      name: 'Free',
-      price: '$0',
-      description: 'Get started with',
-      buttonText: 'Hire Suna',
-      buttonColor: 'bg-secondary text-white',
-      isPopular: false,
-      hours: '60 min',
-      features: ['Public Projects', 'Basic Model (Limited capabilities)'],
-      stripePriceId: config.SUBSCRIPTION_TIERS.FREE.priceId,
-      upgradePlans: [],
-    },
-    {
-      name: 'Pro',
-      price: '$20',
-      description: 'Everything in Free, plus:',
-      buttonText: 'Hire Suna',
-      buttonColor: 'bg-primary text-white dark:text-black',
-      isPopular: true,
-      hours: '2 hours',
-      features: [
-        '2 hours',
-        'Private projects',
-        'Access to intelligent Model (Full Suna)',
-      ],
-      stripePriceId: config.SUBSCRIPTION_TIERS.TIER_2_20.priceId,
-      upgradePlans: [],
-    },
-    {
-      name: 'Custom',
-      price: '$50',
-      description: 'Everything in Pro, plus:',
-      buttonText: 'Hire Suna',
-      buttonColor: 'bg-secondary text-white',
-      isPopular: false,
-      hours: '6 hours',
-      features: ['Suited to you needs'],
-      upgradePlans: [
-        {
-          hours: '6 hours',
-          price: '$50',
-          stripePriceId: config.SUBSCRIPTION_TIERS.TIER_6_50.priceId,
-        },
-        {
-          hours: '12 hours',
-          price: '$100',
-          stripePriceId: config.SUBSCRIPTION_TIERS.TIER_12_100.priceId,
-        },
-        {
-          hours: '25 hours',
-          price: '$200',
-          stripePriceId: config.SUBSCRIPTION_TIERS.TIER_25_200.priceId,
-        },
-        {
-          hours: '50 hours',
-          price: '$400',
-          stripePriceId: config.SUBSCRIPTION_TIERS.TIER_50_400.priceId,
-        },
-        {
-          hours: '125 hours',
-          price: '$800',
-          stripePriceId: config.SUBSCRIPTION_TIERS.TIER_125_800.priceId,
-        },
-        {
-          hours: '200 hours',
-          price: '$1000',
-          stripePriceId: config.SUBSCRIPTION_TIERS.TIER_200_1000.priceId,
-        },
-      ],
-      stripePriceId: config.SUBSCRIPTION_TIERS.TIER_6_50.priceId,
-    },
-  ],
   companyShowcase: {
     companyLogos: [
       {

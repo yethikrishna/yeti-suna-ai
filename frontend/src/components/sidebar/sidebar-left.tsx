@@ -3,7 +3,6 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { Menu } from 'lucide-react';
-import { useAuth } from '@/components/AuthProvider';
 import { useEffect } from 'react';
 import {
   Tooltip,
@@ -30,7 +29,6 @@ export function SidebarLeft({
 }: React.ComponentProps<typeof Sidebar>) {
   const { state, setOpen, setOpenMobile } = useSidebar();
   const isMobile = useIsMobile();
-  const { user } = useAuth();
 
   // Handle keyboard shortcuts (CMD+B) for consistency
   useEffect(() => {
@@ -110,7 +108,7 @@ export function SidebarLeft({
             </Tooltip>
           </div>
         )}
-        <NavUserWithTeams user={user} />
+        <NavUserWithTeams />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

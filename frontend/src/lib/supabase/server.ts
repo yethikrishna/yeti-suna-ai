@@ -1,9 +1,10 @@
 'use server';
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+// Usa createClient standard invece di createServerClient
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+// import { cookies } from 'next/headers'; // Rimosso
 
 export const createClient = async () => {
-  const cookieStore = await cookies();
+  // const cookieStore = await cookies(); // Rimosso
   let supabaseUrl = process.env.SUPABASE_INTERNAL_URL!;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
@@ -12,23 +13,14 @@ export const createClient = async () => {
     supabaseUrl = `http://${supabaseUrl}`;
   }
 
-  console.log('!!!!!!!!!! [SERVER.TS] CREATING SUPABASE CLIENT WITH INTERNAL URL:', supabaseUrl, 'AND KEY:', supabaseAnonKey);
-  return createServerClient(supabaseUrl, supabaseAnonKey, {
-    cookies: {
-      getAll() {
-        return cookieStore.getAll();
-      },
-      setAll(cookiesToSet) {
-        try {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set({ name, value, ...options }),
-          );
-        } catch (error) {
-          // The `set` method was called from a Server Component.
-          // This can be ignored if you have middleware refreshing
-          // user sessions.
-        }
-      },
-    },
+  console.log('!!!!!!!!!! [SERVER.TS] CREATING STANDARD SUPABASE CLIENT (NO SSR/COOKIES) WITH INTERNAL URL:', supabaseUrl, 'AND KEY:', supabaseAnonKey);
+  // Crea un client standard senza opzioni specifiche per SSR/cookies
+  return createSupabaseClient(supabaseUrl, supabaseAnonKey, {
+    // Opzioni standard, se necessarie (es. auth: { persistSession: false } se vuoi essere esplicito)
+    auth: {
+      persistSession: false, // Non tentare di persistere sessioni (anche se non ci sarà login)
+      autoRefreshToken: false, // Non serve refresh automatico
+      detectSessionInUrl: false, // Non cercare sessioni nell'URL
+    }
   });
 };

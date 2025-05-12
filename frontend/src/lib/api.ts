@@ -100,10 +100,6 @@ export interface FileInfo {
 // Project APIs
 export const getProjects = async (): Promise<Project[]> => {
   try {
-    // MODIFIED: In self-hosted mode without auth, there are no user-specific projects
-    // to fetch via Supabase RLS in the standard way. Return empty array.
-    // Alternatively, we could fetch from a backend endpoint if one existed
-    // that listed projects accessible by the dummy_user_id, but that's not standard.
     console.log('[API] getProjects called in self-hosted mode, returning empty array.');
     return [];
 
@@ -601,10 +597,7 @@ export const startAgent = async (
     if (!response.ok) {
        const errorData = await response.json().catch(() => ({ message: 'Failed to start agent, unknown error' }));
        console.error('Error starting agent:', response.status, errorData);
-       if (response.status === 402) { // Check specifically for billing errors
-        throw new BillingError(response.status, errorData.detail || errorData, errorData.message);
-      }
-      throw new Error(errorData.message || `Failed to start agent: ${response.statusText}`);
+       throw new Error(errorData.message || `Failed to start agent: ${response.statusText}`);
     }
 
     const result: { agent_run_id: string } = await response.json();
@@ -612,7 +605,6 @@ export const startAgent = async (
     return result;
   } catch (error) {
     console.error('Error in startAgent:', error);
-    if (error instanceof BillingError) throw error; // Re-throw billing errors
     throw new Error(`Error starting agent: ${error instanceof Error ? error.message : String(error)}`);
   }
 };
@@ -1382,9 +1374,6 @@ export const initiateAgent = async (
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ message: 'Failed to initiate agent, unknown error' }));
       console.error('Error initiating agent:', response.status, errorData);
-       if (response.status === 402) {
-        throw new BillingError(response.status, errorData.detail || errorData, errorData.message);
-      }
       throw new Error(errorData.message || `Failed to initiate agent: ${response.statusText}`);
     }
 
@@ -1393,7 +1382,6 @@ export const initiateAgent = async (
     return result;
   } catch (error) {
     console.error('Error in initiateAgent:', error);
-    if (error instanceof BillingError) throw error;
     throw new Error(`Error initiating agent: ${error instanceof Error ? error.message : String(error)}`);
   }
 };
@@ -1413,212 +1401,6 @@ export const checkApiHealth = async (): Promise<HealthCheckResponse> => {
     console.error('API health check failed:', error);
     throw error;
   }
-};
-
-// Billing API Types
-export interface CreateCheckoutSessionRequest {
-  price_id: string;
-  success_url: string;
-  cancel_url: string;
-}
-
-export interface CreatePortalSessionRequest {
-  return_url: string;
-}
-
-export interface SubscriptionStatus {
-  status: string; // Includes 'active', 'trialing', 'past_due', 'scheduled_downgrade', 'no_subscription'
-  plan_name?: string;
-  price_id?: string; // Added
-  current_period_end?: string; // ISO Date string
-  cancel_at_period_end: boolean;
-  trial_end?: string; // ISO Date string
-  minutes_limit?: number;
-  current_usage?: number;
-  // Fields for scheduled changes
-  has_schedule: boolean;
-  scheduled_plan_name?: string;
-  scheduled_price_id?: string; // Added
-  scheduled_change_date?: string; // ISO Date string - Deprecate? Check backend usage
-  schedule_effective_date?: string; // ISO Date string - Added for consistency
-}
-
-export interface BillingStatusResponse {
-  can_run: boolean;
-  message: string;
-  subscription: {
-    price_id: string;
-    plan_name: string;
-    minutes_limit?: number;
-  };
-}
-
-export interface CreateCheckoutSessionResponse {
-  status:
-    | 'upgraded'
-    | 'downgrade_scheduled'
-    | 'checkout_created'
-    | 'no_change'
-    | 'new'
-    | 'updated'
-    | 'scheduled';
-  subscription_id?: string;
-  schedule_id?: string;
-  session_id?: string;
-  url?: string;
-  effective_date?: string;
-  message?: string;
-  details?: {
-    is_upgrade?: boolean;
-    effective_date?: string;
-    current_price?: number;
-    new_price?: number;
-    invoice?: {
-      id: string;
-      status: string;
-      amount_due: number;
-      amount_paid: number;
-    };
-  };
-}
-
-// Billing API Functions
-export const createCheckoutSession = async (
-  request: CreateCheckoutSessionRequest,
-): Promise<CreateCheckoutSessionResponse> => {
-  try {
-    const supabase = createClient();
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-
-    if (!session?.access_token) {
-      throw new Error('No access token available');
-    }
-
-    const response = await fetch(`${API_URL}/billing/create-checkout-session`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${session.access_token}`,
-      },
-      body: JSON.stringify(request),
-    });
-
-    if (!response.ok) {
-      const errorText = await response
-        .text()
-        .catch(() => 'No error details available');
-      console.error(
-        `Error creating checkout session: ${response.status} ${response.statusText}`,
-        errorText,
-      );
-      throw new Error(
-        `Error creating checkout session: ${response.statusText} (${response.status})`,
-      );
-    }
-
-    const data = await response.json();
-    console.log('Checkout session response:', data);
-
-    // Handle all possible statuses
-    switch (data.status) {
-      case 'upgraded':
-      case 'updated':
-      case 'downgrade_scheduled':
-      case 'scheduled':
-      case 'no_change':
-        return data;
-      case 'new':
-      case 'checkout_created':
-        if (!data.url) {
-          throw new Error('No checkout URL provided');
-        }
-        return data;
-      default:
-        console.warn(
-          'Unexpected status from createCheckoutSession:',
-          data.status,
-        );
-        return data;
-    }
-  } catch (error) {
-    console.error('Failed to create checkout session:', error);
-    throw error;
-  }
-};
-
-export const createPortalSession = async (
-  request: CreatePortalSessionRequest,
-): Promise<{ url: string }> => {
-  try {
-    // const supabase = createClient(); // Removed
-    // const {
-    //   data: { session },
-    // } = await supabase.auth.getSession(); // Removed
-
-    // if (!session?.access_token) { // Removed
-    //   throw new Error('No access token available');
-    // }
-
-    const token = 'DUMMY_SUPABASE_TOKEN'; // Use dummy token
-
-    const response = await fetch(`${API_URL}/billing/create-portal-session`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        // Authorization: `Bearer ${session.access_token}`, // Removed
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(request),
-    });
-
-    if (!response.ok) {
-      const errorText = await response
-        .text()
-        .catch(() => 'No error details available');
-      console.error(
-        `Error creating portal session: ${response.status} ${response.statusText}`,
-        errorText,
-      );
-      throw new Error(
-        `Error creating portal session: ${response.statusText} (${response.status})`,
-      );
-    }
-
-    return response.json();
-  } catch (error) {
-    console.error('Failed to create portal session:', error);
-    throw error;
-  }
-};
-
-export const getSubscription = async (): Promise<SubscriptionStatus> => {
-  // MODIFIED: Return dummy data as billing is disabled for self-hosting
-  console.log('[API] getSubscription called, returning dummy non-billing data.');
-  return {
-    status: 'stripe_disabled', // Or 'no_subscription' or a custom status
-    plan_name: 'N/A (Self-hosted)',
-    price_id: 'self_hosted_free',
-    cancel_at_period_end: false,
-    minutes_limit: Infinity, // Or a very high number, or null/undefined
-    current_usage: 0,
-    has_schedule: false,
-  };
-};
-
-export const checkBillingStatus = async (): Promise<BillingStatusResponse> => {
-  // MODIFIED: Return dummy data as billing is disabled for self-hosting
-  console.log('[API] checkBillingStatus called, returning dummy non-billing data.');
-  return {
-    can_run: true, // Always allow running in self-hosted mode without billing
-    message: 'Billing is disabled for self-hosted version.',
-    subscription: {
-      price_id: 'self_hosted_free',
-      plan_name: 'N/A (Self-hosted)',
-      // minutes_limit can be omitted if not applicable, or set to Infinity
-    },
-  };
 };
 
 // Knowledge Base APIs
@@ -1719,10 +1501,6 @@ export const uploadKnowledgeBaseDocument = async (projectId: string, file: File)
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({ detail: 'Failed to upload KB document' }));
     console.error('Failed to upload KB document:', errorData);
-    // Check for specific billing error structure from backend
-    if (response.status === 402 && errorData.detail?.message) {
-        throw new BillingError(response.status, errorData.detail, errorData.detail.message);
-    }
     throw new Error(errorData.detail || 'Failed to upload KB document');
   }
   return response.json();

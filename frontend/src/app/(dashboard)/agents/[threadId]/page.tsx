@@ -30,8 +30,6 @@ import {
   updateProject,
   Project,
   Message as BaseApiMessageType,
-  BillingError,
-  checkBillingStatus,
 } from '@/lib/api';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -47,7 +45,6 @@ import { useAgentStream } from '@/hooks/useAgentStream';
 import { Markdown } from '@/components/ui/markdown';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { BillingErrorAlert } from '@/components/billing/usage-limit-alert';
 import { isLocalMode } from '@/lib/config';
 
 import {
@@ -299,15 +296,6 @@ export default function ThreadPage({
   const [autoOpenedPanel, setAutoOpenedPanel] = useState(false);
   const [initialPanelOpenAttempted, setInitialPanelOpenAttempted] =
     useState(false);
-
-  // Billing alert state
-  const [showBillingAlert, setShowBillingAlert] = useState(false);
-  const [billingData, setBillingData] = useState<{
-    currentUsage?: number;
-    limit?: number;
-    message?: string;
-    accountId?: string | null;
-  }>({});
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -766,31 +754,14 @@ export default function ThreadPage({
           const error = results[1].reason;
           console.error('Failed to start agent:', error);
 
-          // Check if it's our custom BillingError (402)
-          if (error instanceof BillingError) {
-            console.log('Caught BillingError:', error.detail);
-            // Extract billing details
-            setBillingData({
-              // Note: currentUsage and limit might not be in the detail from the backend yet
-              currentUsage: error.detail.currentUsage as number | undefined,
-              limit: error.detail.limit as number | undefined,
-              message:
-                error.detail.message ||
-                'Monthly usage limit reached. Please upgrade.', // Use message from error detail
-              accountId: project?.account_id || null, // Pass account ID
-            });
-            setShowBillingAlert(true);
+          // Remove the optimistic message since the agent couldn't start
+          setMessages((prev) =>
+            prev.filter(
+              (m) => m.message_id !== optimisticUserMessage.message_id,
+            ),
+          );
 
-            // Remove the optimistic message since the agent couldn't start
-            setMessages((prev) =>
-              prev.filter(
-                (m) => m.message_id !== optimisticUserMessage.message_id,
-              ),
-            );
-            return; // Stop further execution in this case
-          }
-
-          // Handle other agent start errors
+          // Handle agent start errors
           throw new Error(`Failed to start agent: ${error?.message || error}`);
         }
 
@@ -801,9 +772,7 @@ export default function ThreadPage({
         // Catch errors from addUserMessage or non-BillingError agent start errors
         console.error('Error sending message or starting agent:', err);
         // Don't show billing alert here, only for specific BillingError
-        if (!(err instanceof BillingError)) {
-          toast.error(err instanceof Error ? err.message : 'Operation failed');
-        }
+        toast.error(err instanceof Error ? err.message : 'Operation failed');
         // Ensure optimistic message is removed on any error during submit
         setMessages((prev) =>
           prev.filter((m) => m.message_id !== optimisticUserMessage.message_id),
@@ -812,8 +781,8 @@ export default function ThreadPage({
         setIsSending(false);
       }
     },
-    [threadId, project?.account_id],
-  ); // Ensure project.account_id is a dependency
+    [threadId],
+  );
 
   const handleStopAgent = useCallback(async () => {
     console.log(`[PAGE] Requesting agent stop via hook.`);
@@ -1297,70 +1266,6 @@ export default function ThreadPage({
       }
     }
   }, [agentStatus, threadId, isLoading, streamHookStatus]);
-
-  // Update the checkBillingStatus function
-  const checkBillingLimits = useCallback(async () => {
-    // Skip billing checks in local development mode
-    if (isLocalMode()) {
-      console.log(
-        'Running in local development mode - billing checks are disabled',
-      );
-      return false;
-    }
-
-    try {
-      const result = await checkBillingStatus();
-
-      if (!result.can_run) {
-        setBillingData({
-          currentUsage: result.subscription?.minutes_limit || 0,
-          limit: result.subscription?.minutes_limit || 0,
-          message: result.message || 'Usage limit reached',
-          accountId: project?.account_id || null,
-        });
-        setShowBillingAlert(true);
-        return true;
-      }
-      return false;
-    } catch (err) {
-      console.error('Error checking billing status:', err);
-      return false;
-    }
-  }, [project?.account_id]);
-
-  // Update useEffect to use the renamed function
-  useEffect(() => {
-    const previousStatus = previousAgentStatus.current;
-
-    // Check if agent just completed (status changed from running to idle)
-    if (previousStatus === 'running' && agentStatus === 'idle') {
-      checkBillingLimits();
-    }
-
-    // Store current status for next comparison
-    previousAgentStatus.current = agentStatus;
-  }, [agentStatus, checkBillingLimits]);
-
-  // Update other useEffect to use the renamed function
-  useEffect(() => {
-    if (project?.account_id && initialLoadCompleted.current) {
-      console.log('Checking billing status on page load');
-      checkBillingLimits();
-    }
-  }, [project?.account_id, checkBillingLimits, initialLoadCompleted]);
-
-  // Update the last useEffect to use the renamed function
-  useEffect(() => {
-    if (messagesLoadedRef.current && project?.account_id && !isLoading) {
-      console.log('Checking billing status after messages loaded');
-      checkBillingLimits();
-    }
-  }, [
-    messagesLoadedRef.current,
-    checkBillingLimits,
-    project?.account_id,
-    isLoading,
-  ]);
 
   const handleProjectRenamed = useCallback((newName: string) => {
     setProjectName(newName);
@@ -1954,16 +1859,6 @@ export default function ThreadPage({
           project={project || undefined}
         />
       )}
-
-      {/* Billing Alert for usage limit */}
-      <BillingErrorAlert
-        message={billingData.message}
-        currentUsage={billingData.currentUsage}
-        limit={billingData.limit}
-        accountId={billingData.accountId}
-        onDismiss={() => setShowBillingAlert(false)}
-        isOpen={showBillingAlert}
-      />
     </div>
   );
 }

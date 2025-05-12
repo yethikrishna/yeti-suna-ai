@@ -14,7 +14,6 @@ import {
   addUserMessage,
   startAgent,
   createProject,
-  BillingError,
 } from '@/lib/api';
 import { generateThreadName } from '@/lib/actions/threads';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -25,9 +24,6 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { useBillingError } from '@/hooks/useBillingError';
-import { BillingErrorAlert } from '@/components/billing/usage-limit-alert';
-import { useAccounts } from '@/hooks/use-accounts';
 import { isLocalMode, config } from '@/lib/config';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -39,13 +35,9 @@ function DashboardContent() {
   const [inputValue, setInputValue] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [autoSubmit, setAutoSubmit] = useState(false);
-  const { billingError, handleBillingError, clearBillingError } =
-    useBillingError();
   const router = useRouter();
   const isMobile = useIsMobile();
   const { setOpenMobile } = useSidebar();
-  const { data: accounts } = useAccounts();
-  const personalAccount = accounts?.find((account) => account.personal_account);
   const chatInputRef = useRef<ChatInputHandles>(null);
 
   const secondaryGradient =
@@ -129,25 +121,6 @@ function DashboardContent() {
       }
     } catch (error: any) {
       console.error('Error during submission process:', error);
-      if (error instanceof BillingError) {
-        // Delegate billing error handling
-        console.log('Handling BillingError:', error.detail);
-        handleBillingError({
-          message:
-            error.detail.message ||
-            'Monthly usage limit reached. Please upgrade your plan.',
-          currentUsage: error.detail.currentUsage as number | undefined,
-          limit: error.detail.limit as number | undefined,
-          subscription: error.detail.subscription || {
-            price_id: config.SUBSCRIPTION_TIERS.FREE.priceId,
-            plan_name: 'Free',
-          },
-        });
-        setIsSubmitting(false);
-        return; // Stop further processing for billing errors
-      }
-
-      // Handle other errors
       const isConnectionError =
         error instanceof TypeError && error.message.includes('Failed to fetch');
       if (!isLocalMode() || isConnectionError) {
@@ -226,15 +199,19 @@ function DashboardContent() {
         />
       </div>
 
-      {/* Billing Error Alert */}
-      <BillingErrorAlert
-        message={billingError?.message}
-        currentUsage={billingError?.currentUsage}
-        limit={billingError?.limit}
-        accountId={personalAccount?.account_id}
-        onDismiss={clearBillingError}
-        isOpen={!!billingError}
-      />
+      <div className="container mx-auto p-4 md:p-6 lg:p-8">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+          {/* Billing Error Alert */}
+          {/* <BillingErrorAlert
+            message={billingError?.message}
+            currentUsage={billingError?.currentUsage}
+            limit={billingError?.limit}
+            upgradeUrl="/settings/billing"
+            onDismiss={clearBillingError}
+            isOpen={!!billingError}
+          /> */}
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,6 +1,5 @@
 'use client';
 
-import { Icons } from '@/components/home/icons';
 import { NavMenu } from '@/components/home/nav-menu';
 import { ThemeToggle } from '@/components/home/theme-toggle';
 import { siteConfig } from '@/lib/home';
@@ -11,7 +10,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { useTheme } from 'next-themes';
-import { useAuth } from '@/components/AuthProvider';
 
 const INITIAL_WIDTH = '70rem';
 const MAX_WIDTH = '800px';
@@ -59,7 +57,6 @@ export function Navbar() {
   const [activeSection, setActiveSection] = useState('hero');
   const { theme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const { user } = useAuth();
 
   useEffect(() => {
     setMounted(true);
@@ -149,21 +146,12 @@ export function Navbar() {
                 >
                   <Github className="size-[18px]" />
                 </Link> */}
-                {user ? (
-                  <Link
-                    className="bg-secondary h-8 hidden md:flex items-center justify-center text-sm font-normal tracking-wide rounded-full text-primary-foreground dark:text-secondary-foreground w-fit px-4 shadow-[inset_0_1px_2px_rgba(255,255,255,0.25),0_3px_3px_-1.5px_rgba(16,24,40,0.06),0_1px_1px_rgba(16,24,40,0.08)] border border-white/[0.12]"
-                    href="/dashboard"
-                  >
-                    Dashboard
-                  </Link>
-                ) : (
-                  <Link
-                    className="bg-secondary h-8 hidden md:flex items-center justify-center text-sm font-normal tracking-wide rounded-full text-primary-foreground dark:text-secondary-foreground w-fit px-4 shadow-[inset_0_1px_2px_rgba(255,255,255,0.25),0_3px_3px_-1.5px_rgba(16,24,40,0.06),0_1px_1px_rgba(16,24,40,0.08)] border border-white/[0.12]"
-                    href="/auth"
-                  >
-                    Hire Suna
-                  </Link>
-                )}
+                <Link
+                  className="bg-secondary h-8 hidden md:flex items-center justify-center text-sm font-normal tracking-wide rounded-full text-primary-foreground dark:text-secondary-foreground w-fit px-4 shadow-[inset_0_1px_2px_rgba(255,255,255,0.25),0_3px_3px_-1.5px_rgba(16,24,40,0.06),0_1px_1px_rgba(16,24,40,0.08)] border border-white/[0.12]"
+                  href="/dashboard"
+                >
+                  Dashboard
+                </Link>
               </div>
               <ThemeToggle />
               <button
@@ -261,21 +249,12 @@ export function Navbar() {
 
                 {/* Action buttons */}
                 <div className="flex flex-col gap-2">
-                  {user ? (
-                    <Link
-                      href="/dashboard"
-                      className="bg-secondary h-8 flex items-center justify-center text-sm font-normal tracking-wide rounded-full text-primary-foreground dark:text-secondary-foreground w-full px-4 shadow-[inset_0_1px_2px_rgba(255,255,255,0.25),0_3px_3px_-1.5px_rgba(16,24,40,0.06),0_1px_1px_rgba(16,24,40,0.08)] border border-white/[0.12] hover:bg-secondary/80 transition-all ease-out active:scale-95"
-                    >
-                      Dashboard
-                    </Link>
-                  ) : (
-                    <Link
-                      href="/auth"
-                      className="bg-secondary h-8 flex items-center justify-center text-sm font-normal tracking-wide rounded-full text-primary-foreground dark:text-secondary-foreground w-full px-4 shadow-[inset_0_1px_2px_rgba(255,255,255,0.25),0_3px_3px_-1.5px_rgba(16,24,40,0.06),0_1px_1px_rgba(16,24,40,0.08)] border border-white/[0.12] hover:bg-secondary/80 transition-all ease-out active:scale-95"
-                    >
-                      Hire Suna
-                    </Link>
-                  )}
+                  <Link
+                    href="/dashboard"
+                    className="bg-secondary h-8 flex items-center justify-center text-sm font-normal tracking-wide rounded-full text-primary-foreground dark:text-secondary-foreground w-full px-4 shadow-[inset_0_1px_2px_rgba(255,255,255,0.25),0_3px_3px_-1.5px_rgba(16,24,40,0.06),0_1px_1px_rgba(16,24,40,0.08)] border border-white/[0.12] hover:bg-secondary/80 transition-all ease-out active:scale-95"
+                  >
+                    Dashboard
+                  </Link>
                   <div className="flex justify-between">
                     <ThemeToggle />
                   </div>
