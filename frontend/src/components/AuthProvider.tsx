@@ -64,12 +64,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } else {
           // Nessuna sessione reale, usa i dati fittizi
           console.log('[AuthProvider] No real session, using dummy user and session.');
+          await supabase.auth.setSession(dummySession);
           setSession(dummySession);
           setUser(dummyUser);
         }
       } catch (error) {
         console.error('[AuthProvider] Error getting initial session:', error);
         // Errore nel recuperare la sessione, usa comunque i dati fittizi
+        try {
+          await supabase.auth.setSession(dummySession);
+        } catch (setSessionError) {
+          console.error('[AuthProvider] Error setting dummy session on catch:', setSessionError);
+        }
         setSession(dummySession);
         setUser(dummyUser);
       } finally {
@@ -80,7 +86,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     getInitialSession();
 
     const { data: authListener } = supabase.auth.onAuthStateChange(
-      (_event, newSession) => {
+      async (_event, newSession) => {
         const previousSession = session; // Cattura la sessione prima dell'aggiornamento
 
         if (newSession) {
@@ -89,6 +95,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } else {
           // Logout o sessione scaduta/invalidata, reimposta ai dati fittizi
           console.log('[AuthProvider] Auth state changed to no session, using dummy user and session.');
+          try {
+            await supabase.auth.setSession(dummySession);
+          } catch (setSessionError) {
+            console.error('[AuthProvider] Error setting dummy session on auth change:', setSessionError);
+          }
           setSession(dummySession);
           setUser(dummyUser);
         }
@@ -112,15 +123,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       authListener?.subscription.unsubscribe();
     };
-    // Rimosso isLoading, session dalle dipendenze per evitare loop se dummySession/User causano ri-render
-  }, [supabase, mutate]); 
+  }, [supabase, mutate, session]);
 
   const signOut = async () => {
     // Anche se l'autenticazione reale è bypassata, simuliamo un signOut
-    // reimpostando ai valori fittizi (gestito da onAuthStateChange)
     await supabase.auth.signOut(); 
-    console.log('[AuthProvider] signOut called, will reset to dummy user/session via onAuthStateChange.');
-    // Non c'è bisogno di aggiornare lo stato qui, onAuthStateChange lo farà
+    console.log('[AuthProvider] signOut called, should reset to dummy user/session via onAuthStateChange.');
   };
 
   const value = {
