@@ -20,7 +20,7 @@ from sandbox.sandbox import create_sandbox, get_or_start_sandbox
 from services.llm import make_llm_api_call
 from agent.tasks import execute_agent_processing
 from ..models.api_models import (
-    ProjectCreate, ProjectResponse, ProjectListItem, ThreadListItem, ThreadResponse, AgentStartRequest, InitiateAgentResponse
+    ProjectCreate, ProjectResponse, ProjectListItem, ThreadListItem, ThreadResponse
 )
 
 # Initialize shared resources
@@ -306,16 +306,12 @@ async def check_for_active_project_agent_run(client, project_id: str):
             return active_runs.data[0]['id']
     return None
 
-async def get_agent_run_with_access_check(client, agent_run_id: str, user_id: str):
-    """Get agent run data after verifying user access."""
+async def get_agent_run_data(client, agent_run_id: str):
+    """Get agent run data directly without access check."""
     agent_run = await client.table('agent_runs').select('*').eq('id', agent_run_id).execute()
     if not agent_run.data:
         raise HTTPException(status_code=404, detail="Agent run not found")
-
-    agent_run_data = agent_run.data[0]
-    thread_id = agent_run_data['thread_id']
-    await verify_thread_access(client, thread_id, user_id)
-    return agent_run_data
+    return agent_run.data[0]
 
 async def _cleanup_redis_instance_key(agent_run_id: str):
     """Clean up the instance-specific Redis key for an agent run."""
@@ -381,7 +377,6 @@ async def get_or_create_project_sandbox(client, project_id: str):
 async def start_agent(
     thread_id: str,
     body: AgentStartRequest = Body(...),
-    user_id: str = Depends(get_current_user_id_from_jwt),
     client: Any = Depends(get_db_client)
 ):
     """Start an agent for a specific thread in the background via Celery."""
@@ -402,13 +397,11 @@ async def start_agent(
 
     logger.info(f"Queueing agent task for thread: {thread_id} with config: model={model_name}, thinking={body.enable_thinking}, effort={body.reasoning_effort}, stream={body.stream}, context_manager={body.enable_context_manager} (Instance: {instance_id})")
 
-    await verify_thread_access(client, thread_id, user_id)
     thread_result = await client.table('threads').select('project_id', 'account_id').eq('thread_id', thread_id).execute()
     if not thread_result.data:
         raise HTTPException(status_code=404, detail="Thread not found")
     thread_data = thread_result.data[0]
     project_id = thread_data.get('project_id')
-    account_id = thread_data.get('account_id')
 
     active_run_id = await check_for_active_project_agent_run(client, project_id)
     if active_run_id:
@@ -445,7 +438,6 @@ async def start_agent(
         "reasoning_effort": body.reasoning_effort,
         "stream": body.stream,
         "enable_context_manager": body.enable_context_manager,
-        "user_id": user_id,
         "instance_id": instance_id,
         "initial_prompt_message": None
     }
@@ -457,38 +449,34 @@ async def start_agent(
 
 @router.post("/agent-run/{agent_run_id}/stop")
 async def stop_agent(
-    agent_run_id: str, 
-    user_id: str = Depends(get_current_user_id_from_jwt),
+    agent_run_id: str,
     client: Any = Depends(get_db_client)
 ):
     """Stop a running agent."""
     logger.info(f"Received request to stop agent run: {agent_run_id}")
-    await get_agent_run_with_access_check(client, agent_run_id, user_id)
+    agent_run_data = await get_agent_run_data(client, agent_run_id)
     await stop_agent_run(agent_run_id)
     return {"status": "stopped"}
 
 @router.get("/thread/{thread_id}/agent-runs")
 async def get_agent_runs(
-    thread_id: str, 
-    user_id: str = Depends(get_current_user_id_from_jwt),
+    thread_id: str,
     client: Any = Depends(get_db_client)
 ):
     """Get all agent runs for a thread."""
     logger.info(f"Fetching agent runs for thread: {thread_id}")
-    await verify_thread_access(client, thread_id, user_id)
     agent_runs = await client.table('agent_runs').select('*').eq("thread_id", thread_id).order('created_at', desc=True).execute()
     logger.debug(f"Found {len(agent_runs.data)} agent runs for thread: {thread_id}")
     return {"agent_runs": agent_runs.data}
 
 @router.get("/agent-run/{agent_run_id}")
 async def get_agent_run(
-    agent_run_id: str, 
-    user_id: str = Depends(get_current_user_id_from_jwt),
+    agent_run_id: str,
     client: Any = Depends(get_db_client)
 ):
     """Get agent run status and responses."""
     logger.info(f"Fetching agent run details: {agent_run_id}")
-    agent_run_data = await get_agent_run_with_access_check(client, agent_run_id, user_id)
+    agent_run_data = await get_agent_run_data(client, agent_run_id)
     # Note: Responses are not included here by default, they are in the stream or DB
     return {
         "id": agent_run_data['id'],
@@ -509,8 +497,7 @@ async def stream_agent_run(
     """Stream the responses of an agent run using Redis Lists and Pub/Sub."""
     logger.info(f"Starting stream for agent run: {agent_run_id}")
 
-    user_id = await get_user_id_from_stream_auth(request, token)
-    agent_run_data = await get_agent_run_with_access_check(client, agent_run_id, user_id)
+    agent_run_data = await get_agent_run_data(client, agent_run_id)
 
     response_list_key = f"agent_run:{agent_run_id}:responses"
     response_channel = f"agent_run:{agent_run_id}:new_response"
@@ -914,7 +901,6 @@ async def initiate_agent_with_files(
     stream_form: Optional[bool] = Form(True, alias="stream"),
     enable_context_manager_form: Optional[bool] = Form(False, alias="enable_context_manager"),
     files: List[UploadFile] = File(default=[]),
-    user_id: str = Depends(get_current_user_id_from_jwt),
     client: Any = Depends(get_db_client) # Use correct dependency
 ):
     """Initiate a new agent session with optional file attachments via Celery.
@@ -941,28 +927,10 @@ async def initiate_agent_with_files(
     # !! This endpoint needs refactoring or removal. !!
     project_id = "PLACEHOLDER_PROJECT_ID" # Needs to be passed in or determined
     thread_id = "PLACEHOLDER_THREAD_ID"   # Needs to be passed in or determined
-    account_id = user_id # Still assuming user_id is account_id for this context
 
-    logger.info(f"[ [91mDEBUG [0m] Attempting agent initiation for project: {project_id}, thread: {thread_id} with prompt and {len(files)} files (Instance: {instance_id}), model: {model_name_to_use}, enable_thinking: {enable_thinking_form}")
+    logger.info(f"[ DEBUG ] Attempting agent initiation for project: {project_id}, thread: {thread_id} with prompt and {len(files)} files (Instance: {instance_id}), model: {model_name_to_use}, enable_thinking: {enable_thinking_form}")
 
     try:
-        # 1. Create Project - REMOVED
-        # placeholder_name = f"{prompt[:30]}..." if len(prompt) > 30 else prompt
-        # project = await client.table('projects').insert({
-        #     "project_id": str(uuid.uuid4()), "account_id": account_id, "name": placeholder_name,
-        #     "created_at": datetime.now(timezone.utc).isoformat()
-        # }).execute()
-        # project_id = project.data[0]['project_id']
-        # logger.info(f"Created new project: {project_id}")
-
-        # 2. Create Thread - REMOVED
-        # thread = await client.table('threads').insert({
-        #     "thread_id": str(uuid.uuid4()), "project_id": project_id, "account_id": account_id,
-        #     "created_at": datetime.now(timezone.utc).isoformat()
-        # }).execute()
-        # thread_id = thread.data[0]['thread_id']
-        # logger.info(f"Created new thread: {thread_id}")
-
         # Trigger Background Naming Task - Keep for now, assuming project_id is valid
         if project_id != "PLACEHOLDER_PROJECT_ID":
              asyncio.create_task(generate_and_update_project_name(project_id=project_id, prompt=prompt))
@@ -1102,8 +1070,6 @@ async def initiate_agent_with_files(
         agent_run_id = agent_run.data[0]['id']
         logger.info(f"Created new agent run entry: {agent_run_id} with status 'queued'")
 
-        # Removed Redis set for active_run key here, Celery task will handle it.
-
         celery_task_params = {
             "agent_run_id": agent_run_id,
             "thread_id": thread_id,
@@ -1112,7 +1078,6 @@ async def initiate_agent_with_files(
             "reasoning_effort": reasoning_effort_form,
             "stream": stream_form,
             "enable_context_manager": enable_context_manager_form,
-            "user_id": user_id,
             "instance_id": instance_id,
             "initial_prompt_message": initial_celery_prompt_payload # Pass the constructed message
         }
@@ -1120,8 +1085,6 @@ async def initiate_agent_with_files(
         execute_agent_processing.delay(**celery_task_params)
         logger.info(f"Queued agent task {agent_run_id} to Celery with params: {celery_task_params}")
         
-        # Callback for _cleanup_redis_instance_key is removed.
-
         return {"thread_id": thread_id, "agent_run_id": agent_run_id, "status": "queued"}
 
     except Exception as e:
@@ -1149,19 +1112,17 @@ async def initiate_agent_with_files(
 @router.post("/projects", response_model=ProjectResponse, tags=["projects"])
 async def create_project_endpoint(
     project_data: ProjectCreate,
-    user_id: str = Depends(get_current_user_id_from_jwt),
-    client: Any = Depends(get_db_client) # Use correct dependency
+    client: Any = Depends(get_db_client)
 ):
     """
-    Creates a new project associated with the authenticated user's account.
-    Uses user_id as account_id for simplicity (consistent with /agent/initiate).
+    Creates a new project.
+    Since authentication is removed, account_id is set to None.
     """
-    logger.info(f"Received request to create project: Name='{project_data.name}', UserID={user_id}")
+    logger.info(f"Received request to create project: Name='{project_data.name}' (Public Access)")
 
     try:
         # Step 1: Use user_id as account_id (consistent with /agent/initiate)
-        account_id = user_id
-        logger.info(f"Using user_id as account_id: {account_id}")
+        account_id = None
 
         # Step 2: Create the new project in the database
         new_project_id = str(uuid.uuid4())
@@ -1202,7 +1163,7 @@ async def create_project_endpoint(
         # Re-raise HTTPExceptions directly
         raise http_exc
     except Exception as e:
-        logger.error(f"Unexpected error creating project for user {user_id}: {str(e)}", exc_info=True)
+        logger.error(f"Unexpected error creating project (Public Access): {str(e)}", exc_info=True)
         # Consider more specific error handling based on potential exceptions
         raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
 
@@ -1212,57 +1173,50 @@ async def create_project_endpoint(
 
 @router.get("/projects", response_model=List[ProjectListItem], tags=["projects"])
 async def list_projects_endpoint(
-    user_id: str = Depends(get_current_user_id_from_jwt),
-    client: Any = Depends(get_db_client) # Use correct dependency
+    client: Any = Depends(get_db_client)
 ):
     """
-    Lists all projects associated with the authenticated user's account.
-    Uses user_id as account_id.
+    Lists all projects. Authentication is removed.
     """
-    account_id = user_id
-    logger.info(f"Fetching projects for account_id (user_id): {account_id}")
+    logger.info(f"Fetching all projects (Public Access)")
     try:
         project_query = await client.table("projects") \
                                     .select("project_id, account_id, name, description, created_at, updated_at") \
-                                    .eq("account_id", account_id) \
                                     .order("updated_at", desc=True) \
                                     .execute()
        
         if project_query.data is None:
             # Handle potential errors if needed, but returning empty list is fine
-             logger.warning(f"Project query returned None for account {account_id}, possibly an error or no projects.")
+             logger.warning(f"Project query returned None (Public Access), possibly an error or no projects.")
              return []
 
         # Pydantic validation happens implicitly when returning
         return project_query.data
        
     except Exception as e:
-        logger.error(f"Error fetching projects for account {account_id}: {str(e)}", exc_info=True)
+        logger.error(f"Error fetching projects (Public Access): {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to retrieve projects.")
 
 @router.get("/projects/{project_id}/threads", response_model=List[ThreadListItem], tags=["threads"])
 async def list_threads_endpoint(
     project_id: str,
-    user_id: str = Depends(get_current_user_id_from_jwt),
-    client: Any = Depends(get_db_client) # Use correct dependency
+    client: Any = Depends(get_db_client)
 ):
     """
-    Lists all threads within a specific project, verifying user access.
-    Uses user_id as account_id for access check.
+    Lists all threads within a specific project.
+    Authentication removed.
     """
-    account_id = user_id
-    logger.info(f"Fetching threads for project_id: {project_id}, account_id (user_id): {account_id}")
+    logger.info(f"Fetching threads for project_id: {project_id} (Public Access)")
     try:
         # Step 1: Verify user has access to the project
         project_access_query = await client.table("projects") \
                                             .select("project_id") \
                                             .eq("project_id", project_id) \
-                                            .eq("account_id", account_id) \
                                             .maybe_single() \
                                             .execute()
 
         if not project_access_query.data:
-            logger.warning(f"Access denied or project not found for project_id {project_id} and account_id {account_id}")
+            logger.warning(f"Project not found: {project_id}")
             raise HTTPException(status_code=404, detail="Project not found or access denied.")
 
         # Step 2: Fetch threads for the project
@@ -1287,28 +1241,25 @@ async def list_threads_endpoint(
 @router.post("/projects/{project_id}/threads", response_model=ThreadResponse, status_code=201, tags=["threads"])
 async def create_thread_endpoint(
     project_id: str,
-    user_id: str = Depends(get_current_user_id_from_jwt),
-    client: Any = Depends(get_db_client) # Use correct dependency
+    client: Any = Depends(get_db_client)
 ):
     """
     Creates a new thread (conversation) within a specific project.
-    Verifies user access to the project first.
-    Uses user_id as account_id.
+    Authentication removed. account_id is set to None.
     """
-    account_id = user_id
-    logger.info(f"Request to create thread in project_id: {project_id} for account_id (user_id): {account_id}")
+    account_id = None
+    logger.info(f"Request to create thread in project_id: {project_id} (Public Access)")
    
     try:
         # Step 1: Verify user has access to the project
         project_access_query = await client.table("projects") \
                                             .select("project_id") \
                                             .eq("project_id", project_id) \
-                                            .eq("account_id", account_id) \
                                             .maybe_single() \
                                             .execute()
 
         if not project_access_query.data:
-            logger.warning(f"Access denied or project not found for project_id {project_id} and account_id {account_id} during thread creation.")
+            logger.warning(f"Project not found {project_id} during thread creation.")
             raise HTTPException(status_code=404, detail="Project not found or access denied.")
        
         # Step 2: Create the new thread
