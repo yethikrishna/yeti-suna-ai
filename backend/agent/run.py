@@ -1,7 +1,5 @@
 import os
 import json
-import re
-from uuid import uuid4
 from typing import Optional
 
 # from agent.tools.message_tool import MessageTool
@@ -14,7 +12,6 @@ from dotenv import load_dotenv
 from utils.config import config
 
 from agentpress.thread_manager import ThreadManager
-from agentpress.response_processor import ProcessorConfig
 from agent.tools.sb_shell_tool import SandboxShellTool
 from agent.tools.sb_files_tool import SandboxFilesTool
 from agent.tools.sb_browser_tool import SandboxBrowserTool
@@ -22,7 +19,6 @@ from agent.tools.data_providers_tool import DataProvidersTool
 from agent.prompt import get_system_prompt
 from utils import logger
 from utils.auth_utils import get_account_id_from_thread
-from services.billing import check_billing_status
 from agent.tools.sb_vision_tool import SandboxVisionTool
 from agent.tools.knowledge_retrieval_tool import KnowledgeRetrievalTool
 
@@ -120,16 +116,16 @@ async def run_agent(
         # logger.debug(f"Running iteration {iteration_count}...")
 
         # Billing check on each iteration - still needed within the iterations
-        can_run, message, subscription = await check_billing_status(client, account_id)
-        if not can_run:
-            error_msg = f"Billing limit reached: {message}"
-            # Yield a special message to indicate billing limit reached
-            yield {
-                "type": "status",
-                "status": "stopped",
-                "message": error_msg
-            }
-            break
+        # can_run, message, subscription = await check_billing_status(client, account_id) # Removed billing check block
+        # if not can_run:
+        #     error_msg = f"Billing limit reached: {message}"
+        #     # Yield a special message to indicate billing limit reached
+        #     yield {
+        #         "type": "status",
+        #         "status": "stopped",
+        #         "message": error_msg
+        #     }
+        #     break
         # Check if last message is from assistant using direct Supabase query
         latest_message = await client.table('messages').select('*').eq('thread_id', thread_id).in_('type', ['assistant', 'tool', 'user']).order('created_at', desc=True).limit(1).execute()
         if latest_message.data and len(latest_message.data) > 0:

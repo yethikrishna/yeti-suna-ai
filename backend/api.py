@@ -1,9 +1,8 @@
 from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 from agentpress.thread_manager import ThreadManager
-from services.supabase import DBConnection
+from services.supabase import initialize_database, close_database
 from datetime import datetime, timezone
 from utils.config import config, EnvMode
 import asyncio
@@ -11,7 +10,6 @@ from utils.logger import logger, request_id as logger_request_id
 import uuid
 import time
 import os
-import redis as redis_sync
 
 # SlowAPI imports
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -22,11 +20,9 @@ from slowapi.middleware import SlowAPIMiddleware
 # Import the agent API module
 from agent import api as agent_api
 from sandbox import api as sandbox_api
-from services import billing as billing_api
 from kb import api as kb_api_router
 
 # Initialize managers
-db = DBConnection()
 thread_manager = None
 instance_id = "single"
 
@@ -87,19 +83,20 @@ async def lifespan(app: FastAPI):
     logger.info(f"Starting up FastAPI application with instance ID: {instance_id} in {config.ENV_MODE.value} mode")
     
     try:
-        # Initialize database
-        await db.initialize()
+        # Initialize database using the lifespan function
+        await initialize_database()
+        logger.info("Database connection initialized via lifespan.")
+        
         thread_manager = ThreadManager()
         
         # Initialize the agent API with shared resources
         agent_api.initialize(
             thread_manager,
-            db,
             instance_id
         )
         
-        # Initialize the sandbox API with shared resources
-        sandbox_api.initialize(db)
+        # Initialize the sandbox API with shared resources - REMOVED DB
+        # sandbox_api.initialize()
         
         # Initialize Redis connection
         from services import redis
@@ -108,12 +105,15 @@ async def lifespan(app: FastAPI):
             logger.info("Redis connection initialized successfully")
         except Exception as e:
             logger.error(f"Failed to initialize Redis connection: {e}")
-            # Continue without Redis - the application will handle Redis failures gracefully
+            # Continue without Redis
         
         # Start background tasks
         asyncio.create_task(agent_api.restore_running_agent_runs())
         
         yield
+        
+        # --- Shutdown --- #
+        logger.info("Shutting down FastAPI application...")
         
         # Clean up agent resources
         logger.info("Cleaning up agent resources")
@@ -127,12 +127,18 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             logger.error(f"Error closing Redis connection: {e}")
         
-        # Clean up database connection
-        logger.info("Disconnecting from database")
-        await db.disconnect()
+        # Clean up database connection using the lifespan function
+        logger.info("Closing database connection via lifespan.")
+        await close_database()
+
     except Exception as e:
-        logger.error(f"Error during application startup: {e}")
-        raise
+        logger.error(f"Error during application lifespan management: {e}", exc_info=True)
+        # Ensure DB connection is closed even if startup fails partially
+        try:
+             await close_database()
+        except Exception as close_err:
+             logger.error(f"Error closing database connection during exception handling: {close_err}", exc_info=True)
+        raise # Re-raise the original exception
 
 app = FastAPI(lifespan=lifespan)
 
@@ -211,9 +217,9 @@ app.include_router(agent_api.router, prefix="/api", dependencies=[Depends(limite
 SANDBOX_API_LIMIT = os.getenv("SANDBOX_API_LIMIT", "50/minute")
 app.include_router(sandbox_api.router, prefix="/api", dependencies=[Depends(limiter.limit(SANDBOX_API_LIMIT))])
 
-# Include the billing router with a prefix
-BILLING_API_LIMIT = os.getenv("BILLING_API_LIMIT", "100/minute")
-app.include_router(billing_api.router, prefix="/api", dependencies=[Depends(limiter.limit(BILLING_API_LIMIT))])
+# Include the billing router with a prefix - REMOVED
+# BILLING_API_LIMIT = os.getenv("BILLING_API_LIMIT", "100/minute")
+# app.include_router(billing_api.router, prefix="/api", dependencies=[Depends(limiter.limit(BILLING_API_LIMIT))])
 
 # Include the kb router (example with a different limit)
 KB_API_LIMIT = os.getenv("KB_API_LIMIT", "200/minute")

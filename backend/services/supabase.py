@@ -2,7 +2,6 @@
 Centralized database connection management for AgentPress using Supabase.
 """
 
-import os
 from typing import Optional
 from supabase import create_async_client, AsyncClient
 from utils.logger import logger
@@ -66,5 +65,24 @@ class DBConnection:
             logger.error("Database client is None after initialization")
             raise RuntimeError("Database not initialized")
         return self._client
+
+# --- Dependency Injection Setup ---
+
+db_connection = DBConnection() # Create the singleton instance globally
+
+async def get_db_client() -> AsyncClient:
+    """FastAPI dependency function to get the initialized Supabase async client."""
+    # The client property handles initialization if needed, but it's
+    # best practice to ensure initialize() is called during app startup.
+    client = await db_connection.client
+    return client
+
+async def initialize_database():
+    """Function to initialize the database connection, intended for app startup."""
+    await db_connection.initialize()
+
+async def close_database():
+    """Function to close the database connection, intended for app shutdown."""
+    await DBConnection.disconnect() # Use classmethod for disconnect
 
 

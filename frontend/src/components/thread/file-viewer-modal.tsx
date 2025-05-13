@@ -971,7 +971,7 @@ export function FileViewerModal({
                     binaryUrl={blobUrlForRenderer}
                     fileName={selectedFilePath}
                     className="h-full w-full"
-                    project={projectWithSandbox}
+                    project={project?.sandbox && typeof project.sandbox === 'object' ? { sandbox: project.sandbox } : undefined}
                     markdownRef={
                       isMarkdownFile(selectedFilePath) ? markdownRef : undefined
                     }

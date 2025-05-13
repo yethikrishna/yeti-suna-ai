@@ -10,21 +10,22 @@ from pydantic import BaseModel, Field
 import os
 
 from agentpress.thread_manager import ThreadManager
-from services.supabase import DBConnection
+from services.supabase import get_db_client
 from services import redis
 from agent.run import run_agent
 from utils.auth_utils import get_current_user_id_from_jwt, get_user_id_from_stream_auth, verify_thread_access
 from utils.logger import logger
-from services.billing import check_billing_status
 from utils.config import config
 from sandbox.sandbox import create_sandbox, get_or_start_sandbox
 from services.llm import make_llm_api_call
 from agent.tasks import execute_agent_processing
+from ..models.api_models import (
+    ProjectCreate, ProjectResponse, ProjectListItem, ThreadListItem, ThreadResponse, AgentStartRequest, InitiateAgentResponse
+)
 
 # Initialize shared resources
 router = APIRouter()
 thread_manager = None
-db = None
 instance_id = None # Global instance ID for this backend instance
 
 # TTL for Redis response lists (24 hours)
@@ -89,77 +90,16 @@ class InitiateAgentResponse(BaseModel):
         }
     }
 
-# Pydantic Models for Project Creation
-class ProjectCreate(BaseModel):
-    name: str = Field(..., description="The name of the project.")
-    description: Optional[str] = Field(None, description="An optional description for the project.")
-
-    model_config = { # For Pydantic V2
-        "json_schema_extra": {
-            "example": {
-                "name": "My New Project",
-                "description": "This is a project to do amazing things."
-            }
-        }
-    }
-
-class ProjectResponse(BaseModel):
-    project_id: str = Field(..., description="The unique identifier of the created project.")
-    account_id: str = Field(..., description="The account ID associated with the project.")
-    name: str = Field(..., description="The name of the project.")
-    description: Optional[str] = Field(None, description="The description of the project.")
-    created_at: datetime = Field(..., description="The timestamp when the project was created.")
-    # Add other relevant fields from the 'projects' table if needed
-
-    model_config = { # For Pydantic V2
-        "json_schema_extra": {
-            "example": {
-                "project_id": "proj_a1b2c3d4e5f6",
-                "account_id": "acc_f6e5d4c3b2a1",
-                "name": "My New Project",
-                "description": "This is a project to do amazing things.",
-                "created_at": "2025-05-13T10:00:00Z"
-            }
-        }
-    }
-
-class ProjectListItem(BaseModel):
-    project_id: str
-    account_id: str
-    name: str
-    description: Optional[str] = None
-    created_at: datetime
-    updated_at: datetime
-    # Add other summary fields if needed, e.g., is_public, last_activity_at?
-
-class ThreadListItem(BaseModel):
-    thread_id: str
-    project_id: str
-    account_id: str
-    created_at: datetime
-    updated_at: datetime
-    # Add other summary fields if needed, e.g., first_message_summary?
-
-class ThreadResponse(ThreadListItem): # Can inherit if identical or add more fields
-    pass
-
 def initialize(
     _thread_manager: ThreadManager,
-    _db: DBConnection,
     _instance_id: str = None
 ):
     """Initialize the agent API with resources from the main API."""
-    global thread_manager, db, instance_id
+    global thread_manager, instance_id
     thread_manager = _thread_manager
-    db = _db
 
     # Use provided instance_id or generate a new one
-    if _instance_id:
-        instance_id = _instance_id
-    else:
-        # Generate instance ID
-        instance_id = str(uuid.uuid4())[:8]
-
+    instance_id = _instance_id or str(uuid.uuid4())[:8]
     logger.info(f"Initialized agent API with instance ID: {instance_id}")
 
     # Note: Redis will be initialized in the lifespan function in api.py
@@ -252,7 +192,7 @@ async def update_agent_run_status(
 async def stop_agent_run(agent_run_id: str, error_message: Optional[str] = None):
     """Update database and publish stop signal to Redis."""
     logger.info(f"Stopping agent run: {agent_run_id}")
-    client = await db.client
+    client = await get_db_client()
     final_status = "failed" if error_message else "stopped"
 
     # Attempt to fetch final responses from Redis
@@ -322,7 +262,7 @@ async def _cleanup_redis_response_list(agent_run_id: str):
 async def restore_running_agent_runs():
     """Mark agent runs that were still 'running' in the database as failed and clean up Redis resources."""
     logger.info("Restoring running agent runs after server restart")
-    client = await db.client
+    client = await get_db_client()
     running_agent_runs = await client.table('agent_runs').select('id').eq("status", "running").execute()
 
     for run in running_agent_runs.data:
@@ -441,7 +381,8 @@ async def get_or_create_project_sandbox(client, project_id: str):
 async def start_agent(
     thread_id: str,
     body: AgentStartRequest = Body(...),
-    user_id: str = Depends(get_current_user_id_from_jwt)
+    user_id: str = Depends(get_current_user_id_from_jwt),
+    client: Any = Depends(get_db_client)
 ):
     """Start an agent for a specific thread in the background via Celery."""
     global instance_id 
@@ -460,7 +401,6 @@ async def start_agent(
     model_name = resolved_model
 
     logger.info(f"Queueing agent task for thread: {thread_id} with config: model={model_name}, thinking={body.enable_thinking}, effort={body.reasoning_effort}, stream={body.stream}, context_manager={body.enable_context_manager} (Instance: {instance_id})")
-    client = await db.client
 
     await verify_thread_access(client, thread_id, user_id)
     thread_result = await client.table('threads').select('project_id', 'account_id').eq('thread_id', thread_id).execute()
@@ -469,10 +409,6 @@ async def start_agent(
     thread_data = thread_result.data[0]
     project_id = thread_data.get('project_id')
     account_id = thread_data.get('account_id')
-
-    can_run, message, subscription = await check_billing_status(client, account_id)
-    if not can_run:
-        raise HTTPException(status_code=402, detail={"message": message, "subscription": subscription})
 
     active_run_id = await check_for_active_project_agent_run(client, project_id)
     if active_run_id:
@@ -520,29 +456,38 @@ async def start_agent(
     return {"agent_run_id": agent_run_id, "status": "queued"}
 
 @router.post("/agent-run/{agent_run_id}/stop")
-async def stop_agent(agent_run_id: str, user_id: str = Depends(get_current_user_id_from_jwt)):
+async def stop_agent(
+    agent_run_id: str, 
+    user_id: str = Depends(get_current_user_id_from_jwt),
+    client: Any = Depends(get_db_client)
+):
     """Stop a running agent."""
     logger.info(f"Received request to stop agent run: {agent_run_id}")
-    client = await db.client
     await get_agent_run_with_access_check(client, agent_run_id, user_id)
     await stop_agent_run(agent_run_id)
     return {"status": "stopped"}
 
 @router.get("/thread/{thread_id}/agent-runs")
-async def get_agent_runs(thread_id: str, user_id: str = Depends(get_current_user_id_from_jwt)):
+async def get_agent_runs(
+    thread_id: str, 
+    user_id: str = Depends(get_current_user_id_from_jwt),
+    client: Any = Depends(get_db_client)
+):
     """Get all agent runs for a thread."""
     logger.info(f"Fetching agent runs for thread: {thread_id}")
-    client = await db.client
     await verify_thread_access(client, thread_id, user_id)
     agent_runs = await client.table('agent_runs').select('*').eq("thread_id", thread_id).order('created_at', desc=True).execute()
     logger.debug(f"Found {len(agent_runs.data)} agent runs for thread: {thread_id}")
     return {"agent_runs": agent_runs.data}
 
 @router.get("/agent-run/{agent_run_id}")
-async def get_agent_run(agent_run_id: str, user_id: str = Depends(get_current_user_id_from_jwt)):
+async def get_agent_run(
+    agent_run_id: str, 
+    user_id: str = Depends(get_current_user_id_from_jwt),
+    client: Any = Depends(get_db_client)
+):
     """Get agent run status and responses."""
     logger.info(f"Fetching agent run details: {agent_run_id}")
-    client = await db.client
     agent_run_data = await get_agent_run_with_access_check(client, agent_run_id, user_id)
     # Note: Responses are not included here by default, they are in the stream or DB
     return {
@@ -558,11 +503,11 @@ async def get_agent_run(agent_run_id: str, user_id: str = Depends(get_current_us
 async def stream_agent_run(
     agent_run_id: str,
     token: Optional[str] = None,
-    request: Request = None
+    request: Request = None,
+    client: Any = Depends(get_db_client)
 ):
     """Stream the responses of an agent run using Redis Lists and Pub/Sub."""
     logger.info(f"Starting stream for agent run: {agent_run_id}")
-    client = await db.client
 
     user_id = await get_user_id_from_stream_auth(request, token)
     agent_run_data = await get_agent_run_with_access_check(client, agent_run_id, user_id)
@@ -753,7 +698,7 @@ async def run_agent_background(
     logger.info(f"Starting background agent run: {agent_run_id} for thread: {thread_id} (Instance: {instance_id})")
     logger.info(f"🚀 Using model: {model_name} (thinking: {enable_thinking}, reasoning_effort: {reasoning_effort})")
 
-    client = await db.client
+    client = await get_db_client()
     start_time = datetime.now(timezone.utc)
     total_responses = 0
     pubsub = None
@@ -922,8 +867,8 @@ async def generate_and_update_project_name(project_id: str, prompt: str):
     """Generates a project name using an LLM and updates the database."""
     logger.info(f"Starting background task to generate name for project: {project_id}")
     try:
-        db_conn = DBConnection()
-        client = await db_conn.client
+        db_conn = get_db_client()
+        client = await db_conn
 
         model_name = "openai/gpt-4o-mini"
         system_prompt = "You are a helpful assistant that generates extremely concise titles (2-4 words maximum) for chat threads based on the user's message. Respond with only the title, no other text or punctuation."
@@ -969,7 +914,8 @@ async def initiate_agent_with_files(
     stream_form: Optional[bool] = Form(True, alias="stream"),
     enable_context_manager_form: Optional[bool] = Form(False, alias="enable_context_manager"),
     files: List[UploadFile] = File(default=[]),
-    user_id: str = Depends(get_current_user_id_from_jwt)
+    user_id: str = Depends(get_current_user_id_from_jwt),
+    client: Any = Depends(get_db_client) # Use correct dependency
 ):
     """Initiate a new agent session with optional file attachments via Celery.
        NOTE: This endpoint is likely incomplete after removing automatic project/thread creation.
@@ -997,13 +943,7 @@ async def initiate_agent_with_files(
     thread_id = "PLACEHOLDER_THREAD_ID"   # Needs to be passed in or determined
     account_id = user_id # Still assuming user_id is account_id for this context
 
-    logger.info(f"[[91mDEBUG[0m] Attempting agent initiation for project: {project_id}, thread: {thread_id} with prompt and {len(files)} files (Instance: {instance_id}), model: {model_name_to_use}, enable_thinking: {enable_thinking_form}")
-    client = await db.client
-    # account_id = user_id # This was incorrect, needs proper account lookup if multi-tenant
-
-    can_run, message, subscription = await check_billing_status(client, account_id)
-    if not can_run:
-        raise HTTPException(status_code=402, detail={"message": message, "subscription": subscription})
+    logger.info(f"[ [91mDEBUG [0m] Attempting agent initiation for project: {project_id}, thread: {thread_id} with prompt and {len(files)} files (Instance: {instance_id}), model: {model_name_to_use}, enable_thinking: {enable_thinking_form}")
 
     try:
         # 1. Create Project - REMOVED
@@ -1210,7 +1150,7 @@ async def initiate_agent_with_files(
 async def create_project_endpoint(
     project_data: ProjectCreate,
     user_id: str = Depends(get_current_user_id_from_jwt),
-    client: Any = Depends(db.get_client) # Use dependency injection for client
+    client: Any = Depends(get_db_client) # Use correct dependency
 ):
     """
     Creates a new project associated with the authenticated user's account.
@@ -1273,7 +1213,7 @@ async def create_project_endpoint(
 @router.get("/projects", response_model=List[ProjectListItem], tags=["projects"])
 async def list_projects_endpoint(
     user_id: str = Depends(get_current_user_id_from_jwt),
-    client: Any = Depends(db.get_client)
+    client: Any = Depends(get_db_client) # Use correct dependency
 ):
     """
     Lists all projects associated with the authenticated user's account.
@@ -1304,7 +1244,7 @@ async def list_projects_endpoint(
 async def list_threads_endpoint(
     project_id: str,
     user_id: str = Depends(get_current_user_id_from_jwt),
-    client: Any = Depends(db.get_client)
+    client: Any = Depends(get_db_client) # Use correct dependency
 ):
     """
     Lists all threads within a specific project, verifying user access.
@@ -1348,7 +1288,7 @@ async def list_threads_endpoint(
 async def create_thread_endpoint(
     project_id: str,
     user_id: str = Depends(get_current_user_id_from_jwt),
-    client: Any = Depends(db.get_client)
+    client: Any = Depends(get_db_client) # Use correct dependency
 ):
     """
     Creates a new thread (conversation) within a specific project.

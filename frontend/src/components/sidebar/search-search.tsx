@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Search, X, FileText, Loader2 } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 import { format } from 'date-fns';
+import Link from 'next/link';
 
 import {
   SidebarGroup,
@@ -14,8 +15,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { getProjects, getThreads } from '@/lib/api';
-import Link from 'next/link';
+import { getProjects, getThreads, Project, Thread } from '@/lib/api';
 
 // Thread with associated project info for display in sidebar & search
 type ThreadWithProject = {
@@ -55,34 +55,43 @@ export function SidebarSearch() {
       // Get all projects
       const projects = await getProjects();
 
-      // If no projects are found, the user might not be logged in
       if (projects.length === 0) {
         setThreads([]);
+        setFilteredThreads([]); // Assicurati di resettare anche i thread filtrati
         return;
       }
 
       // Create a map of projects by ID for faster lookups
-      const projectsById = new Map();
+      const projectsById = new Map<string, Project>(); // Tipizziamo la mappa
       projects.forEach((project) => {
-        projectsById.set(project.id, project);
+        // Assumendo che 'project_id' sia la chiave corretta come usata altrove
+        projectsById.set(project.project_id, project);
       });
 
-      // Get all threads at once
-      const allThreads = await getThreads();
+      // Array per raccogliere tutti i thread da tutti i progetti
+      let allThreadsFromAllProjects: Thread[] = [];
+
+      // Itera su ogni progetto per ottenere i suoi thread
+      for (const project of projects) {
+        try {
+          const threadsForProject = await getThreads(project.project_id);
+          allThreadsFromAllProjects = allThreadsFromAllProjects.concat(threadsForProject);
+        } catch (err) {
+          console.warn(`Error loading threads for project ${project.project_id}:`, err);
+          // Continua con gli altri progetti anche se uno fallisce
+        }
+      }
 
       // Create display objects for threads with their project info
       const threadsWithProjects: ThreadWithProject[] = [];
 
-      for (const thread of allThreads) {
+      for (const thread of allThreadsFromAllProjects) {
         const projectId = thread.project_id;
-        // Skip threads without a project ID
         if (!projectId) continue;
 
-        // Get the associated project
         const project = projectsById.get(projectId);
         if (!project) continue;
 
-        // Add to our list
         threadsWithProjects.push({
           threadId: thread.thread_id,
           projectId: projectId,
@@ -93,7 +102,6 @@ export function SidebarSearch() {
         });
       }
 
-      // Set threads, ensuring consistent sort order
       const sortedThreads = sortThreads(threadsWithProjects);
       setThreads(sortedThreads);
       setFilteredThreads(sortedThreads);

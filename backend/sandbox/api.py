@@ -1,26 +1,19 @@
 import os
-from typing import List, Optional
+from typing import Optional, Any
 
-from fastapi import FastAPI, UploadFile, File, HTTPException, APIRouter, Form, Depends, Request
-from fastapi.responses import Response, JSONResponse
+from fastapi import UploadFile, File, HTTPException, APIRouter, Form, Depends, Request
+from fastapi.responses import Response
 from pydantic import BaseModel
 
 from utils.logger import logger
-from utils.auth_utils import get_current_user_id_from_jwt, get_user_id_from_stream_auth, get_optional_user_id
+from utils.auth_utils import  get_optional_user_id
 from sandbox.sandbox import get_or_start_sandbox
-from services.supabase import DBConnection
+from services.supabase import get_db_client
 from agent.api import get_or_create_project_sandbox
 
 
 # Initialize shared resources
 router = APIRouter(tags=["sandbox"])
-db = None
-
-def initialize(_db: DBConnection):
-    """Initialize the sandbox API with resources from the main API."""
-    global db
-    db = _db
-    logger.info("Initialized sandbox API with database connection")
 
 class FileInfo(BaseModel):
     """Model for file information"""
@@ -116,11 +109,11 @@ async def create_file(
     path: str = Form(...),
     file: UploadFile = File(...),
     request: Request = None,
-    user_id: Optional[str] = Depends(get_optional_user_id)
+    user_id: Optional[str] = Depends(get_optional_user_id),
+    client: Any = Depends(get_db_client)
 ):
     """Create a file in the sandbox using direct file upload"""
     logger.info(f"Received file upload request for sandbox {sandbox_id}, path: {path}, user_id: {user_id}")
-    client = await db.client
     
     # Verify the user has access to this sandbox
     await verify_sandbox_access(client, sandbox_id, user_id)
@@ -147,11 +140,11 @@ async def create_file_json(
     sandbox_id: str, 
     file_request: dict,
     request: Request = None,
-    user_id: Optional[str] = Depends(get_optional_user_id)
+    user_id: Optional[str] = Depends(get_optional_user_id),
+    client: Any = Depends(get_db_client)
 ):
     """Create a file in the sandbox using JSON (legacy support)"""
     logger.info(f"Received JSON file creation request for sandbox {sandbox_id}, user_id: {user_id}")
-    client = await db.client
     
     # Verify the user has access to this sandbox
     await verify_sandbox_access(client, sandbox_id, user_id)
@@ -186,11 +179,11 @@ async def list_files(
     sandbox_id: str, 
     path: str,
     request: Request = None,
-    user_id: Optional[str] = Depends(get_optional_user_id)
+    user_id: Optional[str] = Depends(get_optional_user_id),
+    client: Any = Depends(get_db_client)
 ):
     """List files and directories at the specified path"""
     logger.info(f"Received list files request for sandbox {sandbox_id}, path: {path}, user_id: {user_id}")
-    client = await db.client
     
     # Verify the user has access to this sandbox
     await verify_sandbox_access(client, sandbox_id, user_id)
@@ -228,11 +221,11 @@ async def read_file(
     sandbox_id: str, 
     path: str,
     request: Request = None,
-    user_id: Optional[str] = Depends(get_optional_user_id)
+    user_id: Optional[str] = Depends(get_optional_user_id),
+    client: Any = Depends(get_db_client)
 ):
     """Read a file from the sandbox"""
     logger.info(f"Received file read request for sandbox {sandbox_id}, path: {path}, user_id: {user_id}")
-    client = await db.client
     
     # Verify the user has access to this sandbox
     await verify_sandbox_access(client, sandbox_id, user_id)
@@ -260,14 +253,14 @@ async def read_file(
 async def ensure_project_sandbox_active(
     project_id: str,
     request: Request = None,
-    user_id: Optional[str] = Depends(get_optional_user_id)
+    user_id: Optional[str] = Depends(get_optional_user_id),
+    client: Any = Depends(get_db_client)
 ):
     """
     Ensure that a project's sandbox is active and running.
     Checks the sandbox status and starts it if it's not running.
     """
     logger.info(f"Received ensure sandbox active request for project {project_id}, user_id: {user_id}")
-    client = await db.client
     
     # Find the project and sandbox information
     project_result = await client.table('projects').select('*').eq('project_id', project_id).execute()
