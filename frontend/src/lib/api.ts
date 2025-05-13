@@ -94,8 +94,8 @@ export interface FileInfo {
 // Project APIs
 export const getProjects = async (): Promise<Project[]> => {
   try {
-    console.log(`[API] Fetching projects from ${API_URL}/projects`);
-    const response = await fetch(`${API_URL}/projects`, {
+    console.log(`[API] Fetching projects from ${API_URL}/api/projects`);
+    const response = await fetch(`${API_URL}/api/projects`, {
       method: 'GET',
       headers: {
         'Authorization': 'Bearer dummy_self_host_token',
@@ -214,7 +214,7 @@ export const createProject = async (
 ): Promise<Project> => {
   try {
     console.log('[API] createProject called with data:', projectData);
-    const response = await fetch(`${API_URL}/projects`, {
+    const response = await fetch(`${API_URL}/api/projects`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
