@@ -10,10 +10,11 @@ export default function PersonalAccountSettingsPage({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const items = [
-    // { name: "Profile", href: "/settings" },
-    // { name: "Teams", href: "/settings/teams" },
-    { name: 'Billing', href: '/settings/billing' },
+  const sidebarNavItems = [
+    { name: 'Profile', href: '/settings' },
+    // { name: 'Billing', href: '/settings/billing' }, // Commentato
+    { name: 'Appearance', href: '/settings/appearance' },
+    { name: 'Notifications', href: '/settings/notifications' },
   ];
   return (
     <div className="space-y-6 w-full">
@@ -21,7 +22,7 @@ export default function PersonalAccountSettingsPage({
       <div className="flex flex-col space-y-8 lg:flex-row lg:space-x-12 lg:space-y-0 w-full max-w-6xl mx-auto px-4">
         <aside className="lg:w-1/4 p-1">
           <nav className="flex flex-col space-y-1">
-            {items.map((item) => (
+            {sidebarNavItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}

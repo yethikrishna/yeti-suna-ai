@@ -20,10 +20,12 @@ interface DeleteConfirmationDialogProps {
   onConfirm: () => void;
   threadName: string;
   isDeleting: boolean;
+  title?: string;
+  description?: React.ReactNode;
 }
 
 /**
- * Confirmation dialog for deleting a conversation
+ * Confirmation dialog for deleting items (e.g., conversations, projects)
  */
 export function DeleteConfirmationDialog({
   isOpen,
@@ -31,17 +33,26 @@ export function DeleteConfirmationDialog({
   onConfirm,
   threadName,
   isDeleting,
+  title = "Delete conversation",
+  description,
 }: DeleteConfirmationDialogProps) {
+
+  const defaultDescription = (
+     <>
+       Are you sure you want to delete the conversation{' '}
+       <span className="font-semibold">"{threadName}"</span>?
+       <br />
+       This action cannot be undone.
+     </>
+  );
+
   return (
     <AlertDialog open={isOpen} onOpenChange={onClose}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete conversation</AlertDialogTitle>
+          <AlertDialogTitle>{title}</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to delete the conversation{' '}
-            <span className="font-semibold">"{threadName}"</span>?
-            <br />
-            This action cannot be undone.
+             {description || defaultDescription}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

@@ -99,9 +99,8 @@ export function ShareModal({ isOpen, onClose, threadId, projectId }: ShareModalP
     };
 
     const updatePublicStatus = async (isPublic: boolean) => {
-        console.log("Updating public status for thread:", threadId, "and project:", projectId, "to", isPublic);
+        console.log("Updating public status for thread:", threadId, "to", isPublic);
         if (!threadId) return;
-        await updateProject(projectId, { is_public: isPublic });
         await updateThread(threadId, { is_public: isPublic });
     };
 

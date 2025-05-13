@@ -696,9 +696,9 @@ export default function ThreadPage({
         if (!isMounted) return;
 
         // Make sure the thread is public
-        // if (!(threadData as any).is_public) {
-        //   throw new Error('This thread is not available for public viewing.');
-        // }
+        if (!(threadData as any).is_public) {
+          throw new Error('This thread is not available for public viewing.');
+        }
 
         // Load project data if we have a project ID
         const projectData = threadData?.project_id ?

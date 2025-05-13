@@ -30,29 +30,23 @@ export class BillingError extends Error {
 
 // Type Definitions (moved from potential separate file for clarity)
 export type Project = {
-  id: string;
+  project_id: string;
   name: string;
-  description: string;
+  description?: string | null;
   account_id: string;
   created_at: string;
   updated_at?: string;
-  sandbox: {
-    vnc_preview?: string;
-    sandbox_url?: string;
-    id?: string;
-    pass?: string;
-  };
-  is_public?: boolean; // Flag to indicate if the project is public
   [key: string]: any; // Allow additional properties to handle database fields
 };
 
 export type Thread = {
   thread_id: string;
-  account_id: string | null;
-  project_id?: string | null;
-  is_public?: boolean;
+  account_id: string;
+  project_id: string;
+  name?: string | null; // Explicitly define name as optional string or null
   created_at: string;
   updated_at: string;
+  is_public?: boolean; // Explicitly define is_public as optional boolean
   [key: string]: any; // Allow additional properties to handle database fields
 };
 
@@ -100,64 +94,26 @@ export interface FileInfo {
 // Project APIs
 export const getProjects = async (): Promise<Project[]> => {
   try {
-    console.log('[API] getProjects called in self-hosted mode, returning empty array.');
-    return [];
-
-    /* Original code using Supabase client removed:
-    const supabase = createClient();
-
-    const { data: userData, error: userError } = await supabase.auth.getUser();
-    if (userError) {
-      console.error('Error getting current user:', userError);
-      return [];
-    }
-
-    if (!userData.user) {
-      console.log('[API] No user logged in, returning empty projects array');
-      return [];
-    }
-
-    const { data, error } = await supabase
-      .from('projects')
-      .select('*')
-      .eq('account_id', userData.user.id);
-
-    if (error) {
-      if (
-        error.code === '42501' &&
-        error.message.includes('has_role_on_account')
-      ) {
-        console.error(
-          'Permission error: User does not have proper account access',
-        );
-        return [];
-      }
-      throw error;
-    }
-
-    console.log('[API] Raw projects from DB:', data?.length, data);
-
-    const mappedProjects: Project[] = (data || []).map((project) => ({
-      id: project.project_id,
-      name: project.name || '',
-      description: project.description || '',
-      account_id: project.account_id,
-      created_at: project.created_at,
-      updated_at: project.updated_at,
-      sandbox: project.sandbox || {
-        id: '',
-        pass: '',
-        vnc_preview: '',
-        sandbox_url: '',
+    console.log(`[API] Fetching projects from ${API_URL}/projects`);
+    const response = await fetch(`${API_URL}/projects`, {
+      method: 'GET',
+      headers: {
+        'Authorization': 'Bearer dummy_self_host_token',
+        'Accept': 'application/json',
       },
-    }));
+      cache: 'no-store', // Ensure fresh data for project list
+    });
 
-    console.log('[API] Mapped projects for frontend:', mappedProjects.length);
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Failed to fetch projects, unknown error' }));
+      console.error('Error fetching projects:', response.status, errorData);
+      throw new Error(errorData.message || `Failed to fetch projects: ${response.statusText}`);
+    }
 
-    return mappedProjects;
-    */
+    const projects: Project[] = await response.json();
+    console.log('[API] Projects fetched successfully:', projects.length);
+    return projects || [];
   } catch (err) {
-    // This catch block might now be unreachable unless the modified code throws.
     console.error('Error fetching projects:', err);
     return [];
   }
@@ -235,18 +191,12 @@ export const getProject = async (projectId: string): Promise<Project> => {
 
     // Map database fields to our Project type
     const mappedProject: Project = {
-      id: data.project_id,
+      project_id: data.project_id,
       name: data.name || '',
       description: data.description || '',
       account_id: data.account_id,
-      is_public: data.is_public || false,
       created_at: data.created_at,
-      sandbox: data.sandbox || {
-        id: '',
-        pass: '',
-        vnc_preview: '',
-        sandbox_url: '',
-      },
+      updated_at: data.updated_at,
     };
 
     console.log('Mapped project data for frontend:', mappedProject);
@@ -337,7 +287,7 @@ export const updateProject = async (
         detail: {
           projectId,
           updatedData: {
-            id: updatedData.project_id,
+            project_id: updatedData.project_id,
             name: updatedData.name,
             description: updatedData.description,
           },
@@ -348,17 +298,11 @@ export const updateProject = async (
 
   // Return formatted project data - use same mapping as getProject
   return {
-    id: updatedData.project_id,
+    project_id: updatedData.project_id,
     name: updatedData.name,
     description: updatedData.description || '',
     account_id: updatedData.account_id,
     created_at: updatedData.created_at,
-    sandbox: updatedData.sandbox || {
-      id: '',
-      pass: '',
-      vnc_preview: '',
-      sandbox_url: '',
-    },
   };
 };
 
@@ -373,55 +317,39 @@ export const deleteProject = async (projectId: string): Promise<void> => {
 };
 
 // Thread APIs
-export const getThreads = async (projectId?: string): Promise<Thread[]> => {
-  // MODIFIED: In self-hosted mode without auth, cannot reliably get user-specific threads via Supabase RLS.
-  // Returning empty array. If threads associated with dummy_user_id are needed,
-  // a dedicated backend endpoint would be required.
-  console.log('[API] getThreads called in self-hosted mode, returning empty array.');
-  return [];
-
-  /* Original code using Supabase client removed:
-  const supabase = createClient();
-
-  const { data: userData, error: userError } = await supabase.auth.getUser();
-  if (userError) {
-    console.error('Error getting current user:', userError);
+export const getThreads = async (projectId: string): Promise<Thread[]> => {
+  if (!projectId) {
+    console.error('[API] getThreads called without projectId.');
     return [];
   }
 
-  if (!userData.user) {
-    console.log('[API] No user logged in, returning empty threads array');
+  try {
+    console.log(`[API] Fetching threads for project ${projectId} from ${API_URL}/projects/${projectId}/threads`);
+    const response = await fetch(`${API_URL}/projects/${projectId}/threads`, {
+      method: 'GET',
+      headers: {
+        'Authorization': 'Bearer dummy_self_host_token',
+        'Accept': 'application/json',
+      },
+      cache: 'no-store',
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: `Failed to fetch threads for project ${projectId}, unknown error` }));
+      console.error(`Error fetching threads for project ${projectId}:`, response.status, errorData);
+      if (response.status === 404) {
+        return [];
+      }
+      throw new Error(errorData.message || `Failed to fetch threads: ${response.statusText}`);
+    }
+
+    const threads: Thread[] = await response.json();
+    console.log(`[API] Threads for project ${projectId} fetched successfully:`, threads.length);
+    return threads || [];
+  } catch (err) {
+    console.error(`Error fetching threads for project ${projectId}:`, err);
     return [];
   }
-
-  let query = supabase.from('threads').select('*');
-
-  query = query.eq('account_id', userData.user.id);
-
-  if (projectId) {
-    console.log('[API] Filtering threads by project_id:', projectId);
-    query = query.eq('project_id', projectId);
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    console.error('[API] Error fetching threads:', error);
-    throw error;
-  }
-
-  console.log('[API] Raw threads from DB:', data?.length, data);
-
-  const mappedThreads: Thread[] = (data || []).map((thread) => ({
-    thread_id: thread.thread_id,
-    account_id: thread.account_id,
-    project_id: thread.project_id,
-    created_at: thread.created_at,
-    updated_at: thread.updated_at,
-  }));
-
-  return mappedThreads;
-  */
 };
 
 export const getThread = async (threadId: string): Promise<Thread> => {
@@ -450,19 +378,6 @@ export const getThread = async (threadId: string): Promise<Thread> => {
     console.error(`Error fetching thread ${threadId}:`, error);
     throw error; // Re-throw to be handled by the calling component
   }
-
-  /* Original code using Supabase client removed:
-  const supabase = createClient();
-  const { data, error } = await supabase
-    .from('threads')
-    .select('*')
-    .eq('thread_id', threadId)
-    .single();
-
-  if (error) throw error;
-
-  return data;
-  */
 };
 
 export const createThread = async (projectId: string): Promise<Thread> => {
@@ -474,7 +389,6 @@ export const createThread = async (projectId: string): Promise<Thread> => {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer dummy_self_host_token',
       },
-      // No body needed for creating a thread, projectId is in URL
     });
 
     if (!response.ok) {
@@ -538,39 +452,15 @@ export const getMessages = async (threadId: string): Promise<Message[]> => {
       console.error('Error getting messages:', response.status, errorData);
       // Return empty array on error to prevent UI crash
       return [];
-      // throw new Error(errorData.message || `Failed to get messages: ${response.statusText}`);
     }
     const messages: Message[] = await response.json();
     console.log('[API] Messages fetched successfully:', messages.length);
     return messages;
-
   } catch (error) {
-     console.error('Error in getMessages:', error);
-     // Return empty array on error
-     return [];
-     // throw new Error(`Error getting messages: ${error instanceof Error ? error.message : String(error)}`);
+    console.error('Error in getMessages:', error);
+    // Return empty array on error
+    return [];
   }
-
-  /* Original code using Supabase client removed:
-  const supabase = createClient();
-
-  const { data, error } = await supabase
-    .from('messages')
-    .select('*')
-    .eq('thread_id', threadId)
-    .neq('type', 'cost')
-    .neq('type', 'summary')
-    .order('created_at', { ascending: true });
-
-  if (error) {
-    console.error('Error fetching messages:', error);
-    throw new Error(`Error getting messages: ${error.message}`);
-  }
-
-  console.log('[API] Messages fetched:', data);
-
-  return data || [];
-  */
 };
 
 // Agent APIs
@@ -725,7 +615,6 @@ export const getAgentRuns = async (threadId: string): Promise<AgentRun[]> => {
       const errorData = await response.json().catch(() => ({ message: 'Failed to get agent runs, unknown error' }));
       console.error('Error getting agent runs:', response.status, errorData);
       return []; // Return empty on error
-      // throw new Error(errorData.message || `Failed to get agent runs: ${response.statusText}`);
     }
     const data = await response.json();
     console.log('[API] Agent runs fetched successfully:', data.agent_runs?.length);
@@ -733,7 +622,6 @@ export const getAgentRuns = async (threadId: string): Promise<AgentRun[]> => {
   } catch (error) {
     console.error('Failed to get agent runs:', error);
     return []; // Return empty on error
-    // throw new Error(`Failed to get agent runs: ${error instanceof Error ? error.message : String(error)}`);
   }
 };
 
@@ -1328,19 +1216,12 @@ export const getPublicProjects = async (): Promise<Project[]> => {
 
     // Map database fields to our Project type
     const mappedProjects: Project[] = (projects || []).map((project) => ({
-      id: project.project_id,
+      project_id: project.project_id,
       name: project.name || '',
       description: project.description || '',
       account_id: project.account_id,
       created_at: project.created_at,
       updated_at: project.updated_at,
-      sandbox: project.sandbox || {
-        id: '',
-        pass: '',
-        vnc_preview: '',
-        sandbox_url: '',
-      },
-      is_public: true, // Mark these as public projects
     }));
 
     console.log(

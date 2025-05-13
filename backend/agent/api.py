@@ -5,10 +5,8 @@ import json
 import traceback
 from datetime import datetime, timezone
 import uuid
-from typing import Optional, List, Dict, Any
-import jwt
+from typing import Optional, List, Any
 from pydantic import BaseModel, Field
-import tempfile
 import os
 
 from agentpress.thread_manager import ThreadManager
@@ -90,6 +88,60 @@ class InitiateAgentResponse(BaseModel):
             }
         }
     }
+
+# Pydantic Models for Project Creation
+class ProjectCreate(BaseModel):
+    name: str = Field(..., description="The name of the project.")
+    description: Optional[str] = Field(None, description="An optional description for the project.")
+
+    model_config = { # For Pydantic V2
+        "json_schema_extra": {
+            "example": {
+                "name": "My New Project",
+                "description": "This is a project to do amazing things."
+            }
+        }
+    }
+
+class ProjectResponse(BaseModel):
+    project_id: str = Field(..., description="The unique identifier of the created project.")
+    account_id: str = Field(..., description="The account ID associated with the project.")
+    name: str = Field(..., description="The name of the project.")
+    description: Optional[str] = Field(None, description="The description of the project.")
+    created_at: datetime = Field(..., description="The timestamp when the project was created.")
+    # Add other relevant fields from the 'projects' table if needed
+
+    model_config = { # For Pydantic V2
+        "json_schema_extra": {
+            "example": {
+                "project_id": "proj_a1b2c3d4e5f6",
+                "account_id": "acc_f6e5d4c3b2a1",
+                "name": "My New Project",
+                "description": "This is a project to do amazing things.",
+                "created_at": "2025-05-13T10:00:00Z"
+            }
+        }
+    }
+
+class ProjectListItem(BaseModel):
+    project_id: str
+    account_id: str
+    name: str
+    description: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+    # Add other summary fields if needed, e.g., is_public, last_activity_at?
+
+class ThreadListItem(BaseModel):
+    thread_id: str
+    project_id: str
+    account_id: str
+    created_at: datetime
+    updated_at: datetime
+    # Add other summary fields if needed, e.g., first_message_summary?
+
+class ThreadResponse(ThreadListItem): # Can inherit if identical or add more fields
+    pass
 
 def initialize(
     _thread_manager: ThreadManager,
@@ -919,7 +971,10 @@ async def initiate_agent_with_files(
     files: List[UploadFile] = File(default=[]),
     user_id: str = Depends(get_current_user_id_from_jwt)
 ):
-    """Initiate a new agent session with optional file attachments via Celery.""" # Docstring updated
+    """Initiate a new agent session with optional file attachments via Celery.
+       NOTE: This endpoint is likely incomplete after removing automatic project/thread creation.
+       It needs project_id and thread_id context to function correctly.
+    """ # Docstring updated
     global instance_id 
     if not instance_id:
         raise HTTPException(status_code=500, detail="Agent API not initialized with instance ID")
@@ -935,38 +990,50 @@ async def initiate_agent_with_files(
     logger.info(f"Resolved model name: {resolved_model}")
     model_name_to_use = resolved_model
 
-    logger.info(f"[\033[91mDEBUG\033[0m] Queueing agent initiation with prompt and {len(files)} files (Instance: {instance_id}), model: {model_name_to_use}, enable_thinking: {enable_thinking_form}")
+    # !! IMPORTANT: This endpoint now requires project_id and thread_id to be provided !!
+    # !! The logic below assumes they are available, but they are NOT passed in. !!
+    # !! This endpoint needs refactoring or removal. !!
+    project_id = "PLACEHOLDER_PROJECT_ID" # Needs to be passed in or determined
+    thread_id = "PLACEHOLDER_THREAD_ID"   # Needs to be passed in or determined
+    account_id = user_id # Still assuming user_id is account_id for this context
+
+    logger.info(f"[[91mDEBUG[0m] Attempting agent initiation for project: {project_id}, thread: {thread_id} with prompt and {len(files)} files (Instance: {instance_id}), model: {model_name_to_use}, enable_thinking: {enable_thinking_form}")
     client = await db.client
-    account_id = user_id 
+    # account_id = user_id # This was incorrect, needs proper account lookup if multi-tenant
 
     can_run, message, subscription = await check_billing_status(client, account_id)
     if not can_run:
         raise HTTPException(status_code=402, detail={"message": message, "subscription": subscription})
 
     try:
-        # 1. Create Project
-        placeholder_name = f"{prompt[:30]}..." if len(prompt) > 30 else prompt
-        project = await client.table('projects').insert({
-            "project_id": str(uuid.uuid4()), "account_id": account_id, "name": placeholder_name,
-            "created_at": datetime.now(timezone.utc).isoformat()
-        }).execute()
-        project_id = project.data[0]['project_id']
-        logger.info(f"Created new project: {project_id}")
+        # 1. Create Project - REMOVED
+        # placeholder_name = f"{prompt[:30]}..." if len(prompt) > 30 else prompt
+        # project = await client.table('projects').insert({
+        #     "project_id": str(uuid.uuid4()), "account_id": account_id, "name": placeholder_name,
+        #     "created_at": datetime.now(timezone.utc).isoformat()
+        # }).execute()
+        # project_id = project.data[0]['project_id']
+        # logger.info(f"Created new project: {project_id}")
 
-        # 2. Create Thread
-        thread = await client.table('threads').insert({
-            "thread_id": str(uuid.uuid4()), "project_id": project_id, "account_id": account_id,
-            "created_at": datetime.now(timezone.utc).isoformat()
-        }).execute()
-        thread_id = thread.data[0]['thread_id']
-        logger.info(f"Created new thread: {thread_id}")
+        # 2. Create Thread - REMOVED
+        # thread = await client.table('threads').insert({
+        #     "thread_id": str(uuid.uuid4()), "project_id": project_id, "account_id": account_id,
+        #     "created_at": datetime.now(timezone.utc).isoformat()
+        # }).execute()
+        # thread_id = thread.data[0]['thread_id']
+        # logger.info(f"Created new thread: {thread_id}")
 
-        # Trigger Background Naming Task
-        asyncio.create_task(generate_and_update_project_name(project_id=project_id, prompt=prompt))
+        # Trigger Background Naming Task - Keep for now, assuming project_id is valid
+        if project_id != "PLACEHOLDER_PROJECT_ID":
+             asyncio.create_task(generate_and_update_project_name(project_id=project_id, prompt=prompt))
+        else:
+             logger.warning("Skipping project naming task due to placeholder project_id")
 
-        # 3. Create Sandbox
+        # 3. Create or Get Sandbox (Requires a valid project_id)
+        if project_id == "PLACEHOLDER_PROJECT_ID":
+            raise HTTPException(status_code=400, detail="Project ID is required for sandbox operation.")
         sandbox, sandbox_id, sandbox_pass = await get_or_create_project_sandbox(client, project_id)
-        logger.info(f"Using sandbox {sandbox_id} for new project {project_id}")
+        logger.info(f"Using sandbox {sandbox_id} for project {project_id}")
 
         # 4. Upload Files to Sandbox (if any)
         # This part is complex and sandbox-dependent. If run_agent needs these files
@@ -1062,6 +1129,8 @@ async def initiate_agent_with_files(
             final_message_content = prompt
 
         # 5. Add initial user message to thread (using final_message_content)
+        if thread_id == "PLACEHOLDER_THREAD_ID":
+             raise HTTPException(status_code=400, detail="Thread ID is required to add messages.")
         message_id = str(uuid.uuid4())
         # The `initial_prompt_message` for Celery task should be this payload
         initial_celery_prompt_payload = {"role": "user", "content": final_message_content}
@@ -1075,10 +1144,12 @@ async def initiate_agent_with_files(
         logger.info(f"Added initial user message {message_id} to thread {thread_id}")
 
         # 6. Start Agent Run (Status: queued)
+        if thread_id == "PLACEHOLDER_THREAD_ID":
+             raise HTTPException(status_code=400, detail="Thread ID is required to start agent runs.")
         agent_run = await client.table('agent_runs').insert({
             "thread_id": thread_id, 
-            "status": "queued", # Changed status
-            "started_at": datetime.now(timezone.utc).isoformat(), # Queued_at
+            "status": "queued",
+            "started_at": datetime.now(timezone.utc).isoformat(),
             "model_name": model_name_to_use,
             "parameters": { 
                 "enable_thinking": enable_thinking_form,
@@ -1133,3 +1204,203 @@ async def initiate_agent_with_files(
                 logger.error(f"Failed to clean up thread {thread_id}: {str(cleanup_thread_error)}")
 
         raise HTTPException(status_code=500, detail=f"Failed to initiate agent session: {str(e)}")
+
+# --- NEW PROJECT CREATION ENDPOINT ---
+@router.post("/projects", response_model=ProjectResponse, tags=["projects"])
+async def create_project_endpoint(
+    project_data: ProjectCreate,
+    user_id: str = Depends(get_current_user_id_from_jwt),
+    client: Any = Depends(db.get_client) # Use dependency injection for client
+):
+    """
+    Creates a new project associated with the authenticated user's account.
+    Uses user_id as account_id for simplicity (consistent with /agent/initiate).
+    """
+    logger.info(f"Received request to create project: Name='{project_data.name}', UserID={user_id}")
+
+    try:
+        # Step 1: Use user_id as account_id (consistent with /agent/initiate)
+        account_id = user_id
+        logger.info(f"Using user_id as account_id: {account_id}")
+
+        # Step 2: Create the new project in the database
+        new_project_id = str(uuid.uuid4())
+        current_time = datetime.now(timezone.utc)
+        
+        insert_data = {
+            "project_id": new_project_id,
+            "account_id": account_id,
+            "name": project_data.name,
+            "description": project_data.description,
+            "created_at": current_time.isoformat(),
+            "updated_at": current_time.isoformat(),
+            # Add any other required fields with default values if necessary
+            # e.g., "is_public": False, "sandbox": None, ...
+        }
+
+        insert_result = await client.table('projects').insert(insert_data).execute()
+
+        if not insert_result.data or len(insert_result.data) == 0:
+            logger.error(f"Failed to insert project into database for account {account_id}. Result: {insert_result}")
+            raise HTTPException(status_code=500, detail="Failed to create project in database.")
+
+        created_project_data = insert_result.data[0]
+        logger.info(f"Successfully created project {new_project_id} for account {account_id}")
+
+        # Step 3: Return the created project details
+        # Ensure the response model matches the fields returned
+        return ProjectResponse(
+            project_id=created_project_data['project_id'],
+            account_id=created_project_data['account_id'],
+            name=created_project_data['name'],
+            description=created_project_data.get('description'), # Use .get for optional fields
+            created_at=created_project_data['created_at'] # Assuming DB returns datetime compatible string
+            # Map other fields as needed
+        )
+
+    except HTTPException as http_exc:
+        # Re-raise HTTPExceptions directly
+        raise http_exc
+    except Exception as e:
+        logger.error(f"Unexpected error creating project for user {user_id}: {str(e)}", exc_info=True)
+        # Consider more specific error handling based on potential exceptions
+        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
+
+# --- END NEW PROJECT CREATION ENDPOINT ---
+
+# --- START NEW ENDPOINTS FOR PROJECTS/THREADS ---
+
+@router.get("/projects", response_model=List[ProjectListItem], tags=["projects"])
+async def list_projects_endpoint(
+    user_id: str = Depends(get_current_user_id_from_jwt),
+    client: Any = Depends(db.get_client)
+):
+    """
+    Lists all projects associated with the authenticated user's account.
+    Uses user_id as account_id.
+    """
+    account_id = user_id
+    logger.info(f"Fetching projects for account_id (user_id): {account_id}")
+    try:
+        project_query = await client.table("projects") \
+                                    .select("project_id, account_id, name, description, created_at, updated_at") \
+                                    .eq("account_id", account_id) \
+                                    .order("updated_at", desc=True) \
+                                    .execute()
+       
+        if project_query.data is None:
+            # Handle potential errors if needed, but returning empty list is fine
+             logger.warning(f"Project query returned None for account {account_id}, possibly an error or no projects.")
+             return []
+
+        # Pydantic validation happens implicitly when returning
+        return project_query.data
+       
+    except Exception as e:
+        logger.error(f"Error fetching projects for account {account_id}: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to retrieve projects.")
+
+@router.get("/projects/{project_id}/threads", response_model=List[ThreadListItem], tags=["threads"])
+async def list_threads_endpoint(
+    project_id: str,
+    user_id: str = Depends(get_current_user_id_from_jwt),
+    client: Any = Depends(db.get_client)
+):
+    """
+    Lists all threads within a specific project, verifying user access.
+    Uses user_id as account_id for access check.
+    """
+    account_id = user_id
+    logger.info(f"Fetching threads for project_id: {project_id}, account_id (user_id): {account_id}")
+    try:
+        # Step 1: Verify user has access to the project
+        project_access_query = await client.table("projects") \
+                                            .select("project_id") \
+                                            .eq("project_id", project_id) \
+                                            .eq("account_id", account_id) \
+                                            .maybe_single() \
+                                            .execute()
+
+        if not project_access_query.data:
+            logger.warning(f"Access denied or project not found for project_id {project_id} and account_id {account_id}")
+            raise HTTPException(status_code=404, detail="Project not found or access denied.")
+
+        # Step 2: Fetch threads for the project
+        thread_query = await client.table("threads") \
+                                    .select("thread_id, project_id, account_id, created_at, updated_at") \
+                                    .eq("project_id", project_id) \
+                                    .order("updated_at", desc=True) \
+                                    .execute()
+       
+        if thread_query.data is None:
+            logger.warning(f"Thread query returned None for project {project_id}, possibly an error or no threads.")
+            return []
+           
+        return thread_query.data
+
+    except HTTPException as http_exc:
+        raise http_exc
+    except Exception as e:
+        logger.error(f"Error fetching threads for project {project_id}: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to retrieve threads.")
+
+@router.post("/projects/{project_id}/threads", response_model=ThreadResponse, status_code=201, tags=["threads"])
+async def create_thread_endpoint(
+    project_id: str,
+    user_id: str = Depends(get_current_user_id_from_jwt),
+    client: Any = Depends(db.get_client)
+):
+    """
+    Creates a new thread (conversation) within a specific project.
+    Verifies user access to the project first.
+    Uses user_id as account_id.
+    """
+    account_id = user_id
+    logger.info(f"Request to create thread in project_id: {project_id} for account_id (user_id): {account_id}")
+   
+    try:
+        # Step 1: Verify user has access to the project
+        project_access_query = await client.table("projects") \
+                                            .select("project_id") \
+                                            .eq("project_id", project_id) \
+                                            .eq("account_id", account_id) \
+                                            .maybe_single() \
+                                            .execute()
+
+        if not project_access_query.data:
+            logger.warning(f"Access denied or project not found for project_id {project_id} and account_id {account_id} during thread creation.")
+            raise HTTPException(status_code=404, detail="Project not found or access denied.")
+       
+        # Step 2: Create the new thread
+        new_thread_id = str(uuid.uuid4())
+        current_time = datetime.now(timezone.utc)
+       
+        insert_data = {
+            "thread_id": new_thread_id,
+            "project_id": project_id,
+            "account_id": account_id,
+            "created_at": current_time.isoformat(),
+            "updated_at": current_time.isoformat(),
+            # Add any other required fields or default values for threads if necessary
+        }
+       
+        insert_result = await client.table("threads").insert(insert_data).execute()
+       
+        if not insert_result.data or len(insert_result.data) == 0:
+            logger.error(f"Failed to insert thread into database for project {project_id}. Result: {insert_result}")
+            raise HTTPException(status_code=500, detail="Failed to create thread in database.")
+           
+        created_thread_data = insert_result.data[0]
+        logger.info(f"Successfully created thread {new_thread_id} in project {project_id}")
+       
+        # Step 3: Return the created thread details
+        # Ensure the response model matches the fields returned
+        return ThreadResponse(**created_thread_data) # Use **kwargs to populate model
+       
+    except HTTPException as http_exc:
+        raise http_exc
+    except Exception as e:
+        logger.error(f"Unexpected error creating thread in project {project_id}: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"An unexpected error occurred while creating the thread: {str(e)}")
+
+# --- END NEW ENDPOINTS FOR PROJECTS/THREADS ---
