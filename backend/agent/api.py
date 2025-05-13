@@ -13,13 +13,12 @@ from agentpress.thread_manager import ThreadManager
 from services.supabase import get_db_client
 from services import redis
 from agent.run import run_agent
-from utils.auth_utils import get_current_user_id_from_jwt, get_user_id_from_stream_auth, verify_thread_access
 from utils.logger import logger
 from utils.config import config
 from sandbox.sandbox import create_sandbox, get_or_start_sandbox
 from services.llm import make_llm_api_call
 from agent.tasks import execute_agent_processing
-from ..models.api_models import (
+from models.api_models import (
     ProjectCreate, ProjectResponse, ProjectListItem, ThreadListItem, ThreadResponse
 )
 
