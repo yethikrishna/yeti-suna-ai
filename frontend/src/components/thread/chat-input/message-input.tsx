@@ -5,7 +5,6 @@ import { Square, Loader2, ArrowUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { UploadedFile } from './chat-input';
 import { FileUploadHandler } from './file-upload-handler';
-import { ModelSelector } from './model-selector';
 
 interface MessageInputProps {
   value: string;
@@ -26,12 +25,6 @@ interface MessageInputProps {
   setUploadedFiles: React.Dispatch<React.SetStateAction<UploadedFile[]>>;
   setIsUploading: React.Dispatch<React.SetStateAction<boolean>>;
   hideAttachments?: boolean;
-
-  selectedModel: string;
-  onModelChange: (model: string) => void;
-  modelOptions: any[];
-  subscriptionStatus: string;
-  canAccessModel: (model: string) => boolean;
 }
 
 export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(
@@ -55,12 +48,6 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(
       setUploadedFiles,
       setIsUploading,
       hideAttachments = false,
-
-      selectedModel,
-      onModelChange,
-      modelOptions,
-      subscriptionStatus,
-      canAccessModel,
     },
     ref,
   ) => {
@@ -136,12 +123,6 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(
             
           </div>
           <div className='flex items-center gap-2'>
-            <ModelSelector
-              selectedModel={selectedModel}
-              onModelChange={onModelChange}
-              modelOptions={modelOptions}
-              canAccessModel={canAccessModel}
-            />
             <Button
               type="submit"
               onClick={isAgentRunning && onStopAgent ? onStopAgent : onSubmit}

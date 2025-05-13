@@ -1,11 +1,9 @@
 'use client';
 
 import * as React from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   ChevronsUpDown,
-  LogOut,
   Settings,
   Sun,
   Moon,
@@ -27,14 +25,8 @@ import {
 import { useTheme } from 'next-themes';
 
 export function NavUserWithTeams() {
-  const router = useRouter();
   const { isMobile } = useSidebar();
   const { theme, setTheme } = useTheme();
-
-  const handleLogout = async () => {
-    console.log("Logout attempt in self-hosted mode (no-op)");
-    // Non fa nulla, il pulsante sarà disabilitato
-  };
 
   return (
     <SidebarMenu>
@@ -46,7 +38,7 @@ export function NavUserWithTeams() {
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <div className="flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">Menu Utente</span>
+                <span className="truncate font-medium">Menu</span>
               </div>
               <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>
@@ -75,12 +67,6 @@ export function NavUserWithTeams() {
                  <Sun className="size-4 shrink-0" />
                )}
               Cambia Tema
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            {/* Logout Button - Disabilitato */}
-            <DropdownMenuItem onClick={handleLogout} disabled className="gap-2">
-              <LogOut className="size-4 shrink-0" />
-              Logout (Disabilitato)
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

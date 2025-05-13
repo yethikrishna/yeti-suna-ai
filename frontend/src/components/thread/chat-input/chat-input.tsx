@@ -13,7 +13,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { handleFiles } from './file-upload-handler';
 import { MessageInput } from './message-input';
 import { UploadedFilesDisplay } from './uploaded-file-display';
-import { useModelSelection } from './_use-model-selection';
 
 export interface ChatInputHandles {
   getPendingFiles: () => File[];
@@ -73,14 +72,6 @@ export const ChatInput = forwardRef<ChatInputHandles, ChatInputProps>(
     const [isUploading, setIsUploading] = useState(false);
     const [isDraggingOver, setIsDraggingOver] = useState(false);
 
-    const {
-      selectedModel,
-      setSelectedModel: handleModelChange,
-      subscriptionStatus,
-      allModels: modelOptions,
-      canAccessModel,
-    } = useModelSelection();
-
     const textareaRef = useRef<HTMLTextAreaElement | null>(null);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -118,17 +109,7 @@ export const ChatInput = forwardRef<ChatInputHandles, ChatInputProps>(
         message = message ? `${message}\n\n${fileInfo}` : fileInfo;
       }
 
-      let baseModelName = selectedModel;
-      let thinkingEnabled = false;
-      if (selectedModel.endsWith('-thinking')) {
-        baseModelName = selectedModel.replace(/-thinking$/, '');
-        thinkingEnabled = true;
-      }
-
-      onSubmit(message, {
-        model_name: baseModelName,
-        enable_thinking: thinkingEnabled,
-      });
+      onSubmit(message);
 
       if (!isControlled) {
         setUncontrolledValue('');
@@ -216,12 +197,6 @@ export const ChatInput = forwardRef<ChatInputHandles, ChatInputProps>(
                 setUploadedFiles={setUploadedFiles}
                 setIsUploading={setIsUploading}
                 hideAttachments={hideAttachments}
-
-                selectedModel={selectedModel}
-                onModelChange={handleModelChange}
-                modelOptions={modelOptions}
-                subscriptionStatus={subscriptionStatus}
-                canAccessModel={canAccessModel}
               />
             </CardContent>
           </div>
