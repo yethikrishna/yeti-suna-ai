@@ -55,8 +55,7 @@ async function getAgentRunContext(supabaseClient: SupabaseClient, threadId: stri
 }
 
 export function useGlobalAgentNotifications() {
-  const supabase = createClient();
-  const { user } = useAuth(); 
+  const { supabase } = useAuth();
   const [notifiedRunIds, setNotifiedRunIds] = useState<Set<string>>(new Set());
   
   // Define terminal states based on backend logic (e.g., from agent/run_utils.py or celery tasks)
@@ -90,7 +89,7 @@ export function useGlobalAgentNotifications() {
   }, [playNotificationSound]);
 
   useEffect(() => {
-    if (!user || !supabase) {
+    if (!supabase) {
       return;
     }
 
@@ -177,5 +176,5 @@ export function useGlobalAgentNotifications() {
         });
       }
     };
-  }, [user, supabase, notifiedRunIds, showOSNotification, playNotificationSound]);
+  }, [supabase, notifiedRunIds, showOSNotification, playNotificationSound, activeTerminalStates]);
 } 

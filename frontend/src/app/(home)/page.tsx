@@ -6,7 +6,7 @@ import { CTASection } from '@/components/home/sections/cta-section';
 import { FooterSection } from '@/components/home/sections/footer-section';
 import { HeroSection } from '@/components/home/sections/hero-section';
 import { OpenSourceSection } from '@/components/home/sections/open-source-section';
-import { PricingSection } from '@/components/home/sections/pricing-section';
+// import { PricingSection } from '@/components/home/sections/pricing-section';
 import { UseCasesSection } from '@/components/home/sections/use-cases-section';
 
 export default function Home() {
@@ -21,7 +21,6 @@ export default function Home() {
         {/* <FeatureSection /> */}
         {/* <GrowthSection /> */}
         <OpenSourceSection />
-        <PricingSection />
         {/* <TestimonialSection /> */}
         {/* <FAQSection /> */}
         <CTASection />
