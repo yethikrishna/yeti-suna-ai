@@ -6,6 +6,7 @@ from sandbox.tool_base import SandboxToolsBase
 from agentpress.thread_manager import ThreadManager
 import json
 import logging
+import asyncio
 
 class SandboxWebSearchTool(SandboxToolsBase):
     """Tool for performing web searches using Tavily API."""
