@@ -75,6 +75,7 @@ async def run_agent(
     # Initialize memory tool with the class and thread_manager
     thread_manager.add_tool(
         MemoryTool,
+        thread_id=thread_id,
         function_names=["save_memory", "retrieve_memories", "update_memory", "delete_memory"],
         thread_manager=thread_manager
     )

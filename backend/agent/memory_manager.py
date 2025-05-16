@@ -96,7 +96,6 @@ class MemoryManager:
                 result = await client.rpc('match_memories', rpc_params).execute()
                 data_rows = result.data or []
                 logger.debug(f"RPC match_memories returned {len(data_rows)} rows")
-                # Filter to this thread
                 data_rows = [row for row in data_rows if row.get('thread_id') == thread_id]
             except Exception as e:
                 logger.error(f"Semantic search failed: {e}")
@@ -130,14 +129,13 @@ class MemoryManager:
         # Serialize rows to JSON-ready dicts
         serialized: List[Dict[str, Any]] = []
         for row in data_rows:
-            # Normalize embedding
-            if row.get('embedding') is not None:
-                row['embedding'] = self._parse_vector_to_list(row['embedding'])
+            # Create a copy of the row without the embedding field
+            row_copy = {k: v for k, v in row.items() if k != 'embedding'}
             # Convert datetime fields
             for dt in ['created_at', 'last_accessed']:
-                if isinstance(row.get(dt), datetime):
-                    row[dt] = row[dt].isoformat()
-            serialized.append(row)
+                if isinstance(row_copy.get(dt), datetime):
+                    row_copy[dt] = row_copy[dt].isoformat()
+            serialized.append(row_copy)
         return serialized
 
     async def update_memory(

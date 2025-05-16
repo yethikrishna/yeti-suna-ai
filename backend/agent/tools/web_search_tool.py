@@ -44,7 +44,7 @@ class SandboxWebSearchTool(SandboxToolsBase):
             try:
                 # Get memory tool from thread manager's tool registry
                 from agent.tools.memory_tool import MemoryTool  # Import here to avoid circular imports
-                tool_info = self.thread_manager.tool_registry.get_tool("save_memory")  # Get tool by function name
+                tool_info = self.thread_manager.tool_registry.get_tool("save-memory")  # Get tool by function name
                 if tool_info and 'instance' in tool_info:
                     self.memory_tool = tool_info['instance']
                     logger.info("Successfully initialized memory tool")
@@ -115,72 +115,79 @@ class SandboxWebSearchTool(SandboxToolsBase):
     async def web_search(
         self,
         query: str,
-        num_results: int = 20,
-        thread_id: str = None
+        num_results: int = 20
     ) -> ToolResult:
-        """Search the web for information using Tavily API."""
+        """Search the web using Tavily API."""
         try:
-            # Ensure tools are initialized
-            await self._ensure_sandbox()
-            await self._ensure_initialized()
-            
-            # Get thread ID from the most recent message if not provided
-            if thread_id is None:
+            # First, check if we have relevant memories about this topic
+            if self.memory_tool:
                 try:
-                    client = await self.thread_manager.db.client
-                    result = await client.table('messages').select('thread_id').order('created_at', desc=True).limit(1).execute()
-                    if result.data and len(result.data) > 0:
-                        thread_id = result.data[0]['thread_id']
-                    else:
-                        logger.warning("No thread ID found in recent messages")
-                        return self.fail_response("No thread ID available for memory storage")
+                    # Retrieve relevant memories before searching
+                    memory_results = await self.memory_tool.retrieve_memories(
+                        thread_id=self.thread_manager.current_thread_id,
+                        query=query,
+                        memory_types=["semantic", "episodic"],
+                        tags=["web_search", "research"],
+                        limit=3,
+                        min_importance=0.5
+                    )
+                    
+                    if memory_results.get("memories"):
+                        logger.info(f"Found {len(memory_results['memories'])} relevant memories for search query")
+                        # We'll use these memories to enhance our search results later
                 except Exception as e:
-                    logger.error(f"Failed to get thread ID: {e}")
-                    return self.fail_response("Failed to get thread ID for memory storage")
-            
-            # Perform the search
+                    logger.error(f"Failed to retrieve memories for search: {e}")
+
+            # Perform the web search
             search_results = await self._perform_search(query, num_results)
             
-            # Store search results in memory if memory tool is available
-            if self.memory_tool and thread_id:
+            if not search_results:
+                return self.fail_response("No search results found")
+
+            # Store search results in memory
+            if self.memory_tool:
                 try:
                     # Create a semantic memory of the search results
-                    memory_content = f"Web search results for query: '{query}'\n\n"
-                    memory_content += "Direct Answer:\n"
-                    if search_results.get("answer"):
-                        memory_content += f"{search_results['answer']}\n\n"
+                    memory_content = f"Web Search Results for: {query}\n\n"
                     
-                    memory_content += "Key Findings:\n"
-                    for result in search_results.get("results", [])[:5]:  # Store top 5 results
-                        memory_content += f"- {result.get('title', 'No title')}\n"
-                        memory_content += f"  URL: {result.get('url', 'No URL')}\n"
+                    # Add direct answer if available
+                    if search_results.get("answer"):
+                        memory_content += f"Direct Answer:\n{search_results['answer']}\n\n"
+                    
+                    # Add top results summary
+                    memory_content += "Top Results:\n"
+                    for idx, result in enumerate(search_results.get("results", [])[:5], 1):
+                        memory_content += f"{idx}. {result.get('title', 'No title')}\n"
+                        memory_content += f"   URL: {result.get('url', 'No URL')}\n"
                         if result.get("snippet"):
-                            memory_content += f"  Summary: {result['snippet']}\n"
+                            memory_content += f"   {result['snippet'][:200]}...\n"
                         memory_content += "\n"
                     
-                    # Save to memory with high importance for direct answers
+                    # Save to memory with importance based on result quality
+                    importance_score = 0.6  # Default
+                    if search_results.get("answer") or len(search_results.get("results", [])) > 5:
+                        importance_score = 0.7
+                    
                     await self.memory_tool.save_memory(
-                        thread_id=thread_id,
+                        thread_id=self.thread_manager.current_thread_id,
                         content=memory_content,
                         memory_type="semantic",
-                        importance_score=0.8 if search_results.get("answer") else 0.6,
-                        tags=["web_search", "research", query.lower().replace(" ", "_")],
+                        importance_score=importance_score,
+                        tags=["web_search", "research", "information"],
                         metadata={
                             "query": query,
                             "timestamp": datetime.datetime.now().isoformat(),
-                            "num_results": len(search_results.get("results", [])),
-                            "has_direct_answer": bool(search_results.get("answer"))
+                            "result_count": len(search_results.get("results", [])),
+                            "has_direct_answer": bool(search_results.get("answer")),
+                            "has_images": bool(search_results.get("images"))
                         }
                     )
                 except Exception as e:
                     logger.error(f"Failed to store search results in memory: {e}")
-            
+
             return self.success_response(search_results)
-            
         except Exception as e:
-            error_message = str(e)
-            logger.error(f"Error in web_search: {error_message}")
-            return self.fail_response(f"Error performing web search: {error_message[:200]}")
+            return self.fail_response(f"Web search failed: {e}")
 
     @openapi_schema({
         "type": "function",

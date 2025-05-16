@@ -36,7 +36,7 @@ class SandboxVisionTool(SandboxToolsBase):
             try:
                 # Get memory tool from thread manager's tool registry
                 from agent.tools.memory_tool import MemoryTool  # Import here to avoid circular imports
-                tool_info = self.thread_manager.tool_registry.get_tool("save_memory")  # Get tool by function name
+                tool_info = self.thread_manager.tool_registry.get_tool("save-memory")  # Get tool by function name
                 if tool_info and 'instance' in tool_info:
                     self.memory_tool = tool_info['instance']
                     logger.info("Successfully initialized memory tool")
