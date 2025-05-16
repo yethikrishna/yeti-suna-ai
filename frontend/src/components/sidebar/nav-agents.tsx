@@ -62,8 +62,8 @@ export function NavAgents() {
   const isPerformingActionRef = useRef(false);
   const queryClient = useQueryClient();
   
-  const [isMultiSelectActive, setIsMultiSelectActive] = useState(false);
   const [selectedThreads, setSelectedThreads] = useState<Set<string>>(new Set());
+  const [lastSelectedThreadId, setLastSelectedThreadId] = useState<string | null>(null);
   const [deleteProgress, setDeleteProgress] = useState(0);
   const [totalToDelete, setTotalToDelete] = useState(0);
 
@@ -145,50 +145,81 @@ export function NavAgents() {
   }, [pathname]);
 
   // Function to handle thread click with loading state
-  const handleThreadClick = (e: React.MouseEvent<HTMLAnchorElement>, threadId: string, url: string) => {
-    // If multi-select is active, prevent navigation and toggle selection
-    if (isMultiSelectActive) {
+  const handleThreadClick = (
+    e: React.MouseEvent<HTMLAnchorElement>, 
+    threadId: string, 
+    url: string
+  ) => {
+    // If shift key is pressed, handle multi-selection
+    if (e.shiftKey) {
+      e.preventDefault();
+      
+      // Find the active thread ID from the pathname, if it exists
+      const activeThreadId = pathname ? 
+        combinedThreads.find(t => pathname.includes(t.threadId))?.threadId : 
+        null;
+      
+      // Use last selected thread or active thread as the starting point
+      const startThreadId = lastSelectedThreadId || activeThreadId;
+      
+      if (startThreadId && startThreadId !== threadId) {
+        // Find indices of the starting thread and the current thread
+        const startIndex = combinedThreads.findIndex(t => t.threadId === startThreadId);
+        const currentIndex = combinedThreads.findIndex(t => t.threadId === threadId);
+        
+        if (startIndex !== -1 && currentIndex !== -1) {
+          // Determine the range of threads to select
+          const startIdx = Math.min(startIndex, currentIndex);
+          const endIdx = Math.max(startIndex, currentIndex);
+          
+          // Select all threads in the range
+          const newSelectedThreads = new Set(selectedThreads);
+          for (let i = startIdx; i <= endIdx; i++) {
+            newSelectedThreads.add(combinedThreads[i].threadId);
+          }
+          setSelectedThreads(newSelectedThreads);
+        }
+      } else {
+        // Toggle single thread selection with shift
+        toggleThreadSelection(threadId);
+      }
+      
+      // Update the last selected thread
+      setLastSelectedThreadId(threadId);
+    } else if (e.ctrlKey || e.metaKey) {
+      // Control/Command click for individual selection without navigation
       e.preventDefault();
       toggleThreadSelection(threadId);
-      return;
+      setLastSelectedThreadId(threadId);
+    } else {
+      // Regular click - always navigate
+      e.preventDefault();
+      setLoadingThreadId(threadId);
+      router.push(url);
     }
-    
-    e.preventDefault()
-    setLoadingThreadId(threadId)
-    router.push(url)
-  }
+  };
 
   // Toggle thread selection for multi-select
   const toggleThreadSelection = (threadId: string) => {
-    setSelectedThreads(prev => {
-      const newSelection = new Set(prev);
-      if (newSelection.has(threadId)) {
-        newSelection.delete(threadId);
-      } else {
-        newSelection.add(threadId);
-      }
-      return newSelection;
-    });
+    const newSelection = new Set(selectedThreads);
+    if (newSelection.has(threadId)) {
+      newSelection.delete(threadId);
+    } else {
+      newSelection.add(threadId);
+    }
+    setSelectedThreads(newSelection);
   };
 
-  // Toggle multi-select mode
-  const toggleMultiSelect = () => {
-    setIsMultiSelectActive(!isMultiSelectActive);
-    // Clear selections when toggling off
-    if (isMultiSelectActive) {
-      setSelectedThreads(new Set());
-    }
+  // Clear all selections
+  const clearSelections = () => {
+    setSelectedThreads(new Set());
+    setLastSelectedThreadId(null);
   };
 
   // Select all threads
   const selectAllThreads = () => {
     const allThreadIds = combinedThreads.map(thread => thread.threadId);
     setSelectedThreads(new Set(allThreadIds));
-  };
-
-  // Deselect all threads
-  const deselectAllThreads = () => {
-    setSelectedThreads(new Set());
   };
 
   // Function to handle thread deletion
@@ -309,7 +340,7 @@ export function NavAgents() {
               
               // Reset states
               setSelectedThreads(new Set());
-              setIsMultiSelectActive(false);
+              setLastSelectedThreadId(null);
               setDeleteProgress(0);
               setTotalToDelete(0);
             },
@@ -331,7 +362,7 @@ export function NavAgents() {
         
         // Reset states
         setSelectedThreads(new Set());
-        setIsMultiSelectActive(false);
+        setLastSelectedThreadId(null);
         setThreadToDelete(null);
         isPerformingActionRef.current = false;
         setDeleteProgress(0);
@@ -348,81 +379,31 @@ export function NavAgents() {
     console.error('Error loading data:', { projectsError, threadsError });
   }
 
+  // Clear selections when sidebar is collapsed
+  useEffect(() => {
+    if (state === 'collapsed' && selectedThreads.size > 0) {
+      clearSelections();
+    }
+  }, [state]);
+
   return (
     <SidebarGroup>
       <div className="flex justify-between items-center">
         <SidebarGroupLabel>Agents</SidebarGroupLabel>
         {state !== 'collapsed' ? (
           <div className="flex items-center space-x-1">
-            {isMultiSelectActive ? (
-              <>
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  onClick={deselectAllThreads}
-                  disabled={selectedThreads.size === 0}
-                  className="h-7 w-7"
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link
+                  href="/dashboard"
+                  className="text-muted-foreground hover:text-foreground h-7 w-7 flex items-center justify-center rounded-md"
                 >
-                  <X className="h-4 w-4" />
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  onClick={selectAllThreads}
-                  disabled={selectedThreads.size === combinedThreads.length}
-                  className="h-7 w-7"
-                >
-                  <Check className="h-4 w-4" />
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  onClick={handleMultiDelete}
-                  disabled={selectedThreads.size === 0}
-                  className="h-7 w-7 text-destructive"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={toggleMultiSelect}
-                  className="h-7 px-2 text-xs"
-                >
-                  Done
-                </Button>
-              </>
-            ) : (
-              <>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={toggleMultiSelect}
-                      className="h-7 w-7"
-                      disabled={combinedThreads.length === 0}
-                    >
-                      <Checkbox className="h-4 w-4" />
-                      <span className="sr-only">Select Multiple</span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Select Multiple</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link
-                      href="/dashboard"
-                      className="text-muted-foreground hover:text-foreground h-7 w-7 flex items-center justify-center rounded-md"
-                    >
-                      <Plus className="h-4 w-4" />
-                      <span className="sr-only">New Agent</span>
-                    </Link>
-                  </TooltipTrigger>
-                  <TooltipContent>New Agent</TooltipContent>
-                </Tooltip>
-              </>
-            )}
+                  <Plus className="h-4 w-4" />
+                  <span className="sr-only">New Agent</span>
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent>New Agent</TooltipContent>
+            </Tooltip>
           </div>
         ) : null}
       </div>
@@ -481,11 +462,8 @@ export function NavAgents() {
                               handleThreadClick(e, thread.threadId, thread.url)
                             }
                           >
-                            {isMultiSelectActive ? (
-                              <Checkbox 
-                                checked={isSelected}
-                                className="h-4 w-4"
-                              />
+                            {isSelected ? (
+                              <Check className="h-4 w-4" />
                             ) : isThreadLoading ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
@@ -515,27 +493,16 @@ export function NavAgents() {
                         }
                         className="flex items-center"
                       >
-                        {isMultiSelectActive ? (
-                          <Checkbox 
-                            checked={isSelected}
-                            className="h-4 w-4 mr-2"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              toggleThreadSelection(thread.threadId);
-                            }}
-                          />
-                        ) : null}
                         {isThreadLoading ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                         ) : (
-                          <MessagesSquare className="h-4 w-4" />
+                          <MessagesSquare className={`h-4 w-4 ${isSelected ? 'mr-2 text-primary' : 'mr-2'}`} />
                         )}
                         <span>{thread.projectName}</span>
                       </Link>
                     </SidebarMenuButton>
                   )}
-                  {state !== 'collapsed' && !isMultiSelectActive && (
+                  {state !== 'collapsed' && (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <SidebarMenuAction showOnHover>
@@ -548,35 +515,49 @@ export function NavAgents() {
                         side={isMobile ? 'bottom' : 'right'}
                         align={isMobile ? 'end' : 'start'}
                       >
-                        <DropdownMenuItem onClick={() => {
-                          setSelectedItem({ threadId: thread?.threadId, projectId: thread?.projectId })
-                          setShowShareModal(true)
-                        }}>
-                          <Share2 className="text-muted-foreground" />
-                          <span>Share Chat</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <a
-                            href={thread.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                        {selectedThreads.size > 0 ? (
+                          // Only show delete option when items are selected
+                          <DropdownMenuItem
+                            onClick={handleMultiDelete}
+                            className="text-destructive hover:text-destructive"
                           >
-                            <ArrowUpRight className="text-muted-foreground" />
-                            <span>Open in New Tab</span>
-                          </a>
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={() =>
-                            handleDeleteThread(
-                              thread.threadId,
-                              thread.projectName,
-                            )
-                          }
-                        >
-                          <Trash2 className="text-muted-foreground" />
-                          <span>Delete</span>
-                        </DropdownMenuItem>
+                            <Trash2 className="text-destructive" />
+                            <span>Delete {selectedThreads.size > 1 ? `(${selectedThreads.size})` : ''}</span>
+                          </DropdownMenuItem>
+                        ) : (
+                          // Show regular options when nothing is selected
+                          <>
+                            <DropdownMenuItem onClick={() => {
+                              setSelectedItem({ threadId: thread?.threadId, projectId: thread?.projectId })
+                              setShowShareModal(true)
+                            }}>
+                              <Share2 className="text-muted-foreground" />
+                              <span>Share Chat</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                              <a
+                                href={thread.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                <ArrowUpRight className="text-muted-foreground" />
+                                <span>Open in New Tab</span>
+                              </a>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() =>
+                                handleDeleteThread(
+                                  thread.threadId,
+                                  thread.projectName,
+                                )
+                              }
+                            >
+                              <Trash2 className="text-muted-foreground" />
+                              <span>Delete</span>
+                            </DropdownMenuItem>
+                          </>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   )}
