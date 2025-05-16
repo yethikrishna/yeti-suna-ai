@@ -1173,14 +1173,14 @@ export default function ThreadPage({
 
           <div
             className={cn(
-              "fixed bottom-0 z-10 bg-gradient-to-t from-background via-background/90 to-transparent px-4 pt-8 transition-all duration-200 ease-in-out",
+              "fixed bottom-0 z-10 bg-gradient-to-t from-background via-background/90 to-transparent pt-8 transition-all duration-200 ease-in-out w-auto",
               leftSidebarState === 'expanded' ? 'left-[72px] lg:left-[256px]' : 'left-[72px]',
               isSidePanelOpen ? 'right-[90%] sm:right-[450px] md:right-[500px] lg:right-[550px] xl:right-[650px]' : 'right-0',
               isMobile ? 'left-0 right-0' : ''
             )}>
             <div className={cn(
-              "mx-auto",
-              isMobile ? "w-full px-4" : "max-w-3xl"
+              "w-full mx-auto px-4",
+              isMobile ? "" : leftSidebarState === 'expanded' ? "" : "max-w-3xl"
             )}>
               <ChatInput
                 value={newMessage}
