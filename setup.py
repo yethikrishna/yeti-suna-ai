@@ -65,7 +65,7 @@ def check_requirements():
         'poetry': 'https://python-poetry.org/docs/#installation',
         'pip3': 'https://pip.pypa.io/en/stable/installation/',
         'node': 'https://nodejs.org/en/download/',
-        'npm.cmd': 'https://docs.npmjs.com/downloading-and-installing-node-js-and-npm',
+        'npm': 'https://docs.npmjs.com/downloading-and-installing-node-js-and-npm',
     }
     
     missing = []
@@ -77,13 +77,17 @@ def check_requirements():
                 cmd_to_check = cmd.replace('3', '')
             else:
                 cmd_to_check = cmd
-                
-            subprocess.run(
-                [cmd_to_check, '--version'],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                check=True
-            )
+            
+            if cmd == 'npm':
+                try:
+                    subprocess.run([cmd_to_check, '--version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+                except:
+                    # If npm fails, check if its installed as npm.cmd
+                    subprocess.run(['npm.cmd', '--version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+
+            else:
+                subprocess.run([cmd_to_check, '--version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+            
             print_success(f"{cmd} is installed")
         except (subprocess.SubprocessError, FileNotFoundError):
             missing.append((cmd, url))
@@ -626,11 +630,19 @@ def install_dependencies():
     try:
         # Install frontend dependencies
         print_info("Installing frontend dependencies...")
-        subprocess.run(
-            ['npm.cmd', 'install'], 
-            cwd='frontend',
-            check=True
-        )
+        try:
+            subprocess.run(
+                ['npm', 'install'], 
+                cwd='frontend',
+                check=True
+            )
+        except:
+            subprocess.run(
+                ['npm.cmd', 'install'], 
+                cwd='frontend',
+                check=True
+            )
+
         print_success("Frontend dependencies installed successfully")
         
         # Lock dependencies
