@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { PricingSection } from '@/components/home/sections/pricing-section';
 import { isLocalMode } from '@/lib/config';
 import {
   getSubscription,
@@ -140,9 +139,6 @@ export default function AccountBillingStatus({ accountId, returnUrl }: Props) {
             </div>
           </div>
 
-          {/* Plans Comparison */}
-          <PricingSection returnUrl={returnUrl} showTitleAndTabs={false} />
-
           {/* Manage Subscription Button */}
           <Button
             onClick={handleManageSubscription}
@@ -176,9 +172,6 @@ export default function AccountBillingStatus({ accountId, returnUrl }: Props) {
               </div>
             </div>
           </div>
-
-          {/* Plans Comparison */}
-          <PricingSection returnUrl={returnUrl} showTitleAndTabs={false} />
 
           {/* Manage Subscription Button */}
           <Button
