@@ -21,15 +21,15 @@ class Colors:
     UNDERLINE = '\033[4m'
 
 def print_banner():
-    """Print Suna setup banner"""
+    """Print Texo AI setup banner"""
     print(f"""
 {Colors.BLUE}{Colors.BOLD}
-   ███████╗██╗   ██╗███╗   ██╗ █████╗ 
-   ██╔════╝██║   ██║████╗  ██║██╔══██╗
-   ███████╗██║   ██║██╔██╗ ██║███████║
-   ╚════██║██║   ██║██║╚██╗██║██╔══██║
-   ███████║╚██████╔╝██║ ╚████║██║  ██║
-   ╚══════╝ ╚═════╝ ╚═╝  ╚═══╝╚═╝  ╚═╝
+████████╗███████╗██╗  ██╗ ██████╗      █████╗ ██╗
+╚══██╔══╝██╔════╝██║  ██║██╔═══██╗    ██╔══██╗██║
+   ██║   █████╗    ███║  ██║   ██║    ███████║██║
+   ██║   ██╔══╝  ██╔══██║██║   ██║    ██╔══██║██║
+   ██║   ███████╗██║  ██║╚██████╔╝    ██║  ██║██║
+   ╚═╝   ╚══════╝╚═╝  ╚═╝ ╚═════╝     ╚═╝  ╚═╝╚═╝
                                       
    Setup Wizard
 {Colors.ENDC}
@@ -65,7 +65,7 @@ def check_requirements():
         'poetry': 'https://python-poetry.org/docs/#installation',
         'pip3': 'https://pip.pypa.io/en/stable/installation/',
         'node': 'https://nodejs.org/en/download/',
-        'npm': 'https://docs.npmjs.com/downloading-and-installing-node-js-and-npm',
+        'npm.cmd': 'https://docs.npmjs.com/downloading-and-installing-node-js-and-npm',
     }
     
     missing = []
@@ -113,21 +113,21 @@ def check_docker_running():
         sys.exit(1)
 
 def check_suna_directory():
-    """Check if we're in a Suna repository"""
+    """Check if we're in a Texo AI repository"""
     required_dirs = ['backend', 'frontend']
     required_files = ['README.md', 'docker-compose.yaml']
     
     for directory in required_dirs:
         if not os.path.isdir(directory):
-            print_error(f"'{directory}' directory not found. Make sure you're in the Suna repository root.")
+            print_error(f"""'{directory}' directory not found. Make sure you're in the Texo AI repository root.""")
             return False
     
     for file in required_files:
         if not os.path.isfile(file):
-            print_error(f"'{file}' not found. Make sure you're in the Suna repository root.")
+            print_error(f"""'{file}' not found. Make sure you're in the Texo AI repository root.""")
             return False
     
-    print_success("Suna repository detected")
+    print_success("Texo AI repository detected")
     return True
 
 def validate_url(url, allow_empty=False):
@@ -213,7 +213,7 @@ def collect_daytona_info():
 
 def collect_llm_api_keys():
     """Collect LLM API keys for various providers"""
-    print_info("You need at least one LLM provider API key to use Suna")
+    print_info("You need at least one LLM provider API key to use Texo AI")
     print_info("Available LLM providers: OpenAI, Anthropic, OpenRouter")
     
     # Display provider selection options
@@ -627,7 +627,7 @@ def install_dependencies():
         # Install frontend dependencies
         print_info("Installing frontend dependencies...")
         subprocess.run(
-            ['npm', 'install'], 
+            ['npm.cmd', 'install'], 
             cwd='frontend',
             check=True
         )
@@ -656,10 +656,10 @@ def install_dependencies():
         return False
 
 def start_suna():
-    """Start Suna using Docker Compose or manual startup"""
-    print_info("You can start Suna using either Docker Compose or by manually starting the frontend, backend and worker.")
+    """Start Texo AI using Docker Compose or manual startup"""
+    print_info("You can start Texo AI using either Docker Compose or by manually starting the frontend, backend and worker.")
 
-    print(f"\n{Colors.CYAN}How would you like to start Suna?{Colors.ENDC}")
+    print(f"""\n{Colors.CYAN}How would you like to start Texo AI?{Colors.ENDC}""")
     print(f"{Colors.CYAN}[1] {Colors.GREEN}Docker Compose{Colors.ENDC} {Colors.CYAN}(recommended, starts all services){Colors.ENDC}")
     print(f"{Colors.CYAN}[2] {Colors.GREEN}Manual startup{Colors.ENDC} {Colors.CYAN}(requires Redis, RabbitMQ & separate terminals){Colors.ENDC}\n")
     
@@ -672,7 +672,7 @@ def start_suna():
     use_docker = start_method == "1"
     
     if use_docker:
-        print_info("Starting Suna with Docker Compose...")
+        print_info("Starting Texo AI with Docker Compose...")
         
         try:
             # TODO: uncomment when we have pre-built images on Docker Hub or GHCR
@@ -732,12 +732,12 @@ def start_suna():
             )
             
             if "backend" in result.stdout and "frontend" in result.stdout:
-                print_success("Suna services are up and running!")
+                print_success("Texo AI services are up and running!")
             else:
                 print_warning("Some services might not be running correctly. Check 'docker compose ps' for details.")
             
         except subprocess.SubprocessError as e:
-            print_error(f"Failed to start Suna: {e}")
+            print_error(f"Failed to start Texo AI: {e}")
             sys.exit(1)
             
         return use_docker
@@ -754,26 +754,26 @@ def start_suna():
 
 def final_instructions(use_docker=True, env_vars=None):
     """Show final instructions"""
-    print(f"\n{Colors.GREEN}{Colors.BOLD}✨ Suna Setup Complete! ✨{Colors.ENDC}\n")
+    print(f"""\n{Colors.GREEN}{Colors.BOLD}✨ Texo AI Setup Complete! ✨{Colors.ENDC}\n""")
     
     # Display LLM configuration info if available
     if env_vars and 'llm' in env_vars and 'MODEL_TO_USE' in env_vars['llm']:
         default_model = env_vars['llm']['MODEL_TO_USE']
-        print_info(f"Suna is configured to use {Colors.GREEN}{default_model}{Colors.ENDC} as the default LLM model")
+        print_info(f"Texo AI is configured to use {Colors.GREEN}{default_model}{Colors.ENDC} as the default LLM model")
     
     if use_docker:
-        print_info("Your Suna instance is now running!")
+        print_info("Your Texo AI instance is now running!")
         print_info("Access it at: http://localhost:3000")
-        print_info("Create an account using Supabase authentication to start using Suna")
+        print_info("Create an account using Supabase authentication to start using Texo AI")
         print("\nUseful Docker commands:")
-        print(f"{Colors.CYAN}  docker compose ps{Colors.ENDC}         - Check the status of Suna services")
+        print(f"{Colors.CYAN}  docker compose ps{Colors.ENDC}         - Check the status of Texo AI services")
         print(f"{Colors.CYAN}  docker compose logs{Colors.ENDC}       - View logs from all services")
         print(f"{Colors.CYAN}  docker compose logs -f{Colors.ENDC}    - Follow logs from all services")
-        print(f"{Colors.CYAN}  docker compose down{Colors.ENDC}       - Stop Suna services")
-        print(f"{Colors.CYAN}  docker compose up -d{Colors.ENDC}      - Start Suna services (after they've been stopped)")
+        print(f"{Colors.CYAN}  docker compose down{Colors.ENDC}       - Stop Texo AI services")
+        print(f"{Colors.CYAN}  docker compose up -d{Colors.ENDC}      - Start Texo AI services (after they've been stopped)")
     else:
-        print_info("Suna setup is complete but services are not running yet.")
-        print_info("To start Suna, you need to:")
+        print_info("Texo AI setup is complete but services are not running yet.")
+        print_info("To start Texo AI, you need to:")
         
         print_info("1. Start Redis and RabbitMQ (required for backend):")
         print(f"{Colors.CYAN}    cd backend")
@@ -791,8 +791,8 @@ def final_instructions(use_docker=True, env_vars=None):
         print(f"{Colors.CYAN}    cd backend")
         print(f"    poetry run python3.11 -m dramatiq run_agent_background{Colors.ENDC}")
         
-        print_info("4. Once all services are running, access Suna at: http://localhost:3000")
-        print_info("5. Create an account using Supabase authentication to start using Suna")
+        print_info("4. Once all services are running, access Texo AI at: http://localhost:3000")
+        print_info("5. Create an account using Supabase authentication to start using Texo AI")
 
 def main():
     total_steps = 8  # Reduced by 1 since we're skipping the clone step
@@ -800,19 +800,19 @@ def main():
     
     # Print banner
     print_banner()
-    print("This wizard will guide you through setting up Suna, an open-source generalist AI agent.\n")
+    print("This wizard will guide you through setting up Texo AI, an open-source generalist AI agent.\n")
     
     # Step 1: Check requirements
     print_step(current_step, total_steps, "Checking requirements")
     check_requirements()
     check_docker_running()
     
-    # Check if we're in the Suna repository
+    # Check if we're in the Texo AI repository
     if not check_suna_directory():
-        print_error("This setup script must be run from the Suna repository root directory.")
+        print_error("This setup script must be run from the Texo AI repository root directory.")
         print_info("Please clone the repository first with:")
         print_info("  git clone https://github.com/kortix-ai/suna.git")
-        print_info("  cd suna")
+        print_info("  cd texo-ai") # Changed from suna to texo-ai assuming the repo name also changes
         print_info("Then run this setup script again.")
         sys.exit(1)
     
@@ -854,7 +854,7 @@ def main():
     setup_supabase()
     current_step += 1
     
-    # Install dependencies before starting Suna
+    # Install dependencies before starting Texo AI
     print_step(current_step, total_steps, "Installing dependencies")
     install_dependencies()
     
@@ -863,8 +863,8 @@ def main():
     configure_backend_env(env_vars, True)  # Always create for Docker first
     configure_frontend_env(env_vars, True)
     
-    # Now ask how to start Suna
-    print_step(current_step, total_steps, "Starting Suna")
+    # Now ask how to start Texo AI
+    print_step(current_step, total_steps, "Starting Texo AI")
     use_docker = start_suna()
     
     # Update environment files if needed for non-Docker setup

@@ -1,4 +1,4 @@
-# Suna frontend
+# Texo AI frontend
 
 ## Getting Started
 

@@ -1,6 +1,6 @@
-# Suna Self-Hosting Guide
+# Texo AI Self-Hosting Guide
 
-This guide provides detailed instructions for setting up and hosting your own instance of Suna, an open-source generalist AI agent.
+This guide provides detailed instructions for setting up and hosting your own instance of Texo AI, an open-source generalist AI agent.
 
 ## Table of Contents
 
@@ -13,7 +13,7 @@ This guide provides detailed instructions for setting up and hosting your own in
 
 ## Overview
 
-Suna consists of four main components:
+Texo AI consists of four main components:
 
 1. **Backend API** - Python/FastAPI service for REST endpoints, thread management, and LLM integration
 2. **Backend Worker** - Python/Dramatiq worker service for handling agent tasks
@@ -75,8 +75,8 @@ Ensure the following tools are installed on your system:
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/kortix-ai/suna.git
-cd suna
+git clone https://github.com/texo-ai/texo-ai.git
+cd texo-ai
 ```
 
 ### 2. Run the Setup Wizard
@@ -94,7 +94,7 @@ The wizard will:
 - Set up the Supabase database
 - Configure environment files
 - Install dependencies
-- Start Suna using your preferred method
+- Start Texo AI using your preferred method
 
 ### 3. Supabase Configuration
 
@@ -115,7 +115,7 @@ As part of the setup, you'll need to:
 1. Create a Daytona account
 2. Generate an API key
 3. Create a Docker image:
-   - Image name: `kortix/suna:0.1.2`
+   - Image name: `texoai/texoai:0.1.2`
    - Entrypoint: `/usr/bin/supervisord -n -c /etc/supervisor/conf.d/supervisord.conf`
 
 ## Manual Configuration
@@ -192,7 +192,7 @@ After completing the installation, you'll need to:
 
 ## Startup Options
 
-Suna can be started in two ways:
+Texo AI can be started in two ways:
 
 ### 1. Using Docker Compose (Recommended)
 

@@ -49,17 +49,17 @@ export interface PricingTier {
 }
 
 export const siteConfig = {
-  name: 'Kortix Suna',
+  name: 'Texo AI',
   description: 'The Generalist AI Agent that can act on your behalf.',
   cta: 'Start Free',
   url: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
   keywords: ['AI Agent', 'Generalist AI', 'Open Source AI', 'Autonomous Agent'],
   links: {
-    email: 'support@kortix.ai',
-    twitter: 'https://x.com/kortixai',
-    discord: 'https://discord.gg/kortixai',
-    github: 'https://github.com/Kortix-ai/Suna',
-    instagram: 'https://instagram.com/kortixai',
+    email: 'support@texoai.com.au',
+    twitter: 'https://x.com/texoai',
+    discord: 'https://discord.gg/texoai',
+    github: 'https://github.com/Texo-ai/TexoAI',
+    instagram: 'https://instagram.com/texoai',
   },
   nav: {
     links: [
@@ -97,11 +97,11 @@ export const siteConfig = {
       </svg>
     ),
     badge: '100% OPEN SOURCE',
-    githubUrl: 'https://github.com/kortix-ai/suna',
-    title: 'Suna, the AI Employee.',
+    githubUrl: 'https://github.com/Texo-ai/TexoAI',
+    title: 'Texo AI, the AI Employee.',
     description:
-      'Suna by Kortix – is a generalist AI Agent that acts on your behalf.',
-    inputPlaceholder: 'Ask Suna to...',
+      'Texo AI by Texo AI – is a generalist AI Agent that acts on your behalf.',
+    inputPlaceholder: 'Ask Texo AI to...',
   },
   cloudPricingItems: [
     {
@@ -127,7 +127,7 @@ export const siteConfig = {
       features: [
         '2 hours',
         'Private projects',
-        'Access to intelligent Model (Full Suna)',
+        'Access to intelligent Model (Full Texo AI)',
       ],
       stripePriceId: config.SUBSCRIPTION_TIERS.TIER_2_20.priceId,
       upgradePlans: [],
@@ -777,13 +777,13 @@ export const siteConfig = {
 
         title: 'Community Powered',
         description:
-          "Join a thriving community of developers and users continuously enhancing and expanding Suna's capabilities.",
+          "Join a thriving community of developers and users continuously enhancing and expanding Texo AI's capabilities.",
       },
     ],
   },
   quoteSection: {
     quote:
-      'Kortix Suna has transformed how we approach everyday tasks. The level of automation it provides, combined with its open source nature, makes it an invaluable tool for our entire organization.',
+      'Texo AI has transformed how we approach everyday tasks. The level of automation it provides, combined with its open source nature, makes it an invaluable tool for our entire organization.',
     author: {
       name: 'Alex Johnson',
       role: 'CTO, Innovatech',
@@ -793,7 +793,7 @@ export const siteConfig = {
   pricing: {
     title: 'Open Source & Free Forever',
     description:
-      'Kortix Suna is 100% open source and free to use. No hidden fees, no premium features locked behind paywalls.',
+      'Texo AI is 100% open source and free to use. No hidden fees, no premium features locked behind paywalls.',
     pricingItems: [
       {
         name: 'Community',
@@ -808,7 +808,7 @@ export const siteConfig = {
           'Community support',
         ],
         description: 'Perfect for individual users and developers',
-        buttonText: 'Hire Suna',
+        buttonText: 'Hire Texo AI',
         buttonColor: 'bg-accent text-primary',
         isPopular: false,
       },
@@ -1110,11 +1110,11 @@ export const siteConfig = {
   },
   footerLinks: [
     {
-      title: 'Kortix',
+      title: 'Texo AI',
       links: [
-        { id: 1, title: 'About', url: 'https://kortix.ai' },
-        { id: 3, title: 'Contact', url: 'mailto:hey@kortix.ai' },
-        { id: 4, title: 'Careers', url: 'https://kortix.ai/careers' },
+        { id: 1, title: 'About', url: 'https://texoai.com.au' },
+        { id: 3, title: 'Contact', url: 'mailto:hey@texoai.com.au' },
+        { id: 4, title: 'Careers', url: 'https://texoai.com.au/careers' },
       ],
     },
     {
@@ -1135,12 +1135,12 @@ export const siteConfig = {
         {
           id: 9,
           title: 'Privacy Policy',
-          url: 'https://suna.so/legal?tab=privacy',
+          url: 'https://texoai.com.au/legal?tab=privacy',
         },
         {
           id: 10,
           title: 'Terms of Service',
-          url: 'https://suna.so/legal?tab=terms',
+          url: 'https://texoai.com.au/legal?tab=terms',
         },
         {
           id: 11,
@@ -1191,7 +1191,7 @@ export const siteConfig = {
       ),
       image:
         'https://images.unsplash.com/photo-1576091160550-2173dba999ef?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2400&q=80',
-      url: 'https://www.suna.so/share/5ee791ac-e19c-4986-a61c-6d0659d0e5bc',
+      url: 'https://www.texoai.com.au/share/5ee791ac-e19c-4986-a61c-6d0659d0e5bc',
     },
     {
       id: 'vc-list',
@@ -1226,7 +1226,7 @@ export const siteConfig = {
       ),
       image:
         'https://images.unsplash.com/photo-1444653614773-995cb1ef9efa?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2400&q=80',
-      url: 'https://www.suna.so/share/804d20a3-cf1c-4adb-83bb-0e77cc6adeac',
+      url: 'https://www.texoai.com.au/share/804d20a3-cf1c-4adb-83bb-0e77cc6adeac',
     },
     {
       id: 'candidate-search',
@@ -1268,7 +1268,7 @@ export const siteConfig = {
       ),
       image:
         'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2400&q=80',
-      url: 'https://www.suna.so/share/3ae581b0-2db8-4c63-b324-3b8d29762e74',
+      url: 'https://www.texoai.com.au/share/3ae581b0-2db8-4c63-b324-3b8d29762e74',
     },
     {
       id: 'company-trip',
@@ -1317,7 +1317,7 @@ export const siteConfig = {
       ),
       image:
         'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2400&q=80',
-      url: 'https://www.suna.so/share/725e64a0-f1e2-4bb6-8a1f-703c2833fd72',
+      url: 'https://www.texoai.com.au/share/725e64a0-f1e2-4bb6-8a1f-703c2833fd72',
     },
     {
       id: 'excel-spreadsheet',
@@ -1359,7 +1359,7 @@ export const siteConfig = {
       ),
       image:
         'https://images.unsplash.com/photo-1532153975070-2e9ab71f1b14?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2400&q=80',
-      url: 'https://www.suna.so/share/128f23a4-51cd-42a6-97a0-0b458b32010e',
+      url: 'https://www.texoai.com.au/share/128f23a4-51cd-42a6-97a0-0b458b32010e',
     },
     {
       id: 'speaker-prospecting',
@@ -1401,7 +1401,7 @@ export const siteConfig = {
       ),
       image:
         'https://images.unsplash.com/photo-1523580494863-6f3031224c94?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2400&q=80',
-      url: 'https://www.suna.so/share/7a7592ea-ed44-4c69-bcb5-5f9bb88c188c',
+      url: 'https://www.texoai.com.au/share/7a7592ea-ed44-4c69-bcb5-5f9bb88c188c',
     },
     {
       id: 'scientific-papers',
@@ -1443,7 +1443,7 @@ export const siteConfig = {
       ),
       image:
         'https://images.unsplash.com/photo-1532153975070-2e9ab71f1b14?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2400&q=80',
-      url: 'https://www.suna.so/share/c2081b3c-786e-4e7c-9bf4-46e9b23bb662',
+      url: 'https://www.texoai.com.au/share/c2081b3c-786e-4e7c-9bf4-46e9b23bb662',
     },
     {
       id: 'lead-generation',
@@ -1485,13 +1485,13 @@ export const siteConfig = {
       ),
       image:
         'https://images.unsplash.com/photo-1552581234-26160f608093?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2400&q=80',
-      url: 'https://www.suna.so/share/6b6296a6-8683-49e5-9ad0-a32952d12c44',
+      url: 'https://www.texoai.com.au/share/6b6296a6-8683-49e5-9ad0-a32952d12c44',
     },
     {
       id: 'seo-analysis',
       title: 'SEO Analysis',
       description:
-        "Based on my website suna.so, generate an SEO report analysis, find top-ranking pages by keyword clusters, and identify topics I'm missing.",
+        "Based on my website texoai.com.au, generate an SEO report analysis, find top-ranking pages by keyword clusters, and identify topics I'm missing.",
       category: 'marketing',
       featured: true,
       icon: (
@@ -1534,7 +1534,7 @@ export const siteConfig = {
       ),
       image:
         'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2400&q=80',
-      url: 'https://www.suna.so/share/43491cb0-cd6c-45f0-880c-66ddc8c4b842',
+      url: 'https://www.texoai.com.au/share/43491cb0-cd6c-45f0-880c-66ddc8c4b842',
     },
     {
       id: 'personal-trip',
@@ -1583,7 +1583,7 @@ export const siteConfig = {
       ),
       image:
         'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2400&q=80',
-      url: 'https://www.suna.so/share/37b31907-8349-4f63-b0e5-27ca597ed02a',
+      url: 'https://www.texoai.com.au/share/37b31907-8349-4f63-b0e5-27ca597ed02a',
     },
     {
       id: 'funded-startups',
@@ -1618,7 +1618,7 @@ export const siteConfig = {
       ),
       image:
         'https://images.unsplash.com/photo-1444653614773-995cb1ef9efa?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2400&q=80',
-      url: 'https://www.suna.so/share/8b2a897e-985a-4d5e-867b-15239274f764',
+      url: 'https://www.texoai.com.au/share/8b2a897e-985a-4d5e-867b-15239274f764',
     },
     {
       id: 'scrape-forums',
@@ -1660,7 +1660,7 @@ export const siteConfig = {
       ),
       image:
         'https://images.unsplash.com/photo-1523580494863-6f3031224c94?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2400&q=80',
-      url: 'https://www.suna.so/share/7d7a5d93-a20d-48b0-82cc-e9a876e9fd04',
+      url: 'https://www.texoai.com.au/share/7d7a5d93-a20d-48b0-82cc-e9a876e9fd04',
     },
   ],
 };
