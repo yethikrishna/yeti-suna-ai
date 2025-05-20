@@ -1180,7 +1180,7 @@ export default function ThreadPage({
                 value={newMessage}
                 onChange={setNewMessage}
                 onSubmit={handleSubmitMessage}
-                placeholder="Ask Suna anything..."
+                placeholder="Ask Texo anything..."
                 loading={isSending}
                 disabled={isSending || agentStatus === 'running' || agentStatus === 'connecting'}
                 isAgentRunning={agentStatus === 'running' || agentStatus === 'connecting'}
