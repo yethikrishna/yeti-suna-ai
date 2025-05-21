@@ -87,7 +87,7 @@ The setup process includes:
 - Setting up a Supabase project for database and authentication
 - Configuring Redis for caching and session management
 - Setting up Daytona for secure agent execution
-- Integrating with LLM providers (Anthropic, OpenAI, Groq, etc.)
+- Integrating with LLM providers (Anthropic, OpenAI, Groq, Gemini, etc.). This involves setting the appropriate API keys in your `.env` file (e.g., `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GROQ_API_KEY`, `GEMINI_API_KEY`).
 - Configuring web search and scraping capabilities
 
 ### Quick Start
@@ -136,6 +136,8 @@ We welcome contributions from the community! Please see our [Contributing Guide]
 - [Playwright](https://playwright.dev/) - Browser automation
 - [OpenAI](https://openai.com/) - LLM provider
 - [Anthropic](https://www.anthropic.com/) - LLM provider
+- [Groq](https://groq.com/) - LLM provider
+- [Gemini](https://deepmind.google/technologies/gemini/) - LLM provider
 - [Tavily](https://tavily.com/) - Search capabilities
 - [Firecrawl](https://firecrawl.dev/) - Web scraping capabilities
 - [RapidAPI](https://rapidapi.com/) - API services
