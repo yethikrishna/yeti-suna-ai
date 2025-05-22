@@ -87,6 +87,7 @@ async def run_agent(
 
     iteration_count = 0
     continue_execution = True
+    assistant_provided_final_response_last_turn = False # Flag to track if assistant provided final response
 
     while continue_execution and iteration_count < max_iterations:
         iteration_count += 1
@@ -103,14 +104,12 @@ async def run_agent(
                 "message": error_msg
             }
             break
-        # Check if last message is from assistant using direct Supabase query
-        latest_message = await client.table('messages').select('*').eq('thread_id', thread_id).in_('type', ['assistant', 'tool', 'user']).order('created_at', desc=True).limit(1).execute()
-        if latest_message.data and len(latest_message.data) > 0:
-            message_type = latest_message.data[0].get('type')
-            if message_type == 'assistant':
-                logger.info(f"Last message was from assistant, stopping execution")
-                continue_execution = False
-                break
+
+        if assistant_provided_final_response_last_turn:
+            logger.info(f"Assistant provided final response in the last turn, stopping execution.")
+            break
+
+        assistant_provided_final_response_last_turn = False # Reset flag for the current turn
 
         # ---- Temporary Message Handling (Browser State & Image Context) ----
         temporary_message = None
@@ -231,6 +230,7 @@ async def run_agent(
 
             # Track if we see ask, complete, or web-browser-takeover tool calls
             last_tool_call = None
+            received_assistant_content_this_turn = False # Initialize flag for current turn
 
             # Process the response
             error_detected = False
@@ -245,6 +245,7 @@ async def run_agent(
                         
                     # Check for XML versions like <ask>, <complete>, or <web-browser-takeover> in assistant content chunks
                     if chunk.get('type') == 'assistant' and 'content' in chunk:
+                        received_assistant_content_this_turn = True # Mark that we received assistant content
                         try:
                             # The content field might be a JSON string or object
                             content = chunk.get('content', '{}')
@@ -272,6 +273,20 @@ async def run_agent(
                             logger.warning(f"Warning: Could not parse assistant content JSON: {chunk.get('content')}")
                         except Exception as e:
                             logger.error(f"Error processing assistant chunk: {e}")
+                    
+                    if chunk.get('type') == 'finish':
+                        finish_content = chunk.get('content', {})
+                        finish_reason = finish_content.get('finish_reason')
+                        # Check conditions to set the flag
+                        if finish_reason in ['stop', 'length'] and received_assistant_content_this_turn and not last_tool_call:
+                            # Additional check for native tools: finish_reason should not be 'tool_calls'
+                            # For XML tools, last_tool_call being None is sufficient.
+                            # If native_tool_calling is False (as per ProcessorConfig), this check is fine.
+                            # If native_tool_calling can be True, we'd need to ensure finish_reason isn't 'tool_calls'.
+                            # Based on current ProcessorConfig, native_tool_calling=False, so this is okay.
+                            assistant_provided_final_response_last_turn = True
+                            logger.info(f"Assistant provided final response this turn (finish_reason: {finish_reason}).")
+
 
                     yield chunk
 

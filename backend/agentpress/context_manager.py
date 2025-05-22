@@ -30,16 +30,17 @@ class ContextManager:
         self.db = DBConnection()
         self.token_threshold = token_threshold
     
-    async def get_thread_token_count(self, thread_id: str) -> int:
+    async def get_thread_token_count(self, thread_id: str, model_name: str) -> int:
         """Get the current token count for a thread using LiteLLM.
         
         Args:
             thread_id: ID of the thread to analyze
+            model_name: Name of the LLM model to use for token counting
             
         Returns:
             The total token count for relevant messages in the thread
         """
-        logger.debug(f"Getting token count for thread {thread_id}")
+        logger.debug(f"Getting token count for thread {thread_id} using model {model_name}")
         
         try:
             # Get messages for the thread
@@ -51,9 +52,9 @@ class ContextManager:
             
             # Use litellm's token_counter for accurate model-specific counting
             # This is much more accurate than the SQL-based estimation
-            token_count = token_counter(model="gpt-4", messages=messages)
+            token_count = token_counter(model=model_name, messages=messages)
             
-            logger.info(f"Thread {thread_id} has {token_count} tokens (calculated with litellm)")
+            logger.info(f"Thread {thread_id} has {token_count} tokens (calculated with litellm model: {model_name})")
             return token_count
                 
         except Exception as e:
@@ -234,10 +235,11 @@ The above is a summary of the conversation history. The conversation continues b
             return None
         
     async def check_and_summarize_if_needed(
-        self, 
-        thread_id: str, 
-        add_message_callback, 
-        model: str = "gpt-4o-mini",
+        self,
+        thread_id: str,
+        add_message_callback,
+        chat_model_name: str, # Model used for the main conversation (for accurate counting)
+        summarization_model_name: str = "gpt-4o-mini", # Model for generating the summary
         force: bool = False
     ) -> bool:
         """Check if thread needs summarization and summarize if so.
@@ -245,7 +247,8 @@ The above is a summary of the conversation history. The conversation continues b
         Args:
             thread_id: ID of the thread to check
             add_message_callback: Callback to add the summary message to the thread
-            model: LLM model to use for summarization
+            chat_model_name: Model used for the main conversation (for accurate token counting)
+            summarization_model_name: LLM model to use for generating the summary
             force: Whether to force summarization regardless of token count
             
         Returns:
@@ -253,7 +256,7 @@ The above is a summary of the conversation history. The conversation continues b
         """
         try:
             # Get token count using LiteLLM (accurate model-specific counting)
-            token_count = await self.get_thread_token_count(thread_id)
+            token_count = await self.get_thread_token_count(thread_id, model_name=chat_model_name)
             
             # If token count is below threshold and not forcing, no summarization needed
             if token_count < self.token_threshold and not force:
@@ -275,7 +278,7 @@ The above is a summary of the conversation history. The conversation continues b
                 return False
             
             # Create summary
-            summary = await self.create_summary(thread_id, messages, model)
+            summary = await self.create_summary(thread_id, messages, summarization_model_name)
             
             if summary:
                 # Add summary message to thread
