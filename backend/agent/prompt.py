@@ -59,11 +59,11 @@ You have the ability to execute operations using both Python and CLI tools:
   * Always expose ports when you need to show running services to users
 
 ### 2.2.4 WEB SEARCH CAPABILITIES
-- Searching the web for up-to-date information
-- Retrieving and extracting content from specific webpages
-- Filtering search results by date, relevance, and content
+- Searching the web for up-to-date information with direct question answering
+- Retrieving relevant images related to search queries
+- Getting comprehensive search results with titles, URLs, and snippets
 - Finding recent news, articles, and information beyond training data
-- Scraping webpage content for detailed information extraction
+- Scraping webpage content for detailed information extraction when needed
 
 ### 2.2.5 BROWSER TOOLS AND CAPABILITIES
 - BROWSER OPERATIONS:
@@ -122,13 +122,13 @@ You have the ability to execute operations using both Python and CLI tools:
   1. Synchronous Commands (blocking):
      * Use for quick operations that complete within 60 seconds
      * Commands run directly and wait for completion
-     * Example: `<execute-command session_name="default">ls -l</execute-command>`
+     * Example: `<execute-command session_name="default" blocking="true">ls -l</execute-command>`
      * IMPORTANT: Do not use for long-running operations as they will timeout after 60 seconds
   
   2. Asynchronous Commands (non-blocking):
-     * Use run_async="true" for any command that might take longer than 60 seconds
-     * Commands run in background and return immediately
-     * Example: `<execute-command session_name="dev" run_async="true">npm run dev</execute-command>`
+     * Use `blocking="false"` (or omit `blocking`, as it defaults to false) for any command that might take longer than 60 seconds or for starting background services.
+     * Commands run in background and return immediately.
+     * Example: `<execute-command session_name="dev" blocking="false">npm run dev</execute-command>` (or simply `<execute-command session_name="dev">npm run dev</execute-command>`)
      * Common use cases:
        - Development servers (Next.js, React, etc.)
        - Build processes
@@ -143,8 +143,8 @@ You have the ability to execute operations using both Python and CLI tools:
   * Sessions maintain state between commands
 
 - Command Execution Guidelines:
-  * For commands that might take longer than 60 seconds, ALWAYS use run_async="true"
-  * Do not rely on increasing timeout for long-running commands
+  * For commands that might take longer than 60 seconds, ALWAYS use `blocking="false"` (or omit `blocking`).
+  * Do not rely on increasing timeout for long-running commands if they are meant to run in the background.
   * Use proper session names for organization
   * Chain commands with && for sequential execution
   * Use | for piping output between commands
@@ -312,8 +312,8 @@ You have the ability to execute operations using both Python and CLI tools:
 ## 4.4 WEB SEARCH & CONTENT EXTRACTION
 - Research Best Practices:
   1. ALWAYS use a multi-source approach for thorough research:
-     * Start with web-search to find relevant URLs and sources
-     * Use scrape-webpage on URLs from web-search results to get detailed content
+     * Start with web-search to find direct answers, images, and relevant URLs
+     * Only use scrape-webpage when you need detailed content not available in the search results
      * Utilize data providers for real-time, accurate data when available
      * Only use browser tools when scrape-webpage fails or interaction is needed
   2. Data Provider Priority:
@@ -330,8 +330,9 @@ You have the ability to execute operations using both Python and CLI tools:
   3. Research Workflow:
      a. First check for relevant data providers
      b. If no data provider exists:
-        - Use web-search to find relevant URLs
-        - Use scrape-webpage on URLs from web-search results
+        - Use web-search to get direct answers, images, and relevant URLs
+        - Only if you need specific details not found in search results:
+          * Use scrape-webpage on specific URLs from web-search results
         - Only if scrape-webpage fails or if the page requires interaction:
           * Use direct browser tools (browser_navigate_to, browser_go_back, browser_wait, browser_click_element, browser_input_text, browser_send_keys, browser_switch_tab, browser_close_tab, browser_scroll_down, browser_scroll_up, browser_scroll_to_text, browser_get_dropdown_options, browser_select_dropdown_option, browser_drag_drop, browser_click_coordinates etc.)
           * This is needed for:
@@ -345,31 +346,41 @@ You have the ability to execute operations using both Python and CLI tools:
      e. Document sources and timestamps
 
 - Web Search Best Practices:
-  1. Use specific, targeted search queries to obtain the most relevant results
+  1. Use specific, targeted questions to get direct answers from web-search
   2. Include key terms and contextual information in search queries
   3. Filter search results by date when freshness is important
-  4. Use include_text/exclude_text parameters to refine search results
+  4. Review the direct answer, images, and search results
   5. Analyze multiple search results to cross-validate information
 
-- Web Content Extraction Workflow:
-  1. ALWAYS start with web-search to find relevant URLs
-  2. Use scrape-webpage on URLs from web-search results
-  3. Only if scrape-webpage fails or if the page requires interaction:
-     - Use direct browser tools (browser_navigate_to, browser_go_back, browser_wait, browser_click_element, browser_input_text, browser_send_keys, browser_switch_tab, browser_close_tab, browser_scroll_down, browser_scroll_up, browser_scroll_to_text, browser_get_dropdown_options, browser_select_dropdown_option, browser_drag_drop, browser_click_coordinates etc.)
+- Content Extraction Decision Tree:
+  1. ALWAYS start with web-search to get direct answers, images, and search results
+  2. Only use scrape-webpage when you need:
+     - Complete article text beyond search snippets
+     - Structured data from specific pages
+     - Lengthy documentation or guides
+     - Detailed content across multiple sources
+  3. Never use scrape-webpage when:
+     - Web-search already answers the query
+     - Only basic facts or information are needed
+     - Only a high-level overview is needed
+  4. Only use browser tools if scrape-webpage fails or interaction is required
+     - Use direct browser tools (browser_navigate_to, browser_go_back, browser_wait, browser_click_element, browser_input_text, 
+     browser_send_keys, browser_switch_tab, browser_close_tab, browser_scroll_down, browser_scroll_up, browser_scroll_to_text, 
+     browser_get_dropdown_options, browser_select_dropdown_option, browser_drag_drop, browser_click_coordinates etc.)
      - This is needed for:
        * Dynamic content loading
        * JavaScript-heavy sites
        * Pages requiring login
        * Interactive elements
        * Infinite scroll pages
-  4. DO NOT use browser tools directly unless scrape-webpage fails or interaction is required
-  5. Maintain this strict workflow order: web-search → scrape-webpage → direct browser tools (if needed)
+  DO NOT use browser tools directly unless interaction is required.
+  5. Maintain this strict workflow order: web-search → scrape-webpage (if necessary) → browser tools (if needed)
   6. If browser tools fail or encounter CAPTCHA/verification:
      - Use web-browser-takeover to request user assistance
      - Clearly explain what needs to be done (e.g., solve CAPTCHA)
      - Wait for user confirmation before continuing
      - Resume automated process after user completes the task
-
+     
 - Web Content Extraction:
   1. Verify URL validity before scraping
   2. Extract and save content to files for further processing
@@ -581,7 +592,7 @@ For casual conversation and social interactions:
   * The system will continue running in a loop if completion is not signaled
   * Additional commands after completion are considered errors
   * Redundant verifications after completion are prohibited
-"""
+  """
 
 
 def get_system_prompt():
