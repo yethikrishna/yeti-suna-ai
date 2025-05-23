@@ -89,6 +89,7 @@ The setup process includes:
 - Setting up Daytona for secure agent execution
 - Integrating with LLM providers (Anthropic, OpenAI, Groq, etc.)
 - Configuring web search and scraping capabilities
+- Waiting for Docker services to become healthy before finishing
 
 ### Quick Start
 
