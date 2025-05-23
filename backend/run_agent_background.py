@@ -13,6 +13,7 @@ from services.supabase import DBConnection
 from services import redis
 from dramatiq.brokers.rabbitmq import RabbitmqBroker
 import os
+import pika
 
 rabbitmq_host = os.getenv('RABBITMQ_HOST', 'rabbitmq')
 rabbitmq_port = int(os.getenv('RABBITMQ_PORT', 5672))
@@ -20,11 +21,13 @@ rabbitmq_user = os.getenv('RABBITMQ_USER', 'guest')
 rabbitmq_password = os.getenv('RABBITMQ_PASSWORD', 'guest')
 rabbitmq_vhost = os.getenv('RABBITMQ_VHOST', '/')
 
+# Create credentials for CloudAMQP authentication
+credentials = pika.PlainCredentials(rabbitmq_user, rabbitmq_password)
+
 rabbitmq_broker = RabbitmqBroker(
     host=rabbitmq_host, 
     port=rabbitmq_port,
-    username=rabbitmq_user,
-    password=rabbitmq_password,
+    credentials=credentials,
     virtual_host=rabbitmq_vhost,
     middleware=[dramatiq.middleware.AsyncIO()]
 )
