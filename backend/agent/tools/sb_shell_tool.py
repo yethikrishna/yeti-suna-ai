@@ -200,28 +200,18 @@ class SandboxShellTool(SandboxToolsBase):
         session_id = await self._ensure_session("raw_commands")
         
         # Execute command in session
-        from sandbox.sandbox import SessionExecuteRequest
-        req = SessionExecuteRequest(
-            command=command,
-            var_async=False,
-            cwd=self.workspace_path
-        )
-        
-        response = self.sandbox.process.execute_session_command(
-            session_id=session_id,
-            req=req,
-            timeout=30  # Short timeout for utility commands
-        )
-        
-        logs = self.sandbox.process.get_session_command_logs(
-            session_id=session_id,
-            command_id=response.cmd_id
-        )
-        
-        return {
-            "output": logs,
-            "exit_code": response.exit_code
-        }
+        from sandbox.sandbox import get_provider
+
+        provider = get_provider()
+        result = provider.exec(self.sandbox, command, session=session_id)
+        output = getattr(result, "output", None)
+        if output is None and isinstance(result, dict):
+            output = result.get("stdout")
+        exit_code = getattr(result, "exit_code", None)
+        if exit_code is None and isinstance(result, dict):
+            exit_code = result.get("returncode")
+
+        return {"output": output, "exit_code": exit_code}
 
     @openapi_schema({
         "type": "function",
