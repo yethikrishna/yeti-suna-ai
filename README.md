@@ -27,6 +27,7 @@ Suna's powerful toolkit includes seamless browser automation to navigate the web
   - [Supabase Database](#supabase-database)
 - [Use Cases](#use-cases)
 - [Self-Hosting](#self-hosting)
+- [Developer Guide](#developer-guide)
 - [Acknowledgements](#acknowledgements)
 - [License](#license)
 
@@ -116,6 +117,10 @@ python start.py
 See the [Self-Hosting Guide](./docs/SELF-HOSTING.md) for detailed manual setup instructions.
 
 The wizard will guide you through all necessary steps to get your Suna instance up and running. For detailed instructions, troubleshooting tips, and advanced configuration options, see the [Self-Hosting Guide](./SELF-HOSTING.md).
+
+## Developer Guide
+
+For an overview of the codebase structure and how the different services communicate, see the [Developer Guide](./docs/DEVELOPER_GUIDE.md).
 
 ## Contributing
 
