@@ -111,9 +111,12 @@ async def log_requests_middleware(request: Request, call_next):
 # Define allowed origins based on environment
 allowed_origins = ["https://www.suna.so", "https://suna.so", "https://staging.suna.so", "http://localhost:3000"]
 
-# Add your Vercel app domain here
-# Replace 'your-app-name' with your actual Vercel app name
-allowed_origins.append("https://omni-operator.vercel.app/")
+# Add Vercel app domains
+allowed_origins.extend([
+    "https://omni-operator.vercel.app",
+    "https://omni-operator-git-main-latent-labs1.vercel.app", 
+    "https://omni-operator-48spfqdyw-latent-labs1.vercel.app"
+])
 
 # Add staging-specific origins
 if config.ENV_MODE == EnvMode.STAGING:
