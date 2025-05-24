@@ -1,216 +1,200 @@
 from fastapi import HTTPException, Request
 from typing import Optional
-import jwt
-from jwt.exceptions import PyJWTError
+from utils.logger import logger # Added logger
 
-# This function extracts the user ID from Supabase JWT
+# Mock user and account IDs for now
+MOCK_USER_ID = "mock_user_id_001"
+MOCK_ACCOUNT_ID = "mock_account_id_001"
+
 async def get_current_user_id_from_jwt(request: Request) -> str:
     """
-    Extract and verify the user ID from the JWT in the Authorization header.
-    
-    This function is used as a dependency in FastAPI routes to ensure the user
-    is authenticated and to provide the user ID for authorization checks.
+    Returns a mock user ID.
+    This function is a placeholder after removing Supabase JWT logic.
     
     Args:
-        request: The FastAPI request object
+        request: The FastAPI request object (currently unused but kept for signature consistency).
         
     Returns:
-        str: The user ID extracted from the JWT
-        
-    Raises:
-        HTTPException: If no valid token is found or if the token is invalid
+        str: A mock user ID.
     """
-    auth_header = request.headers.get('Authorization')
+    logger.debug("get_current_user_id_from_jwt called, returning mock user ID.")
+    # No actual JWT processing, just return a mock ID for now.
+    # This allows dependent services to continue functioning in a basic mode.
+    # In a future step, this could check for a simple API key or other auth.
     
-    if not auth_header or not auth_header.startswith('Bearer '):
-        raise HTTPException(
-            status_code=401,
-            detail="No valid authentication credentials found",
-            headers={"WWW-Authenticate": "Bearer"}
-        )
-    
-    token = auth_header.split(' ')[1]
-    
-    try:
-        # For Supabase JWT, we just need to decode and extract the user ID
-        # The actual validation is handled by Supabase's RLS
-        payload = jwt.decode(token, options={"verify_signature": False})
-        
-        # Supabase stores the user ID in the 'sub' claim
-        user_id = payload.get('sub')
-        
-        if not user_id:
-            raise HTTPException(
-                status_code=401,
-                detail="Invalid token payload",
-                headers={"WWW-Authenticate": "Bearer"}
-            )
-        
-        return user_id
-        
-    except PyJWTError:
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid token",
-            headers={"WWW-Authenticate": "Bearer"}
-        )
+    # Example: Check for a static API key if you want to add a very basic check
+    # api_key = request.headers.get('X-API-KEY')
+    # if api_key == "your_static_api_key":
+    #     return MOCK_USER_ID
+    # else:
+    #     logger.warning("Missing or invalid X-API-KEY in get_current_user_id_from_jwt.")
+    #     raise HTTPException(
+    #         status_code=401,
+    #         detail="Invalid or missing API Key",
+    #     )
+    return MOCK_USER_ID
 
-async def get_account_id_from_thread(client, thread_id: str) -> str:
+async def get_account_id_from_thread(thread_id: str) -> str:
     """
-    Extract and verify the account ID from the thread.
+    Returns a mock account ID for a given thread.
+    This function is a placeholder after removing Supabase client calls.
     
     Args:
-        client: The Supabase client
-        thread_id: The ID of the thread
+        thread_id: The ID of the thread (currently unused).
         
     Returns:
-        str: The account ID associated with the thread
-        
-    Raises:
-        HTTPException: If the thread is not found or if there's an error
+        str: A mock account ID.
     """
-    try:
-        response = await client.table('threads').select('account_id').eq('thread_id', thread_id).execute()
-        
-        if not response.data or len(response.data) == 0:
-            raise HTTPException(
-                status_code=404,
-                detail="Thread not found"
-            )
-        
-        account_id = response.data[0].get('account_id')
-        
-        if not account_id:
-            raise HTTPException(
-                status_code=500,
-                detail="Thread has no associated account"
-            )
-        
-        return account_id
-    
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error retrieving thread information: {str(e)}"
-        )
+    logger.debug(f"get_account_id_from_thread called for thread_id {thread_id}, returning mock account ID.")
+    # No database call, just return a mock ID.
+    # This needs to be reimplemented with SQLite logic later if thread-to-account mapping is needed.
+    return MOCK_ACCOUNT_ID
     
 async def get_user_id_from_stream_auth(
     request: Request,
     token: Optional[str] = None
 ) -> str:
     """
-    Extract and verify the user ID from either the Authorization header or query parameter token.
-    This function is specifically designed for streaming endpoints that need to support both
-    header-based and query parameter-based authentication (for EventSource compatibility).
+    Returns a mock user ID for streaming endpoints.
+    This function is a placeholder after removing Supabase JWT logic.
+    It checks for an optional token parameter or header for basic API key simulation if desired.
     
     Args:
-        request: The FastAPI request object
-        token: Optional token from query parameters
+        request: The FastAPI request object.
+        token: Optional token from query parameters.
         
     Returns:
-        str: The user ID extracted from the JWT
-        
-    Raises:
-        HTTPException: If no valid token is found or if the token is invalid
+        str: A mock user ID.
     """
-    # Try to get user_id from token in query param (for EventSource which can't set headers)
-    if token:
-        try:
-            # For Supabase JWT, we just need to decode and extract the user ID
-            payload = jwt.decode(token, options={"verify_signature": False})
-            user_id = payload.get('sub')
-            if user_id:
-                return user_id
-        except Exception:
-            pass
+    logger.debug(f"get_user_id_from_stream_auth called. Token in query: {'present' if token else 'absent'}.")
     
-    # If no valid token in query param, try to get it from the Authorization header
-    auth_header = request.headers.get('Authorization')
-    if auth_header and auth_header.startswith('Bearer '):
-        try:
-            # Extract token from header
-            header_token = auth_header.split(' ')[1]
-            payload = jwt.decode(header_token, options={"verify_signature": False})
-            user_id = payload.get('sub')
-            if user_id:
-                return user_id
-        except Exception:
-            pass
-    
-    # If we still don't have a user_id, return authentication error
-    raise HTTPException(
-        status_code=401,
-        detail="No valid authentication credentials found",
-        headers={"WWW-Authenticate": "Bearer"}
-    )
+    # Example: Basic API key check (can be adapted from get_current_user_id_from_jwt)
+    # query_token = token
+    # header_token = request.headers.get('X-API-KEY') # Or Authorization: Bearer if preferred for key
 
-async def verify_thread_access(client, thread_id: str, user_id: str):
+    # if query_token == "your_static_api_key" or header_token == "your_static_api_key":
+    #    logger.debug("Stream auth successful with API key.")
+    #    return MOCK_USER_ID
+    # else:
+    #    logger.warning("Missing or invalid API Key in stream auth.")
+    #    raise HTTPException(
+    #        status_code=401,
+    #        detail="Invalid or missing API Key for stream",
+    #    )
+    return MOCK_USER_ID
+
+async def verify_thread_access(thread_id: str, user_id: str):
     """
-    Verify that a user has access to a specific thread based on account membership.
+    Placeholder function that always grants access to a thread.
+    This function is a placeholder after removing Supabase client calls and RLS logic.
     
     Args:
-        client: The Supabase client
-        thread_id: The thread ID to check access for
-        user_id: The user ID to check permissions for
+        thread_id: The thread ID to check access for (currently unused).
+        user_id: The user ID to check permissions for (currently unused).
         
     Returns:
-        bool: True if the user has access
-        
-    Raises:
-        HTTPException: If the user doesn't have access to the thread
+        bool: True (access is always granted).
     """
-    # Query the thread to get account information
-    thread_result = await client.table('threads').select('*,project_id').eq('thread_id', thread_id).execute()
-
-    if not thread_result.data or len(thread_result.data) == 0:
-        raise HTTPException(status_code=404, detail="Thread not found")
-    
-    thread_data = thread_result.data[0]
-    
-    # Check if project is public
-    project_id = thread_data.get('project_id')
-    if project_id:
-        project_result = await client.table('projects').select('is_public').eq('project_id', project_id).execute()
-        if project_result.data and len(project_result.data) > 0:
-            if project_result.data[0].get('is_public'):
-                return True
-        
-    account_id = thread_data.get('account_id')
-    # When using service role, we need to manually check account membership instead of using current_user_account_role
-    if account_id:
-        account_user_result = await client.schema('basejump').from_('account_user').select('account_role').eq('user_id', user_id).eq('account_id', account_id).execute()
-        if account_user_result.data and len(account_user_result.data) > 0:
-            return True
-    raise HTTPException(status_code=403, detail="Not authorized to access this thread")
+    logger.debug(f"verify_thread_access called for thread_id {thread_id} and user_id {user_id}. Granting access by default.")
+    # No database calls, always return True for now.
+    # This needs to be reimplemented with SQLite logic later if access control is needed.
+    return True
 
 async def get_optional_user_id(request: Request) -> Optional[str]:
     """
-    Extract the user ID from the JWT in the Authorization header if present,
-    but don't require authentication. Returns None if no valid token is found.
-    
-    This function is used for endpoints that support both authenticated and 
-    unauthenticated access (like public projects).
+    Returns a mock user ID or None, simulating optional authentication.
+    This function is a placeholder after removing Supabase JWT logic.
     
     Args:
-        request: The FastAPI request object
+        request: The FastAPI request object (currently unused for actual auth).
         
     Returns:
-        Optional[str]: The user ID extracted from the JWT, or None if no valid token
+        Optional[str]: A mock user ID or None.
     """
-    auth_header = request.headers.get('Authorization')
+    # For now, let's assume if any "auth-like" header is present, we return mock_user_id,
+    # otherwise None. This is a very loose interpretation.
+    # A more robust temporary solution might look for a specific header or query param.
+    auth_header = request.headers.get('Authorization') # Example: still checking for presence
+    if auth_header: # Or check for X-API-KEY or any other indicator of "attempted auth"
+        logger.debug("get_optional_user_id: Auth header present, returning mock user ID.")
+        return MOCK_USER_ID
     
-    if not auth_header or not auth_header.startswith('Bearer '):
-        return None
-    
-    token = auth_header.split(' ')[1]
-    
-    try:
-        # For Supabase JWT, we just need to decode and extract the user ID
-        payload = jwt.decode(token, options={"verify_signature": False})
-        
-        # Supabase stores the user ID in the 'sub' claim
-        user_id = payload.get('sub')
-        
-        return user_id
-    except PyJWTError:
-        return None
+    logger.debug("get_optional_user_id: No auth header, returning None.")
+    return None
+
+# Example of how these functions might be used as FastAPI dependencies:
+# from fastapi import Depends
+# @app.get("/some_secure_route")
+# async def secure_route_example(current_user: str = Depends(get_current_user_id_from_jwt)):
+#     return {"message": f"Hello, {current_user}!"}
+
+# @app.get("/some_optional_route")
+# async def optional_route_example(current_user: Optional[str] = Depends(get_optional_user_id)):
+#     if current_user:
+#         return {"message": f"Hello, authenticated user {current_user}!"}
+#     return {"message": "Hello, guest!"}
+
+# @app.get("/threads/{thread_id}/view")
+# async def view_thread_example(
+#     thread_id: str,
+#     current_user: str = Depends(get_current_user_id_from_jwt)
+# ):
+#     await verify_thread_access(thread_id=thread_id, user_id=current_user)
+#     # ... proceed with thread logic ...
+#     account_id_for_thread = await get_account_id_from_thread(thread_id=thread_id)
+#     return {"message": f"You are viewing thread {thread_id} belonging to account {account_id_for_thread} as user {current_user}."}
+
+if __name__ == '__main__':
+    import asyncio
+
+    # Basic test to demonstrate the functions
+    class MockRequest:
+        def __init__(self, headers=None, query_params=None):
+            self.headers = headers or {}
+            self.query_params = query_params or {}
+
+    async def run_tests():
+        print("--- Testing auth_utils (mocked) ---")
+
+        # Test get_current_user_id_from_jwt
+        req_no_auth = MockRequest()
+        req_with_auth = MockRequest(headers={"Authorization": "Bearer faketoken"}) # Header content doesn't matter now
+
+        user1 = await get_current_user_id_from_jwt(req_with_auth)
+        print(f"get_current_user_id_from_jwt: {user1} (Expected: {MOCK_USER_ID})")
+        # This would raise HTTPException if we implemented an API key check and it failed:
+        # try:
+        #     await get_current_user_id_from_jwt(req_no_auth)
+        # except HTTPException as e:
+        #     print(f"get_current_user_id_from_jwt (no auth): Correctly raised {e.status_code} - {e.detail}")
+
+
+        # Test get_optional_user_id
+        opt_user1 = await get_optional_user_id(req_with_auth)
+        print(f"get_optional_user_id (with header): {opt_user1} (Expected: {MOCK_USER_ID})")
+        opt_user2 = await get_optional_user_id(req_no_auth)
+        print(f"get_optional_user_id (no header): {opt_user2} (Expected: None)")
+
+        # Test get_user_id_from_stream_auth
+        stream_user1 = await get_user_id_from_stream_auth(req_no_auth, token="fakequerytoken") # Query token doesn't matter now
+        print(f"get_user_id_from_stream_auth (with query token): {stream_user1} (Expected: {MOCK_USER_ID})")
+        stream_user2 = await get_user_id_from_stream_auth(req_with_auth) # Header doesn't matter now
+        print(f"get_user_id_from_stream_auth (with header): {stream_user2} (Expected: {MOCK_USER_ID})")
+        # This would raise if API key check was implemented and failed:
+        # try:
+        #     await get_user_id_from_stream_auth(req_no_auth)
+        # except HTTPException as e:
+        #     print(f"get_user_id_from_stream_auth (no auth): Correctly raised {e.status_code} - {e.detail}")
+
+
+        # Test get_account_id_from_thread
+        acc_id = await get_account_id_from_thread("thread_123")
+        print(f"get_account_id_from_thread: {acc_id} (Expected: {MOCK_ACCOUNT_ID})")
+
+        # Test verify_thread_access
+        access_granted = await verify_thread_access("thread_123", MOCK_USER_ID)
+        print(f"verify_thread_access: {access_granted} (Expected: True)")
+
+        print("--- Mocked auth_utils tests completed ---")
+
+    asyncio.run(run_tests())

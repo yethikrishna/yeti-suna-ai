@@ -1,54 +1,47 @@
-from tavily import AsyncTavilyClient
-import httpx
-from dotenv import load_dotenv
-from agentpress.tool import Tool, ToolResult, openapi_schema, xml_schema
-from utils.config import config
-from sandbox.tool_base import SandboxToolsBase
-from agentpress.thread_manager import ThreadManager
-import json
-import os
-import datetime
 import asyncio
+import json
+import datetime
 import logging
+import os
+from urllib.parse import urlparse
 
-# TODO: add subpages, etc... in filters as sometimes its necessary 
+import requests # For HTTP requests
+from bs4 import BeautifulSoup # For HTML parsing
+from duckduckgo_search import DDGS # For web search
+
+from agentpress.tool import Tool, ToolResult, openapi_schema, xml_schema
+# No longer using utils.config directly for API keys here, assuming DDGS and requests don't need special keys from config
+# from utils.config import config # Keep commented or remove if not used for anything else
+from sandbox.tool_base import SandboxToolsBase # Assuming this provides self.workspace_path and self.sandbox
+from agentpress.thread_manager import ThreadManager
+
 
 class SandboxWebSearchTool(SandboxToolsBase):
-    """Tool for performing web searches using Tavily API and web scraping using Firecrawl."""
+    """Tool for performing web searches using DuckDuckGo and web scraping using requests and BeautifulSoup."""
 
     def __init__(self, project_id: str, thread_manager: ThreadManager):
         super().__init__(project_id, thread_manager)
-        # Load environment variables
-        load_dotenv()
-        # Use API keys from config
-        self.tavily_api_key = config.TAVILY_API_KEY
-        self.firecrawl_api_key = config.FIRECRAWL_API_KEY
-        self.firecrawl_url = config.FIRECRAWL_URL
-        
-        if not self.tavily_api_key:
-            raise ValueError("TAVILY_API_KEY not found in configuration")
-        if not self.firecrawl_api_key:
-            raise ValueError("FIRECRAWL_API_KEY not found in configuration")
-
-        # Tavily asynchronous search client
-        self.tavily_client = AsyncTavilyClient(api_key=self.tavily_api_key)
+        # API keys for Tavily and Firecrawl are removed.
+        # DDGS does not require an API key.
+        # requests/BeautifulSoup do not require API keys.
+        logging.info("SandboxWebSearchTool initialized with DuckDuckGo and BeautifulSoup.")
 
     @openapi_schema({
         "type": "function",
         "function": {
             "name": "web_search",
-            "description": "Search the web for up-to-date information on a specific topic using the Tavily API. This tool allows you to gather real-time information from the internet to answer user queries, research topics, validate facts, and find recent developments. Results include titles, URLs, and publication dates. Use this tool for discovering relevant web pages before potentially crawling them for complete content.",
+            "description": "Search the web for up-to-date information on a specific topic using DuckDuckGo. This tool allows you to gather real-time information from the internet. Results include titles, URLs, and snippets of content.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "query": {
                         "type": "string",
-                        "description": "The search query to find relevant web pages. Be specific and include key terms to improve search accuracy. For best results, use natural language questions or keyword combinations that precisely describe what you're looking for."
+                        "description": "The search query. Be specific for better results."
                     },
                     "num_results": {
                         "type": "integer",
-                        "description": "The number of search results to return. Increase for more comprehensive research or decrease for focused, high-relevance results.",
-                        "default": 20
+                        "description": "The number of search results to return. Default is 10. Max is 25.",
+                        "default": 10
                     }
                 },
                 "required": ["query"]
@@ -63,80 +56,75 @@ class SandboxWebSearchTool(SandboxToolsBase):
         ],
         example='''
         <!-- 
-        The web-search tool allows you to search the internet for real-time information.
+        The web-search tool allows you to search the internet for real-time information using DuckDuckGo.
         Use this tool when you need to find current information, research topics, or verify facts.
         
-        THE TOOL NOW RETURNS:
-        - Direct answer to your query from search results
-        - Relevant images when available
-        - Detailed search results including titles, URLs, and snippets
+        THE TOOL RETURNS:
+        - A list of search results, each including: title, URL (href), and a snippet (body).
         
         WORKFLOW RECOMMENDATION:
-        1. Use web-search first with a specific question to get direct answers
-        2. Only use scrape-webpage if you need more detailed information from specific pages
+        1. Use web-search first with a specific question or keywords.
+        2. Review the titles, URLs, and snippets to identify relevant pages.
+        3. If more detailed information is needed from specific pages, use the scrape_webpage tool with those URLs.
         -->
         
         <!-- Simple search example -->
         <web-search 
-            query="what is Kortix AI and what are they building?" 
-            num_results="20">
+            query="what is the latest news on AI?" 
+            num_results="5">
         </web-search>
         
         <!-- Another search example -->
         <web-search 
-            query="latest AI research on transformer models" 
-            num_results="20">
+            query="benefits of using Python for data science" 
+            num_results="10">
         </web-search>
         '''
     )
     async def web_search(
         self, 
         query: str,
-        num_results: int = 20
+        num_results: int = 10
     ) -> ToolResult:
         """
-        Search the web using the Tavily API to find relevant and up-to-date information.
+        Search the web using DuckDuckGo to find relevant and up-to-date information.
         """
         try:
-            # Ensure we have a valid query
             if not query or not isinstance(query, str):
                 return self.fail_response("A valid search query is required.")
             
-            # Normalize num_results
-            if num_results is None:
-                num_results = 20
-            elif isinstance(num_results, int):
-                num_results = max(1, min(num_results, 50))
-            elif isinstance(num_results, str):
-                try:
-                    num_results = max(1, min(int(num_results), 50))
-                except ValueError:
-                    num_results = 20
-            else:
-                num_results = 20
+            try:
+                num_results = int(num_results) if num_results is not None else 10
+            except ValueError:
+                logging.warning(f"Invalid num_results value '{num_results}', defaulting to 10.")
+                num_results = 10
+            num_results = max(1, min(num_results, 25)) # DDGS typically returns around 25 max without pagination
 
-            # Execute the search with Tavily
-            logging.info(f"Executing web search for query: '{query}' with {num_results} results")
-            search_response = await self.tavily_client.search(
-                query=query,
-                max_results=num_results,
-                include_images=True,
-                include_answer="advanced",
-                search_depth="advanced",
+            logging.info(f"Executing web search with DuckDuckGo for query: '{query}' with up to {num_results} results")
+            
+            # DDGS().text returns a list of dictionaries: [{'title': '...', 'href': '...', 'body': '...'}]
+            # DDGS is synchronous, so run it in a thread for async compatibility
+            search_results = await asyncio.to_thread(
+                DDGS().text,
+                keywords=query,
+                max_results=num_results
             )
             
-            # Return the complete Tavily response 
-            # This includes the query, answer, results, images and more
-            logging.info(f"Retrieved search results for query: '{query}' with answer and {len(search_response.get('results', []))} results")
+            response_output = {
+                "query": query,
+                "results": search_results if search_results else [],
+            }
+            
+            logging.info(f"Retrieved {len(response_output['results'])} search results for query: '{query}'")
             
             return ToolResult(
                 success=True,
-                output=json.dumps(search_response, ensure_ascii=False)
+                output=json.dumps(response_output, ensure_ascii=False)
             )
         
         except Exception as e:
             error_message = str(e)
-            logging.error(f"Error performing web search for '{query}': {error_message}")
+            logging.error(f"Error performing web search with DuckDuckGo for '{query}': {error_message}", exc_info=True)
             simplified_message = f"Error performing web search: {error_message[:200]}"
             if len(error_message) > 200:
                 simplified_message += "..."
@@ -146,13 +134,13 @@ class SandboxWebSearchTool(SandboxToolsBase):
         "type": "function",
         "function": {
             "name": "scrape_webpage",
-            "description": "Extract full text content from multiple webpages in a single operation. IMPORTANT: You should ALWAYS collect multiple relevant URLs from web-search results and scrape them all in a single call for efficiency. This tool saves time by processing multiple pages simultaneously rather than one at a time. The extracted text includes the main content of each page without HTML markup.",
+            "description": "Extract plain text content from multiple webpages using requests and BeautifulSoup. Provide URLs separated by commas. This tool is useful for getting the textual content of web pages identified via web_search. It removes common clutter like scripts, styles, navigation, and footers.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "urls": {
                         "type": "string",
-                        "description": "Multiple URLs to scrape, separated by commas. You should ALWAYS include several URLs when possible for efficiency. Example: 'https://example.com/page1,https://example.com/page2,https://example.com/page3'"
+                        "description": "One or more URLs to scrape, separated by commas. Example: 'https://example.com/page1,https://example.com/page2'"
                     }
                 },
                 "required": ["urls"]
@@ -165,50 +153,35 @@ class SandboxWebSearchTool(SandboxToolsBase):
             {"param_name": "urls", "node_type": "attribute", "path": "."}
         ],
         example='''
-  <!-- 
-        IMPORTANT: The scrape-webpage tool should ONLY be used when you absolutely need
-        the full content of specific web pages that can't be answered by web-search alone.
+        <!-- 
+        The scrape_webpage tool extracts the main textual content from specified URLs.
+        Use this tool after identifying relevant pages with web_search, when you need more
+        detail than the search snippets provide.
         
         WORKFLOW PRIORITY:
-        1. ALWAYS use web-search first - it now provides direct answers to questions
-        2. Only use scrape-webpage when you need specific details not found in the search results
-        3. Remember that web-search now returns:
-           - Direct answers to your query
-           - Relevant images
-           - Detailed search result snippets
+        1. ALWAYS use web-search first to find relevant URLs and snippets.
+        2. Only use scrape_webpage for URLs where the full text is necessary.
         
-        When to use scrape-webpage:
-        - When you need complete article text beyond what search snippets provide
-        - For extracting structured data from specific pages
-        - When analyzing lengthy documentation or guides
-        - For comparing detailed content across multiple sources
+        When to use scrape_webpage:
+        - To get complete article text.
+        - For analyzing lengthy documentation or guides.
+        - When comparing detailed content across multiple sources.
         
-        When NOT to use scrape-webpage:
-        - When web-search already answers the query
-        - For simple fact-checking or basic information
-        - When only a high-level overview is needed
+        The tool returns plain text content, with HTML tags, scripts, and styles removed.
+        Content is saved to a file in the workspace.
         -->
         
         <!-- Example workflow: -->
-        <!-- 1. First search for relevant content with a specific question -->
+        <!-- 1. First search for relevant content -->
         <web-search 
-            query="what is Kortix AI and what are they building?" 
-            num_results="20">
+            query="how to use BeautifulSoup for web scraping" 
+            num_results="3">
         </web-search>
         
-        <!-- 2. Only if you need specific details not in the search results, then scrape -->
+        <!-- 2. Then, if needed, scrape specific URLs from the search results -->
         <scrape-webpage 
-            urls="https://www.kortix.ai/,https://github.com/kortix-ai/suna">
+            urls="https_relevant_url_from_search_1.com,https_another_url.com">
         </scrape-webpage>
-        
-        <!-- 3. Only if scrape fails or interaction needed, use browser tools -->
-        <!-- Example of when to use browser tools:
-             - Dynamic content loading
-             - JavaScript-heavy sites
-             - Pages requiring login
-             - Interactive elements
-             - Infinite scroll pages
-        -->
         '''
     )
     async def scrape_webpage(
@@ -216,197 +189,186 @@ class SandboxWebSearchTool(SandboxToolsBase):
         urls: str
     ) -> ToolResult:
         """
-        Retrieve the complete text content of multiple webpages in a single efficient operation.
-        
-        ALWAYS collect multiple relevant URLs from search results and scrape them all at once
-        rather than making separate calls for each URL. This is much more efficient.
-        
-        Parameters:
-        - urls: Multiple URLs to scrape, separated by commas
+        Retrieve the plain text content of multiple webpages using requests and BeautifulSoup.
         """
         try:
-            logging.info(f"Starting to scrape webpages: {urls}")
+            logging.info(f"Starting to scrape webpages with requests+BeautifulSoup: {urls}")
             
-            # Ensure sandbox is initialized
-            await self._ensure_sandbox()
+            await self._ensure_sandbox() # Ensure sandbox is initialized for file saving
             
-            # Parse the URLs parameter
             if not urls:
                 logging.warning("Scrape attempt with empty URLs")
                 return self.fail_response("Valid URLs are required.")
             
-            # Split the URLs string into a list
             url_list = [url.strip() for url in urls.split(',') if url.strip()]
             
             if not url_list:
                 logging.warning("No valid URLs found in the input")
                 return self.fail_response("No valid URLs provided.")
                 
-            if len(url_list) == 1:
-                logging.warning("Only a single URL provided - for efficiency you should scrape multiple URLs at once")
-            
             logging.info(f"Processing {len(url_list)} URLs: {url_list}")
             
-            # Process each URL and collect results
-            results = []
-            for url in url_list:
-                try:
-                    # Add protocol if missing
-                    if not (url.startswith('http://') or url.startswith('https://')):
-                        url = 'https://' + url
-                        logging.info(f"Added https:// protocol to URL: {url}")
-                    
-                    # Scrape this URL
-                    result = await self._scrape_single_url(url)
-                    results.append(result)
-                    
-                except Exception as e:
-                    logging.error(f"Error processing URL {url}: {str(e)}")
-                    results.append({
-                        "url": url,
+            # Use asyncio.gather to run scraping tasks concurrently for multiple URLs
+            scrape_tasks = []
+            for url_str in url_list:
+                # Ensure protocol is present
+                current_url = url_str
+                if not (current_url.startswith('http://') or current_url.startswith('https://')):
+                    current_url = 'https://' + current_url
+                    logging.info(f"Added https:// protocol to URL: {current_url}")
+                scrape_tasks.append(self._scrape_single_url_with_requests(current_url))
+            
+            results = await asyncio.gather(*scrape_tasks, return_exceptions=True)
+            
+            # Process results, handling potential exceptions from asyncio.gather
+            processed_results = []
+            for i, res_or_exc in enumerate(results):
+                original_url = url_list[i] # Get original URL for reporting
+                if isinstance(res_or_exc, Exception):
+                    logging.error(f"Exception occurred while scraping {original_url}: {res_or_exc}", exc_info=True)
+                    processed_results.append({
+                        "url": original_url,
                         "success": False,
-                        "error": str(e)
+                        "error": str(res_or_exc)
                     })
+                else:
+                    processed_results.append(res_or_exc)
+
+
+            successful = sum(1 for r in processed_results if r.get("success", False))
+            failed = len(processed_results) - successful
             
-            # Summarize results
-            successful = sum(1 for r in results if r.get("success", False))
-            failed = len(results) - successful
-            
-            # Create success/failure message
-            if successful == len(results):
-                message = f"Successfully scraped all {len(results)} URLs. Results saved to:"
-                for r in results:
-                    if r.get("file_path"):
-                        message += f"\n- {r.get('file_path')}"
+            message_parts = []
+            if successful == len(processed_results):
+                message_parts.append(f"Successfully scraped all {len(processed_results)} URLs.")
             elif successful > 0:
-                message = f"Scraped {successful} URLs successfully and {failed} failed. Results saved to:"
-                for r in results:
-                    if r.get("success", False) and r.get("file_path"):
-                        message += f"\n- {r.get('file_path')}"
-                message += "\n\nFailed URLs:"
-                for r in results:
-                    if not r.get("success", False):
-                        message += f"\n- {r.get('url')}: {r.get('error', 'Unknown error')}"
+                message_parts.append(f"Scraped {successful} URLs successfully and {failed} failed.")
             else:
-                error_details = "; ".join([f"{r.get('url')}: {r.get('error', 'Unknown error')}" for r in results])
-                return self.fail_response(f"Failed to scrape all {len(results)} URLs. Errors: {error_details}")
+                error_details = "; ".join([f"{r.get('url')}: {r.get('error', 'Unknown error')}" for r in processed_results if not r.get('success')])
+                return self.fail_response(f"Failed to scrape all {len(processed_results)} URLs. Errors: {error_details}")
+
+            for r in processed_results:
+                if r.get("success", False) and r.get("file_path"):
+                    message_parts.append(f"- Scraped {r.get('url')}: Title '{r.get('title', 'N/A')}', Content Length: {r.get('content_length', 0)}, Saved to: {r.get('file_path')}")
+            
+            if failed > 0:
+                message_parts.append("\nFailed URLs:")
+                for r in processed_results:
+                    if not r.get("success", False):
+                        message_parts.append(f"- {r.get('url')}: {r.get('error', 'Unknown error')}")
             
             return ToolResult(
                 success=True,
-                output=message
+                output="\n".join(message_parts)
             )
         
         except Exception as e:
             error_message = str(e)
-            logging.error(f"Error in scrape_webpage: {error_message}")
+            logging.error(f"Error in scrape_webpage: {error_message}", exc_info=True)
             return self.fail_response(f"Error processing scrape request: {error_message[:200]}")
-    
-    async def _scrape_single_url(self, url: str) -> dict:
+
+    def _http_get_and_parse_sync(self, url_to_scrape: str, timeout_seconds: int = 20) -> dict:
         """
-        Helper function to scrape a single URL and return the result information.
+        Synchronous helper to perform HTTP GET and parse with BeautifulSoup.
+        This function will be run in a separate thread via asyncio.to_thread.
         """
-        logging.info(f"Scraping single URL: {url}")
+        try:
+            headers = { # Set a common user-agent
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+            response = requests.get(url_to_scrape, headers=headers, timeout=timeout_seconds)
+            response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
+
+            soup = BeautifulSoup(response.content, 'html.parser')
+
+            # Remove common clutter tags
+            for tag_name in ['script', 'style', 'nav', 'footer', 'header', 'aside', 'form', 'noscript', 'link', 'meta', 'iframe', 'img', 'button', 'input']:
+                for tag in soup.find_all(tag_name):
+                    tag.decompose()
+            
+            title_tag = soup.find('title')
+            title = title_tag.string.strip() if title_tag and title_tag.string else url_to_scrape
+
+            text_content = soup.get_text(separator='\n', strip=True)
+            lines = [line for line in text_content.splitlines() if line.strip()] # Remove empty lines
+            cleaned_text = "\n".join(lines)
+
+            return {
+                "title": title,
+                "text": cleaned_text,
+                "success": True
+            }
+        except requests.exceptions.Timeout:
+            logging.warning(f"Timeout during requests.get for {url_to_scrape}")
+            return {"title": "", "text": "", "error": f"Timeout after {timeout_seconds}s", "success": False}
+        except requests.exceptions.RequestException as e:
+            logging.warning(f"requests.get failed for {url_to_scrape}: {str(e)}")
+            return {"title": "", "text": "", "error": str(e), "success": False}
+        except Exception as e: # Catch other parsing errors
+            logging.error(f"Error parsing content for {url_to_scrape}: {str(e)}", exc_info=True)
+            return {"title": "", "text": "", "error": f"Parsing error: {str(e)}", "success": False}
+
+    async def _scrape_single_url_with_requests(self, url: str) -> dict:
+        """
+        Helper function to scrape a single URL using requests and BeautifulSoup,
+        and save the result information.
+        """
+        logging.info(f"Scraping single URL with requests+BS4: {url}")
         
         try:
-            # ---------- Firecrawl scrape endpoint ----------
-            logging.info(f"Sending request to Firecrawl for URL: {url}")
-            async with httpx.AsyncClient() as client:
-                headers = {
-                    "Authorization": f"Bearer {self.firecrawl_api_key}",
-                    "Content-Type": "application/json",
-                }
-                payload = {
-                    "url": url,
-                    "formats": ["markdown"]
-                }
-                
-                # Use longer timeout and retry logic for more reliability
-                max_retries = 3
-                timeout_seconds = 120
-                retry_count = 0
-                
-                while retry_count < max_retries:
-                    try:
-                        logging.info(f"Sending request to Firecrawl (attempt {retry_count + 1}/{max_retries})")
-                        response = await client.post(
-                            f"{self.firecrawl_url}/v1/scrape",
-                            json=payload,
-                            headers=headers,
-                            timeout=timeout_seconds,
-                        )
-                        response.raise_for_status()
-                        data = response.json()
-                        logging.info(f"Successfully received response from Firecrawl for {url}")
-                        break
-                    except (httpx.ReadTimeout, httpx.ConnectTimeout, httpx.ReadError) as timeout_err:
-                        retry_count += 1
-                        logging.warning(f"Request timed out (attempt {retry_count}/{max_retries}): {str(timeout_err)}")
-                        if retry_count >= max_retries:
-                            raise Exception(f"Request timed out after {max_retries} attempts with {timeout_seconds}s timeout")
-                        # Exponential backoff
-                        logging.info(f"Waiting {2 ** retry_count}s before retry")
-                        await asyncio.sleep(2 ** retry_count)
-                    except Exception as e:
-                        # Don't retry on non-timeout errors
-                        logging.error(f"Error during scraping: {str(e)}")
-                        raise e
+            scraped_data = await asyncio.to_thread(self._http_get_and_parse_sync, url)
 
-            # Format the response
-            title = data.get("data", {}).get("metadata", {}).get("title", "")
-            markdown_content = data.get("data", {}).get("markdown", "")
-            logging.info(f"Extracted content from {url}: title='{title}', content length={len(markdown_content)}")
+            if not scraped_data.get("success"):
+                return {
+                    "url": url,
+                    "success": False,
+                    "error": scraped_data.get("error", "Scraping failed in _http_get_and_parse_sync")
+                }
+
+            title = scraped_data["title"]
+            text_content = scraped_data["text"]
+            logging.info(f"Extracted content from {url}: title='{title}', content length={len(text_content)}")
             
-            formatted_result = {
+            formatted_result_for_file = { # This is what gets saved to the file
                 "title": title,
                 "url": url,
-                "text": markdown_content
+                "text": text_content 
             }
             
-            # Add metadata if available
-            if "metadata" in data.get("data", {}):
-                formatted_result["metadata"] = data["data"]["metadata"]
-                logging.info(f"Added metadata: {data['data']['metadata'].keys()}")
-            
-            # Create a simple filename from the URL domain and date
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            
-            # Extract domain from URL for the filename
-            from urllib.parse import urlparse
             parsed_url = urlparse(url)
             domain = parsed_url.netloc.replace("www.", "")
-            
-            # Clean up domain for filename
             domain = "".join([c if c.isalnum() else "_" for c in domain])
-            safe_filename = f"{timestamp}_{domain}.json"
+            safe_filename = f"scraped_{timestamp}_{domain}.json" # Changed prefix
             
-            logging.info(f"Generated filename: {safe_filename}")
+            logging.info(f"Generated filename for scraped content: {safe_filename}")
             
-            # Save results to a file in the /workspace/scrape directory
             scrape_dir = f"{self.workspace_path}/scrape"
-            self.sandbox.fs.create_folder(scrape_dir, "755")
+            # Ensure the directory exists (create_folder should handle if it already exists)
+            self.sandbox.fs.create_folder(scrape_dir, "755") 
             
             results_file_path = f"{scrape_dir}/{safe_filename}"
-            json_content = json.dumps(formatted_result, ensure_ascii=False, indent=2)
-            logging.info(f"Saving content to file: {results_file_path}, size: {len(json_content)} bytes")
+            json_content_to_save = json.dumps(formatted_result_for_file, ensure_ascii=False, indent=2)
+            logging.info(f"Saving scraped content to file: {results_file_path}, size: {len(json_content_to_save)} bytes")
             
-            self.sandbox.fs.upload_file(
+            await asyncio.to_thread( # Ensure file writing is also non-blocking if it could be slow
+                self.sandbox.fs.upload_file,
                 results_file_path, 
-                json_content.encode()
+                json_content_to_save.encode('utf-8')
             )
             
+            # This is the dictionary returned by the function, to be aggregated by scrape_webpage
             return {
                 "url": url,
                 "success": True,
                 "title": title,
                 "file_path": results_file_path,
-                "content_length": len(markdown_content)
+                "content_length": len(text_content)
             }
         
         except Exception as e:
             error_message = str(e)
-            logging.error(f"Error scraping URL '{url}': {error_message}")
-            
-            # Create an error result
+            logging.error(f"Error in _scrape_single_url_with_requests for '{url}': {error_message}", exc_info=True)
             return {
                 "url": url,
                 "success": False,
@@ -414,19 +376,58 @@ class SandboxWebSearchTool(SandboxToolsBase):
             }
 
 if __name__ == "__main__":
-    async def test_web_search():
-        """Test function for the web search tool"""
-        # This test function is not compatible with the sandbox version
-        print("Test function needs to be updated for sandbox version")
-    
-    async def test_scrape_webpage():
-        """Test function for the webpage scrape tool"""
-        # This test function is not compatible with the sandbox version
-        print("Test function needs to be updated for sandbox version")
-    
-    async def run_tests():
-        """Run all test functions"""
-        await test_web_search()
-        await test_scrape_webpage()
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+    class MockSandboxFS: # Minimal mock for testing
+        def create_folder(self, path, mode):
+            logging.info(f"FS MOCK: Create folder {path} with mode {mode}")
+            os.makedirs(path, exist_ok=True)
         
-    asyncio.run(run_tests())
+        def upload_file(self, path, content_bytes):
+            logging.info(f"FS MOCK: Upload file {path}, size: {len(content_bytes)} bytes")
+            with open(path, 'wb') as f:
+                f.write(content_bytes)
+
+    class MockSandbox:
+        def __init__(self):
+            self.fs = MockSandboxFS()
+
+    async def test_tool_main():
+        mock_project_id = "test_project_websearch"
+        mock_thread_manager = None # Not strictly used by these methods post-refactor for basic ops
+
+        tool = SandboxWebSearchTool(project_id=mock_project_id, thread_manager=mock_thread_manager)
+        
+        tool.workspace_path = "./test_suna_workspace_websearch" 
+        tool.sandbox = MockSandbox()
+        if not os.path.exists(tool.workspace_path):
+            os.makedirs(tool.workspace_path)
+        
+        logging.info("\n--- Testing web_search ---")
+        search_query = "Python programming language"
+        search_result = await tool.web_search(query=search_query, num_results=2)
+        logging.info(f"Web search for '{search_query}': Success: {search_result.success}\nOutput: {search_result.output[:500]}...\n")
+
+        logging.info("\n--- Testing scrape_webpage ---")
+        urls_to_scrape = "https://example.com" # A simple, reliable URL
+        scrape_result = await tool.scrape_webpage(urls=urls_to_scrape)
+        logging.info(f"Scrape for '{urls_to_scrape}': Success: {scrape_result.success}\nOutput:\n{scrape_result.output}\n")
+        
+        # Test with multiple URLs
+        urls_to_scrape_multi = "https://example.com,https://www.iana.org/domains/reserved"
+        scrape_result_multi = await tool.scrape_webpage(urls=urls_to_scrape_multi)
+        logging.info(f"Scrape for '{urls_to_scrape_multi}': Success: {scrape_result_multi.success}\nOutput:\n{scrape_result_multi.output}\n")
+
+        # Test with an invalid URL (format-wise) to see how requests handles it
+        # urls_to_scrape_invalid_format = "htp://not_a_valid_schema"
+        # scrape_result_invalid_format = await tool.scrape_webpage(urls=urls_to_scrape_invalid_format)
+        # logging.info(f"Scrape for invalid format URL '{urls_to_scrape_invalid_format}': Success: {scrape_result_invalid_format.success}\nOutput:\n{scrape_result_invalid_format.output}\n")
+
+        # Test with a non-existent domain
+        urls_to_scrape_non_existent = "https://thissitedefinitelyshouldnotexist12345.com"
+        scrape_result_non_existent = await tool.scrape_webpage(urls=urls_to_scrape_non_existent)
+        logging.info(f"Scrape for non-existent URL '{urls_to_scrape_non_existent}': Success: {scrape_result_non_existent.success}\nOutput:\n{scrape_result_non_existent.output}\n")
+
+
+    if __name__ == "__main__": # This structure is important for the tool
+        asyncio.run(test_tool_main())

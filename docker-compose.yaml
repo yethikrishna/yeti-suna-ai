@@ -1,16 +1,4 @@
 services:
-  redis:
-    image: redis:7-alpine
-    volumes:
-      - redis_data:/data
-      - ./backend/services/docker/redis.conf:/usr/local/etc/redis/redis.conf:ro
-    command: redis-server /usr/local/etc/redis/redis.conf --save 60 1 --loglevel warning
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-
   rabbitmq:
     image: rabbitmq
     ports:
@@ -34,17 +22,17 @@ services:
       - "8000:8000"
     volumes:
       - ./backend/.env:/app/.env:ro
+      - ./db_data:/app/db # Volume for SQLite database
     environment:
       - ENV_MODE=local
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_PASSWORD=
-      - REDIS_SSL=False
+      # REDIS variables removed
       - RABBITMQ_HOST=rabbitmq
       - RABBITMQ_PORT=5672
+      - GEMINI_API_KEY=${GEMINI_API_KEY} # Sourced from .env file
+      - SQLITE_DB_PATH=/app/db/agentpress.db # Path inside the container
+      # Removed other old service-specific env vars if any were here
     depends_on:
-      redis:
-        condition: service_healthy
+      # redis removed
       rabbitmq:
         condition: service_healthy
       worker:
@@ -54,20 +42,20 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    command: python -m dramatiq run_agent_background
+    command: python -m dramatiq run_agent_background # Ensure this entrypoint is correct
     volumes:
       - ./backend/.env:/app/.env:ro
+      - ./db_data:/app/db # Volume for SQLite database
     environment:
       - ENV_MODE=local
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_PASSWORD=
-      - REDIS_SSL=False
+      # REDIS variables removed
       - RABBITMQ_HOST=rabbitmq
       - RABBITMQ_PORT=5672
+      - GEMINI_API_KEY=${GEMINI_API_KEY} # Sourced from .env file
+      - SQLITE_DB_PATH=/app/db/agentpress.db # Path inside the container
+      # Removed other old service-specific env vars if any were here
     depends_on:
-      redis:
-        condition: service_healthy
+      # redis removed
       rabbitmq:
         condition: service_healthy
 
@@ -87,5 +75,6 @@ services:
       - backend
 
 volumes:
-  redis_data:
+  db_data: # For SQLite database
   rabbitmq_data:
+  # redis_data removed

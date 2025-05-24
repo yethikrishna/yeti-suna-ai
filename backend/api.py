@@ -3,7 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 from agentpress.thread_manager import ThreadManager
-from services.supabase import DBConnection
+# from services.supabase import DBConnection # Removed Supabase
+from services.sqlite_db import initialize_database, get_db_connection # Added SQLite
 from datetime import datetime, timezone
 from dotenv import load_dotenv
 from utils.config import config, EnvMode
@@ -22,9 +23,12 @@ from services import billing as billing_api
 load_dotenv()
 
 # Initialize managers
-db = DBConnection()
+# db = DBConnection() # Removed Supabase
 thread_manager = None
 instance_id = "single"
+# Note: A global db connection instance for SQLite is not typically managed this way.
+# Connections are usually obtained per request or per function needing db access.
+# For now, we'll rely on get_db_connection() where needed.
 
 # Rate limiter state
 ip_tracker = OrderedDict()
@@ -35,21 +39,27 @@ async def lifespan(app: FastAPI):
     # Startup
     global thread_manager
     logger.info(f"Starting up FastAPI application with instance ID: {instance_id} in {config.ENV_MODE.value} mode")
-    
+
     try:
-        # Initialize database
-        await db.initialize()
+        # Initialize SQLite database
+        initialize_database() # Synchronous call
+        logger.info("SQLite database initialized successfully.")
+
         thread_manager = ThreadManager()
-        
+
         # Initialize the agent API with shared resources
+        # The `db` object needs to be replaced with a way to get SQLite connections
+        # For now, agent_api.initialize might need to be adapted or take get_db_connection
         agent_api.initialize(
             thread_manager,
-            db,
+            None, # Passing None for db for now, needs refactor in agent_api
+            # Consider passing get_db_connection or let agent_api import it
             instance_id
         )
-        
+
         # Initialize the sandbox API with shared resources
-        sandbox_api.initialize(db)
+        # Similar to agent_api, sandbox_api.initialize needs to be adapted for SQLite
+        sandbox_api.initialize(None) # Passing None for db for now
         
         # Initialize Redis connection
         from services import redis
@@ -77,11 +87,11 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             logger.error(f"Error closing Redis connection: {e}")
         
-        # Clean up database connection
-        logger.info("Disconnecting from database")
-        await db.disconnect()
+        # Clean up database connection (SQLite connections are typically managed per use)
+        logger.info("SQLite connections are managed per use, no global disconnect needed in lifespan.")
+        # If there were any global resources for SQLite, they would be cleaned here.
     except Exception as e:
-        logger.error(f"Error during application startup: {e}")
+        logger.error(f"Error during application startup: {e}", exc_info=True) # Added exc_info for more details
         raise
 
 app = FastAPI(lifespan=lifespan)

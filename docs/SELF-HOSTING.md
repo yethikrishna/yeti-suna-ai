@@ -1,6 +1,6 @@
-# Suna Self-Hosting Guide
+# Novah Self-Hosting Guide
 
-This guide provides detailed instructions for setting up and hosting your own instance of Suna, an open-source generalist AI agent.
+This guide provides detailed instructions for setting up and hosting your own instance of Novah, an open-source generalist AI agent.
 
 ## Table of Contents
 
@@ -13,273 +13,200 @@ This guide provides detailed instructions for setting up and hosting your own in
 
 ## Overview
 
-Suna consists of four main components:
+Novah's architecture includes the following main components:
 
-1. **Backend API** - Python/FastAPI service for REST endpoints, thread management, and LLM integration
-2. **Backend Worker** - Python/Dramatiq worker service for handling agent tasks
-3. **Frontend** - Next.js/React application providing the user interface
-4. **Agent Docker** - Isolated execution environment for each agent
-5. **Supabase Database** - Handles data persistence and authentication
+1.  **Backend API** - Python/FastAPI service for REST endpoints, thread management, and LLM integration with Google Gemini.
+2.  **Backend Worker** - Python/Dramatiq worker service for handling agent tasks via RabbitMQ.
+3.  **Frontend** - Next.js/React application providing the user interface. Authentication is currently mocked.
+4.  **Agent Docker Sandbox** - Isolated execution environment for each agent, managed by the Docker SDK. The sandbox image includes tools for browser automation (Playwright), code interpretation, and file system access.
+5.  **SQLite Database** - Handles data persistence for conversation history, agent state, etc. Stored in a Docker volume.
+6.  **RabbitMQ** - Message broker for the backend worker tasks.
 
 ## Prerequisites
 
 Before starting the installation process, you'll need to set up the following:
 
-### 1. Supabase Project
+### 1. API Keys
 
-1. Create an account at [Supabase](https://supabase.com/)
-2. Create a new project
-3. Note down the following information (found in Project Settings → API):
-   - Project URL (e.g., `https://abcdefg.supabase.co`)
-   - API keys (anon key and service role key)
-
-### 2. API Keys
-
-Obtain the following API keys:
+Obtain the following API key:
 
 #### Required
+- **LLM Provider**:
+  - [Google Gemini API Key](https://ai.google.dev/): For core LLM capabilities.
 
-- **LLM Provider** (at least one of the following):
+#### Optional (for certain data provider tools, if used)
+- **RapidAPI Key**: If you plan to use tools that leverage RapidAPI.
 
-  - [Anthropic](https://console.anthropic.com/) - Recommended for best performance
-  - [OpenAI](https://platform.openai.com/)
-  - [Groq](https://console.groq.com/)
-  - [OpenRouter](https://openrouter.ai/)
-  - [AWS Bedrock](https://aws.amazon.com/bedrock/)
-
-- **Search and Web Scraping**:
-
-  - [Tavily](https://tavily.com/) - For enhanced search capabilities
-  - [Firecrawl](https://firecrawl.dev/) - For web scraping capabilities
-
-- **Agent Execution**:
-  - [Daytona](https://app.daytona.io/) - For secure agent execution
-
-#### Optional
-
-- **RapidAPI** - For accessing additional API services (optional)
-
-### 3. Required Software
+### 2. Required Software
 
 Ensure the following tools are installed on your system:
 
 - **[Git](https://git-scm.com/downloads)**
-- **[Docker](https://docs.docker.com/get-docker/)**
-- **[Python 3.11](https://www.python.org/downloads/)**
-- **[Poetry](https://python-poetry.org/docs/#installation)**
-- **[Node.js & npm](https://nodejs.org/en/download/)**
-- **[Supabase CLI](https://supabase.com/docs/guides/local-development/cli/getting-started)**
+- **[Docker](https://docs.docker.com/get-docker/)** and **[Docker Compose](https://docs.docker.com/compose/install/)**
+- **[Python 3.11+](https://www.python.org/downloads/)** (primarily for local development/setup scripts; core application runs in Docker)
+- **[Poetry](https://python-poetry.org/docs/#installation)** (for backend Python dependency management if developing locally)
+- **[Node.js & npm](https://nodejs.org/en/download/)** (for frontend development if developing locally)
 
 ## Installation Steps
 
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/kortix-ai/suna.git
-cd suna
+git clone https://github.com/novah-ai/novah.git # TODO: Update with correct repo URL
+cd novah
 ```
 
-### 2. Run the Setup Wizard
+### 2. Configure Environment Variables
 
-The setup wizard will guide you through the installation process:
+Copy the example environment files and fill in your details:
 
+- **Backend**: Copy `backend/.env.example` to `backend/.env`.
+  - Edit `backend/.env` and set your `GEMINI_API_KEY`.
+  - `SQLITE_DB_PATH` is set to `/app/db/agentpress.db` by default (path inside the Docker container).
+  - `RABBITMQ_HOST` defaults to `rabbitmq` (the service name in `docker-compose.yaml`).
+
+- **Frontend**: Copy `frontend/.env.example` to `frontend/.env.local`.
+  - `NEXT_PUBLIC_BACKEND_URL` should be set to `http://localhost:8000` if you're running the backend via the main `docker-compose.yaml`. (Note: The `api` prefix is handled by the frontend's API client).
+
+### 3. Build and Run with Docker Compose
+
+This is the recommended method for running Novah. It starts all required services (backend, worker, frontend, RabbitMQ) in Docker containers. The SQLite database will be stored in a Docker volume named `db_data` (as defined in the root `docker-compose.yaml`).
+
+```bash
+docker-compose up --build -d
+```
+To stop the services:
+```bash
+docker-compose down
+```
+
+### 4. (Optional) Setup Script
+A `setup.py` script might be available for initial configuration or database migrations (though SQLite migrations are handled by the backend on startup). If available and updated for the new architecture:
 ```bash
 python setup.py
 ```
+*Note: The original `setup.py` and `start.py` scripts from the Suna architecture are likely outdated and may require significant updates or may no longer be necessary with the Docker Compose focused setup.*
 
-The wizard will:
+## Manual Configuration Details
 
-- Check if all required tools are installed
-- Collect your API keys and configuration information
-- Set up the Supabase database
-- Configure environment files
-- Install dependencies
-- Start Suna using your preferred method
+### Backend Configuration (`backend/.env`)
 
-### 3. Supabase Configuration
-
-During setup, you'll need to:
-
-1. Log in to the Supabase CLI
-2. Link your local project to your Supabase project
-3. Push database migrations
-4. Manually expose the 'basejump' schema in Supabase:
-   - Go to your Supabase project
-   - Navigate to Project Settings → API
-   - Add 'basejump' to the Exposed Schema section
-
-### 4. Daytona Configuration
-
-As part of the setup, you'll need to:
-
-1. Create a Daytona account
-2. Generate an API key
-3. Create a Docker image:
-   - Image name: `kortix/suna:0.1.2`
-   - Entrypoint: `/usr/bin/supervisord -n -c /etc/supervisor/conf.d/supervisord.conf`
-
-## Manual Configuration
-
-If you prefer to configure your installation manually, or if you need to modify the configuration after installation, here's what you need to know:
-
-### Backend Configuration (.env)
-
-The backend configuration is stored in `backend/.env`
-
-Example configuration:
-
+Key variables:
 ```sh
-# Environment Mode
+# Environment Mode (local, staging, production)
 ENV_MODE=local
 
-# DATABASE
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-
-# REDIS
-REDIS_HOST=redis
-REDIS_PORT=6379
-REDIS_PASSWORD=
-REDIS_SSL=false
-
-# RABBITMQ
+# RabbitMQ
 RABBITMQ_HOST=rabbitmq
 RABBITMQ_PORT=5672
 
-# LLM Providers
-ANTHROPIC_API_KEY=your-anthropic-key
-OPENAI_API_KEY=your-openai-key
-MODEL_TO_USE=anthropic/claude-3-7-sonnet-latest
+# LLM Provider (Google Gemini)
+GEMINI_API_KEY=your_gemini_api_key_here
 
-# WEB SEARCH
-TAVILY_API_KEY=your-tavily-key
+# SQLite Database Path (inside the backend/worker containers)
+SQLITE_DB_PATH=/app/db/agentpress.db
 
-# WEB SCRAPE
-FIRECRAWL_API_KEY=your-firecrawl-key
-FIRECRAWL_URL=https://api.firecrawl.dev
-
-# Sandbox container provider
-DAYTONA_API_KEY=your-daytona-key
-DAYTONA_SERVER_URL=https://app.daytona.io/api
-DAYTONA_TARGET=us
-
-NEXT_PUBLIC_URL=http://localhost:3000
+# Optional: For data provider tools
+# RAPID_API_KEY=your_rapidapi_key
 ```
 
-### Frontend Configuration (.env.local)
+### Frontend Configuration (`frontend/.env.local`)
 
-The frontend configuration is stored in `frontend/.env.local` and includes:
-
-- Supabase connection details
-- Backend API URL
-
-Example configuration:
-
+Key variables:
 ```sh
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-NEXT_PUBLIC_BACKEND_URL=http://backend:8000/api
-NEXT_PUBLIC_URL=http://localhost:3000
+NEXT_PUBLIC_ENV_MODE="LOCAL" # Or "STAGING", "PRODUCTION"
+NEXT_PUBLIC_BACKEND_URL="http://localhost:8000" # URL of the backend API
+# NEXT_PUBLIC_URL="" # Base URL of the frontend application if needed
+# NEXT_PUBLIC_GOOGLE_CLIENT_ID="" # Google Client ID if you re-implement Google Sign-In with a new backend
 ```
+Authentication is currently mocked in the frontend. User-specific features will use a mock user.
 
 ## Post-Installation Steps
 
-After completing the installation, you'll need to:
-
-1. **Create an account** - Use Supabase authentication to create your first account
-2. **Verify installations** - Check that all components are running correctly
+1.  **Verify Services**: After running `docker-compose up`, check the logs to ensure all services started correctly:
+    ```bash
+    docker-compose logs -f backend
+    docker-compose logs -f worker
+    docker-compose logs -f frontend
+    docker-compose logs -f rabbitmq
+    ```
+2.  **Access Frontend**: Open your browser and navigate to `http://localhost:3000`.
+3.  **Access Backend API Docs**: Navigate to `http://localhost:8000/docs` for the FastAPI Swagger UI.
 
 ## Startup Options
 
-Suna can be started in two ways:
-
 ### 1. Using Docker Compose (Recommended)
 
-This method starts all required services in Docker containers:
-
+This is the primary method described in **Installation Steps**.
 ```bash
-docker compose up -d # Use `docker compose down` to stop it later
-# or
-python start.py # Use the same to stop it later
+docker-compose up --build -d
+```
+To view logs:
+```bash
+docker-compose logs -f
+```
+To stop:
+```bash
+docker-compose down
 ```
 
-### 2. Manual Startup
+### 2. Manual Startup (for Development)
 
-This method requires you to start each component separately:
+This method requires you to start each component separately and is generally used for development purposes.
 
-1. Start Redis and RabbitMQ (required for backend):
+1.  **Start RabbitMQ**:
+    ```bash
+    docker-compose up rabbitmq -d 
+    ```
+    *(Ensure your `backend/.env` `RABBITMQ_HOST` is set to `localhost` if running backend outside Docker but RabbitMQ in Docker, or configure Docker networking accordingly).*
 
-```bash
-docker compose up redis rabbitmq -d
-```
+2.  **Start the Backend API** (in one terminal):
+    ```bash
+    cd backend
+    poetry install
+    poetry run uvicorn api:app --host 0.0.0.0 --port 8000 --reload
+    ```
+    *(Ensure `backend/.env` is configured, especially `GEMINI_API_KEY` and `SQLITE_DB_PATH` for local storage, e.g., `SQLITE_DB_PATH=./agentpress_dev.db`)*. The backend will create and initialize the SQLite DB on startup.
 
-2. Start the frontend (in one terminal):
+3.  **Start the Backend Worker** (in another terminal):
+    ```bash
+    cd backend
+    poetry install # if not already done
+    poetry run dramatiq run_agent_background 
+    ```
+    *(Worker also reads `backend/.env`)*.
 
-```bash
-cd frontend
-npm run dev
-```
-
-3. Start the backend (in another terminal):
-
-```bash
-cd backend
-poetry run python3.11 api.py
-```
-
-4. Start the worker (in one more terminal):
-
-```bash
-cd backend
-poetry run python3.11 -m dramatiq run_agent_background
-```
+4.  **Start the Frontend** (in a third terminal):
+    ```bash
+    cd frontend
+    npm install
+    npm run dev
+    ```
+    *(Ensure `frontend/.env.local` `NEXT_PUBLIC_BACKEND_URL` points to `http://localhost:8000`)*.
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **Docker services not starting**
-
-   - Check Docker logs: `docker compose logs`
-   - Ensure Docker is running correctly
-   - Verify port availability (3000 for frontend, 8000 for backend)
-
-2. **Database connection issues**
-
-   - Verify Supabase configuration
-   - Check if 'basejump' schema is exposed in Supabase
-
-3. **LLM API key issues**
-
-   - Verify API keys are correctly entered
-   - Check for API usage limits or restrictions
-
-4. **Daytona connection issues**
-   - Verify Daytona API key
-   - Check if the container image is correctly configured
+1.  **Docker Services Not Starting**:
+    *   Check Docker daemon status.
+    *   Run `docker-compose logs <service_name>` for specific error messages.
+    *   Ensure required ports (e.g., 3000, 8000, 5672) are free on your host machine if not using default Docker networking.
+2.  **Database Issues (SQLite)**:
+    *   Check permissions for the Docker volume mount point (`./db_data` on the host mapped to `/app/db` in containers).
+    *   The database file (`agentpress.db`) will be created by the backend on its first run if it doesn't exist.
+3.  **LLM API Key Issues**:
+    *   Verify `GEMINI_API_KEY` is correctly set in `backend/.env`.
+    *   Check for API usage limits or restrictions with your Google AI Studio account.
+4.  **Agent Sandbox Issues**:
+    *   Ensure the Docker image specified in `backend/sandbox/sandbox.py` (via `Configuration.SANDBOX_IMAGE_NAME`) is available locally or can be pulled. This image should contain all necessary tools for the agent (Python, browser, etc.).
+    *   The default sandbox image name is usually defined in `backend/utils/config.py` under `Configuration.SANDBOX_IMAGE_NAME`.
 
 ### Logs
 
-To view logs and diagnose issues:
-
-```bash
-# Docker Compose logs
-docker compose logs -f
-
-# Frontend logs (manual setup)
-cd frontend
-npm run dev
-
-# Backend logs (manual setup)
-cd backend
-poetry run python3.11 api.py
-
-# Worker logs (manual setup)
-cd backend
-poetry run python3.11 -m dramatiq run_agent_background
-```
+-   **Docker Compose**: `docker-compose logs -f <service_name>` (e.g., `backend`, `worker`, `frontend`, `rabbitmq`)
+-   **Manual Startup**: Check the console output in each terminal where the services are running. Backend and worker logs are also typically written to files within their Docker containers (or locally if run manually).
 
 ---
 
-For further assistance, join the [Suna Discord Community](https://discord.gg/Py6pCBUUPw) or check the [GitHub repository](https://github.com/kortix-ai/suna) for updates and issues.
+For further assistance, join the [Novah Discord Community](https://discord.gg/Py6pCBUUPw) <!-- TODO: Update Discord link --> or check the [GitHub repository](https://github.com/novah-ai/novah) <!-- TODO: Update GitHub repo link --> for updates and issues.
