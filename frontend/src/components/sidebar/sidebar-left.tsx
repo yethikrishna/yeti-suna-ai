@@ -125,17 +125,15 @@ export function SidebarLeft({
           </div>
         </div>
       </SidebarHeader>
+      {/* GTA 6 Button */}
+      <div className="px-2 py-2">
+        <Link href="/gta6" className="peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground h-8 text-sm">
+          <span className="text-sm font-medium">VI</span>
+        </Link>
+      </div>
       <SidebarContent className="[&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
         <NavAgents />
       </SidebarContent>
-      {/* GTA 6 Button */}
-      <div className="px-3 py-2">
-        <Link href="/gta6">
-          <button className="w-full rounded-md bg-primary text-primary-foreground hover:bg-primary/90">
-            <span className="text-sm font-medium">VI</span>
-          </button>
-        </Link>
-      </div>
       {state !== 'collapsed' && (
         <div className="px-3 py-2">
           <CTACard />
