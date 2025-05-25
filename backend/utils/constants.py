@@ -3,6 +3,7 @@ MODEL_ACCESS_TIERS = {
         "openrouter/deepseek/deepseek-chat",
         "openrouter/qwen/qwen3-235b-a22b",
         "openrouter/google/gemini-2.5-flash-preview-05-20",
+        "anthropic/claude-sonnet-4-20250514",
     ],
     "tier_2_20": [
         "openrouter/deepseek/deepseek-chat",
@@ -13,7 +14,7 @@ MODEL_ACCESS_TIERS = {
         "openrouter/google/gemini-2.5-flash-preview-05-20",  # Added
         # "openai/gpt-4",
         "anthropic/claude-3-7-sonnet-latest",
-        "anthropic/claude-sonnet-4-20250514",
+        
         # "openai/gpt-4.1-2025-04-14",
         # "openrouter/deepseek/deepseek-r1",
         "openrouter/qwen/qwen3-235b-a22b",
