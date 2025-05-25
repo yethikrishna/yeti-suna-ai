@@ -15,9 +15,18 @@ from dramatiq.brokers.rabbitmq import RabbitmqBroker
 import os
 from services.langfuse import langfuse
 
-rabbitmq_host = os.getenv('RABBITMQ_HOST', 'rabbitmq')
+# CloudAMQP connection configuration
+rabbitmq_host = os.getenv('RABBITMQ_HOST', 'localhost')
 rabbitmq_port = int(os.getenv('RABBITMQ_PORT', 5672))
-rabbitmq_broker = RabbitmqBroker(host=rabbitmq_host, port=rabbitmq_port, middleware=[dramatiq.middleware.AsyncIO()])
+rabbitmq_user = os.getenv('RABBITMQ_USER', 'guest')
+rabbitmq_password = os.getenv('RABBITMQ_PASSWORD', 'guest')
+rabbitmq_vhost = os.getenv('RABBITMQ_VHOST', '/')
+
+# Create connection URL for CloudAMQP
+rabbitmq_url = f"amqp://{rabbitmq_user}:{rabbitmq_password}@{rabbitmq_host}:{rabbitmq_port}/{rabbitmq_vhost}"
+
+# Initialize broker with connection URL
+rabbitmq_broker = RabbitmqBroker(url=rabbitmq_url, middleware=[dramatiq.middleware.AsyncIO()])
 dramatiq.set_broker(rabbitmq_broker)
 
 _initialized = False
