@@ -14,10 +14,10 @@ from services import redis
 from dramatiq.brokers.rabbitmq import RabbitmqBroker
 import os
 from services.langfuse import langfuse
-from utils.rabbitmq_config import create_rabbitmq_broker
 
-# Initialize RabbitMQ broker with authentication from environment variables
-rabbitmq_broker = create_rabbitmq_broker()
+rabbitmq_host = os.getenv('RABBITMQ_HOST', 'rabbitmq')
+rabbitmq_port = int(os.getenv('RABBITMQ_PORT', 5672))
+rabbitmq_broker = RabbitmqBroker(host=rabbitmq_host, port=rabbitmq_port, middleware=[dramatiq.middleware.AsyncIO()])
 dramatiq.set_broker(rabbitmq_broker)
 
 _initialized = False
