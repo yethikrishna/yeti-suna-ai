@@ -35,9 +35,9 @@ import { cn } from '@/lib/utils';
 import { useTheme } from 'next-themes';
 import { CodeBlockCode } from '@/components/ui/code-block';
 import { constructHtmlPreviewUrl } from '@/lib/utils/url';
-import { 
-  Card, 
-  CardContent, 
+import {
+  Card,
+  CardContent,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -46,6 +46,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { LoadingState } from './shared/LoadingState';
 
 type FileOperation = 'create' | 'rewrite' | 'delete';
 
@@ -167,16 +168,16 @@ export function FileOperationToolView({
   };
 
   const operation = getOperationType();
-  
+
   let filePath: string | null = null;
   let fileContent: string | null = null;
-  
+
   // console.log('[FileOperationToolView] Debug:', {
   //   isStreaming,
   //   assistantContent,
   //   assistantContentType: typeof assistantContent,
   // });
-  
+
   if (assistantContent) {
     try {
       const parsed = typeof assistantContent === 'string' ? JSON.parse(assistantContent) : assistantContent;
@@ -189,7 +190,7 @@ export function FileOperationToolView({
             /file_path=["']([^"']*?)["']/i,
             /<(?:create-file|delete-file|full-file-rewrite)\s+file_path=["']([^"']*)/i,
           ];
-          
+
           for (const pattern of filePathPatterns) {
             const match = messageContent.match(pattern);
             if (match && match[1]) {
@@ -198,7 +199,7 @@ export function FileOperationToolView({
               break;
             }
           }
-          
+
           if (operation !== 'delete' && !fileContent) {
             const tagName = operation === 'create' ? 'create-file' : 'full-file-rewrite';
             const openTagMatch = messageContent.match(new RegExp(`<${tagName}[^>]*>`, 'i'));
@@ -206,7 +207,7 @@ export function FileOperationToolView({
               const tagEndIndex = messageContent.indexOf(openTagMatch[0]) + openTagMatch[0].length;
               const afterTag = messageContent.substring(tagEndIndex);
               const closeTagMatch = afterTag.match(new RegExp(`<\\/${tagName}>`, 'i'));
-              fileContent = closeTagMatch 
+              fileContent = closeTagMatch
                 ? afterTag.substring(0, closeTagMatch.index)
                 : afterTag;
               console.log('[FileOperationToolView] Extracted file content length:', fileContent?.length);
@@ -222,7 +223,7 @@ export function FileOperationToolView({
         if ('content' in parsed && operation !== 'delete') {
           fileContent = parsed.content;
         }
-        
+
         if ('arguments' in parsed && parsed.arguments) {
           const args = typeof parsed.arguments === 'string' ? JSON.parse(parsed.arguments) : parsed.arguments;
           if (args.file_path) {
@@ -240,7 +241,7 @@ export function FileOperationToolView({
           /<(?:create-file|delete-file|full-file-rewrite)\s+file_path=["']([^"']*)/i,
           /<file_path>([^<]*)/i,
         ];
-        
+
         for (const pattern of filePathPatterns) {
           const match = assistantContent.match(pattern);
           if (match && match[1]) {
@@ -249,7 +250,7 @@ export function FileOperationToolView({
             break;
           }
         }
-        
+
         if (operation !== 'delete' && !fileContent) {
           const tagName = operation === 'create' ? 'create-file' : 'full-file-rewrite';
           const contentAfterTag = assistantContent.split(`<${tagName}`)[1];
@@ -258,7 +259,7 @@ export function FileOperationToolView({
             if (tagEndIndex !== -1) {
               const potentialContent = contentAfterTag.substring(tagEndIndex + 1);
               const closingTagIndex = potentialContent.indexOf(`</${tagName}>`);
-              fileContent = closingTagIndex !== -1 
+              fileContent = closingTagIndex !== -1
                 ? potentialContent.substring(0, closingTagIndex)
                 : potentialContent;
             }
@@ -267,27 +268,27 @@ export function FileOperationToolView({
       }
     }
   }
-  
+
   // console.log('[FileOperationToolView] After initial extraction:', { filePath, hasFileContent: !!fileContent });
-  
+
   if (!filePath) {
     filePath = extractFilePath(assistantContent);
     // console.log('[FileOperationToolView] After extractFilePath utility:', filePath);
   }
-  
+
   if (!fileContent && operation !== 'delete') {
     fileContent = isStreaming
       ? extractStreamingFileContent(
-          assistantContent,
-          operation === 'create' ? 'create-file' : 'full-file-rewrite',
-        ) || ''
+        assistantContent,
+        operation === 'create' ? 'create-file' : 'full-file-rewrite',
+      ) || ''
       : extractFileContent(
-          assistantContent,
-          operation === 'create' ? 'create-file' : 'full-file-rewrite',
-        );
+        assistantContent,
+        operation === 'create' ? 'create-file' : 'full-file-rewrite',
+      );
     // console.log('[FileOperationToolView] After content extraction utilities:', { hasFileContent: !!fileContent, contentLength: fileContent?.length });
   }
-  
+
   const toolTitle = getToolTitle(name || `file-${operation}`);
 
   const processedFilePath = filePath
@@ -302,14 +303,14 @@ export function FileOperationToolView({
   const isMarkdown = fileExtension === 'md';
   const isHtml = fileExtension === 'html' || fileExtension === 'htm';
   const isCsv = fileExtension === 'csv';
-  
+
   const language = getLanguageFromFileName(fileName);
   const hasHighlighting = language !== 'text';
-  
+
   const contentLines = fileContent
     ? fileContent.replace(/\\n/g, '\n').split('\n')
     : [];
-  
+
   const htmlPreviewUrl =
     isHtml && project?.sandbox?.sandbox_url && processedFilePath
       ? constructHtmlPreviewUrl(project.sandbox.sandbox_url, processedFilePath)
@@ -363,7 +364,7 @@ export function FileOperationToolView({
     if (fileName.endsWith('.html')) return FileCode;
     return File;
   };
-  
+
   const FileIcon = getFileIcon();
 
   if (!isStreaming && !processedFilePath && !fileContent) {
@@ -394,17 +395,17 @@ export function FileOperationToolView({
 
     if (isHtml && htmlPreviewUrl) {
       return (
-        <div className="flex flex-col h-[calc(100vh-16rem)]"> 
-          <iframe 
+        <div className="flex flex-col h-[calc(100vh-16rem)]">
+          <iframe
             src={htmlPreviewUrl}
             title={`HTML Preview of ${fileName}`}
-            className="flex-grow border-0" 
+            className="flex-grow border-0"
             sandbox="allow-same-origin allow-scripts"
           />
         </div>
       );
     }
-    
+
     if (isMarkdown) {
       return (
         <div className="p-1 py-0 prose dark:prose-invert prose-zinc max-w-none">
@@ -414,7 +415,7 @@ export function FileOperationToolView({
         </div>
       );
     }
-    
+
     if (isCsv) {
       return (
         <div className="h-full w-full p-4">
@@ -428,9 +429,9 @@ export function FileOperationToolView({
     return (
       <div className="p-4">
         <div className='w-full h-full bg-muted/20 border rounded-xl px-4 py-2 pb-6'>
-        <pre className="text-sm font-mono text-zinc-800 dark:text-zinc-300 whitespace-pre-wrap break-words">
-          {processUnicodeContent(fileContent)}
-        </pre>
+          <pre className="text-sm font-mono text-zinc-800 dark:text-zinc-300 whitespace-pre-wrap break-words">
+            {processUnicodeContent(fileContent)}
+          </pre>
         </div>
       </div>
     );
@@ -474,10 +475,20 @@ export function FileOperationToolView({
           </div>
         </CardHeader>
 
-        <CardContent className="p-0 -my-2 flex-1 overflow-hidden relative">
+        <CardContent className="p-0 -my-2 h-full flex-1 overflow-hidden relative">
           <TabsContent value="code" className="flex-1 h-full mt-0 p-0 overflow-hidden">
-            <ScrollArea className="h-full w-full">
-              {operation === 'delete' ? (
+            <ScrollArea className="h-screen w-full min-h-0">
+              {isStreaming && !fileContent ? (
+                <LoadingState
+                  icon={Icon}
+                  iconColor={config.color}
+                  bgColor={config.bgColor}
+                  title={config.progressMessage}
+                  filePath={processedFilePath || 'Processing file...'}
+                  subtitle="Please wait while the file is being processed"
+                  showProgress={false}
+                />
+              ) : operation === 'delete' ? (
                 <div className="flex flex-col items-center justify-center h-full py-12 px-6">
                   <div className={cn("w-20 h-20 rounded-full flex items-center justify-center mb-6", config.bgColor)}>
                     <Trash2 className={cn("h-10 w-10", config.color)} />
@@ -540,10 +551,20 @@ export function FileOperationToolView({
               )}
             </ScrollArea>
           </TabsContent>
-          
+
           <TabsContent value="preview" className="w-full flex-1 h-full mt-0 p-0 overflow-hidden">
-            <ScrollArea className="h-full w-full">
-              {operation === 'delete' ? (
+            <ScrollArea className="h-full w-full min-h-0">
+              {isStreaming && !fileContent ? (
+                <LoadingState
+                  icon={Icon}
+                  iconColor={config.color}
+                  bgColor={config.bgColor}
+                  title={config.progressMessage}
+                  filePath={processedFilePath || 'Processing file...'}
+                  subtitle="Please wait while the file is being processed"
+                  showProgress={false}
+                />
+              ) : operation === 'delete' ? (
                 <div className="flex flex-col items-center justify-center h-full py-12 px-6 bg-gradient-to-b from-white to-zinc-50 dark:from-zinc-950 dark:to-zinc-900">
                   <div className={cn("w-20 h-20 rounded-full flex items-center justify-center mb-6", config.bgColor)}>
                     <Trash2 className={cn("h-10 w-10", config.color)} />
@@ -563,7 +584,7 @@ export function FileOperationToolView({
               ) : (
                 renderFilePreview()
               )}
-              
+
               {/* Streaming indicator overlay */}
               {isStreaming && fileContent && (
                 <div className="sticky bottom-4 right-4 float-right mr-4 mb-4">
@@ -576,7 +597,7 @@ export function FileOperationToolView({
             </ScrollArea>
           </TabsContent>
         </CardContent>
-        
+
         <div className="px-4 py-2 h-10 bg-gradient-to-r from-zinc-50/90 to-zinc-100/90 dark:from-zinc-900/90 dark:to-zinc-800/90 backdrop-blur-sm border-t border-zinc-200 dark:border-zinc-800 flex justify-between items-center gap-4">
           <div className="h-full flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
             <Badge variant="outline" className="py-0.5 h-6">
@@ -584,7 +605,7 @@ export function FileOperationToolView({
               {hasHighlighting ? language.toUpperCase() : fileExtension.toUpperCase() || 'TEXT'}
             </Badge>
           </div>
-          
+
           <div className="text-xs text-zinc-500 dark:text-zinc-400">
             {toolTimestamp && !isStreaming
               ? formatTimestamp(toolTimestamp)

@@ -20,6 +20,7 @@ import { cn, truncateString } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { FileAttachment } from '../file-attachment';
 
 interface AskContent {
   attachments?: string[];
@@ -38,15 +39,25 @@ export function AskToolView({
   isSuccess = true,
   isStreaming = false,
   onFileClick,
+  project,
 }: AskToolViewProps) {
   const [askData, setAskData] = useState<AskContent>({});
+  const isImageFile = (filePath: string): boolean => {
+    const filename = filePath.split('/').pop() || '';
+    return filename.match(/\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i) !== null;
+  };
+
+  const isPreviewableFile = (filePath: string): boolean => {
+    const ext = filePath.split('.').pop()?.toLowerCase() || '';
+    return ext === 'html' || ext === 'htm' || ext === 'md' || ext === 'markdown' || ext === 'csv' || ext === 'tsv';
+  };
 
   // Extract attachments from assistant content
   useEffect(() => {
     if (assistantContent) {
       try {
         const contentStr = normalizeContentToString(assistantContent);
-        
+
         // Extract attachments if present
         const attachmentsMatch = contentStr.match(/attachments=["']([^"']*)["']/i);
         if (attachmentsMatch) {
@@ -81,13 +92,13 @@ export function AskToolView({
               </CardTitle>
             </div>
           </div>
-          
+
           {!isStreaming && (
-            <Badge 
-              variant="secondary" 
+            <Badge
+              variant="secondary"
               className={
-                isSuccess 
-                  ? "bg-gradient-to-b from-emerald-200 to-emerald-100 text-emerald-700 dark:from-emerald-800/50 dark:to-emerald-900/60 dark:text-emerald-300" 
+                isSuccess
+                  ? "bg-gradient-to-b from-emerald-200 to-emerald-100 text-emerald-700 dark:from-emerald-800/50 dark:to-emerald-900/60 dark:text-emerald-300"
                   : "bg-gradient-to-b from-rose-200 to-rose-100 text-rose-700 dark:from-rose-800/50 dark:to-rose-900/60 dark:text-rose-300"
               }
             >
@@ -113,49 +124,81 @@ export function AskToolView({
         <ScrollArea className="h-full w-full">
           <div className="p-4 space-y-6">
             {askData.attachments && askData.attachments.length > 0 ? (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                   <Paperclip className="h-4 w-4" />
                   Files ({askData.attachments.length})
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                  {askData.attachments.map((attachment, index) => {
-                    const { icon: FileIcon, color, bgColor } = getFileIconAndColor(attachment);
-                    const fileName = attachment.split('/').pop() || attachment;
-                    const filePath = attachment.includes('/') ? attachment.substring(0, attachment.lastIndexOf('/')) : '';
-                    
-                    return (
-                      <button
-                        key={index}
-                        onClick={() => handleFileClick(attachment)}
-                        className="flex flex-col items-center justify-center gap-3 p-3 h-[15rem] w-full bg-muted/30 rounded-lg border border-border/50 hover:bg-muted/50 transition-colors group cursor-pointer text-left"
-                      >
-                        <div className="flex-shrink-0">
-                          <div className={cn(
-                            "w-20 h-20 rounded-lg bg-gradient-to-br flex items-center justify-center",
-                            bgColor
-                          )}>
-                            <FileIcon className={cn("h-10 w-10", color)} />
-                          </div>
-                        </div>
-                        <div className="flex flex-col items-center gap-2 min-w-0">
-                          <p className="text-sm font-medium text-foreground truncate">
-                            {truncateString(fileName, 30)}
-                          </p>
-                          {filePath && (
-                            <p className="text-xs text-muted-foreground truncate">
-                              {filePath}
-                            </p>
+
+                <div className={cn(
+                  "grid gap-3",
+                  askData.attachments.length === 1 ? "grid-cols-1" :
+                    askData.attachments.length > 4 ? "grid-cols-1 sm:grid-cols-2 md:grid-cols-3" :
+                      "grid-cols-1 sm:grid-cols-2"
+                )}>
+                  {askData.attachments
+                    .sort((a, b) => {
+                      const aIsImage = isImageFile(a);
+                      const bIsImage = isImageFile(b);
+                      const aIsPreviewable = isPreviewableFile(a);
+                      const bIsPreviewable = isPreviewableFile(b);
+
+                      if (aIsImage && !bIsImage) return -1;
+                      if (!aIsImage && bIsImage) return 1;
+                      if (aIsPreviewable && !bIsPreviewable) return -1;
+                      if (!aIsPreviewable && bIsPreviewable) return 1;
+                      return 0;
+                    })
+                    .map((attachment, index) => {
+                      const isImage = isImageFile(attachment);
+                      const isPreviewable = isPreviewableFile(attachment);
+                      const shouldSpanFull = (askData.attachments!.length % 2 === 1 &&
+                        askData.attachments!.length > 1 &&
+                        index === askData.attachments!.length - 1);
+
+                      return (
+                        <div
+                          key={index}
+                          className={cn(
+                            "relative group",
+                            isImage ? "flex items-center justify-center h-full" : "",
+                            isPreviewable ? "w-full" : ""
                           )}
-                          <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                            </div>
+                          style={(shouldSpanFull || isPreviewable) ? { gridColumn: '1 / -1' } : undefined}
+                        >
+                          <FileAttachment
+                            filepath={attachment}
+                            onClick={handleFileClick}
+                            sandboxId={project?.sandbox?.id}
+                            showPreview={true}
+                            className={cn(
+                              "w-full",
+                              isImage ? "h-auto min-h-[54px]" :
+                                isPreviewable ? "min-h-[240px] max-h-[400px] overflow-auto" : "h-[54px]"
+                            )}
+                            customStyle={
+                              isImage ? {
+                                width: '100%',
+                                height: 'auto',
+                                '--attachment-height': shouldSpanFull ? '240px' : '180px'
+                              } as React.CSSProperties :
+                                isPreviewable ? {
+                                  gridColumn: '1 / -1'
+                                } :
+                                  shouldSpanFull ? {
+                                    gridColumn: '1 / -1'
+                                  } : {
+                                    width: '100%'
+                                  }
+                            }
+                            collapsed={false}
+                            project={project}
+                          />
                         </div>
-                      </button>
-                    );
-                  })}
+                      );
+                    })}
                 </div>
-                
+
                 {assistantTimestamp && (
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Clock className="h-3 w-3" />
@@ -187,7 +230,7 @@ export function AskToolView({
             User Interaction
           </Badge>
         </div>
-        
+
         <div className="text-xs text-zinc-500 dark:text-zinc-400">
           {assistantTimestamp ? formatTimestamp(assistantTimestamp) : ''}
         </div>

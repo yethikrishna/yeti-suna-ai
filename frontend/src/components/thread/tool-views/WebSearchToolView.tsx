@@ -30,6 +30,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { LoadingState } from './shared/LoadingState';
 
 export function WebSearchToolView({
   name = 'web-search',
@@ -42,10 +43,10 @@ export function WebSearchToolView({
 }: ToolViewProps) {
   const { resolvedTheme } = useTheme();
   const isDarkTheme = resolvedTheme === 'dark';
-  const [progress, setProgress] = useState(0);
   const [expandedResults, setExpandedResults] = useState<Record<number, boolean>>({});
 
   const query = extractSearchQuery(assistantContent);
+  console.log('toolContent', toolContent);
   const searchResults = extractSearchResults(toolContent);
   const toolTitle = getToolTitle(name);
 
@@ -61,24 +62,6 @@ export function WebSearchToolView({
     }));
   };
 
-  // Simulate progress when streaming
-  useEffect(() => {
-    if (isStreaming) {
-      const timer = setInterval(() => {
-        setProgress((prevProgress) => {
-          if (prevProgress >= 95) {
-            clearInterval(timer);
-            return prevProgress;
-          }
-          return prevProgress + 5;
-        });
-      }, 300);
-      return () => clearInterval(timer);
-    } else {
-      setProgress(100);
-    }
-  }, [isStreaming]);
-
   useEffect(() => {
     if (toolContent) {
       try {
@@ -91,7 +74,7 @@ export function WebSearchToolView({
         } else {
           parsedContent = {};
         }
-        
+
         // Check if it's the response format with answer
         if (parsedContent.answer && typeof parsedContent.answer === 'string') {
           setAnswer(parsedContent.answer);
@@ -118,7 +101,7 @@ export function WebSearchToolView({
 
   const getResultType = (result: any) => {
     const { url, title } = result;
-    
+
     if (url.includes('news') || url.includes('article') || title.includes('News')) {
       return { icon: FileText, label: 'Article' };
     } else if (url.includes('wiki')) {
@@ -144,13 +127,13 @@ export function WebSearchToolView({
               </CardTitle>
             </div>
           </div>
-          
+
           {!isStreaming && (
-            <Badge 
-              variant="secondary" 
+            <Badge
+              variant="secondary"
               className={
-                isSuccess 
-                  ? "bg-gradient-to-b from-emerald-200 to-emerald-100 text-emerald-700 dark:from-emerald-800/50 dark:to-emerald-900/60 dark:text-emerald-300" 
+                isSuccess
+                  ? "bg-gradient-to-b from-emerald-200 to-emerald-100 text-emerald-700 dark:from-emerald-800/50 dark:to-emerald-900/60 dark:text-emerald-300"
                   : "bg-gradient-to-b from-rose-200 to-rose-100 text-rose-700 dark:from-rose-800/50 dark:to-rose-900/60 dark:text-rose-300"
               }
             >
@@ -167,21 +150,14 @@ export function WebSearchToolView({
 
       <CardContent className="p-0 h-full flex-1 overflow-hidden relative">
         {isStreaming ? (
-          <div className="flex flex-col items-center justify-center h-full py-12 px-6 bg-gradient-to-b from-white to-zinc-50 dark:from-zinc-950 dark:to-zinc-900">
-            <div className="text-center w-full max-w-xs">
-              <div className="w-16 h-16 rounded-full mx-auto mb-6 flex items-center justify-center bg-gradient-to-b from-blue-100 to-blue-50 shadow-inner dark:from-blue-800/40 dark:to-blue-900/60 dark:shadow-blue-950/20">
-                <Loader2 className="h-8 w-8 animate-spin text-blue-500 dark:text-blue-400" />
-              </div>
-              <h3 className="text-lg font-medium text-zinc-900 dark:text-zinc-100 mb-2">
-                Searching the web
-              </h3>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6">
-                <span className="font-mono text-xs break-all">{query}</span>
-              </p>
-              <Progress value={progress} className="w-full h-2" />
-              <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-2">{progress}%</p>
-            </div>
-          </div>
+          <LoadingState
+            icon={Search}
+            iconColor="text-blue-500 dark:text-blue-400"
+            bgColor="bg-gradient-to-b from-blue-100 to-blue-50 shadow-inner dark:from-blue-800/40 dark:to-blue-900/60 dark:shadow-blue-950/20"
+            title="Searching the web"
+            filePath={query}
+            showProgress={true}
+          />
         ) : searchResults.length > 0 || answer ? (
           <ScrollArea className="h-full w-full">
             <div className="p-4 py-0 my-4">
@@ -251,24 +227,25 @@ export function WebSearchToolView({
               <div className="space-y-4">
                 {searchResults.map((result, idx) => {
                   const { icon: ResultTypeIcon, label: resultTypeLabel } = getResultType(result);
+                  console.log('result', result);
                   const isExpanded = expandedResults[idx] || false;
                   const favicon = getFavicon(result.url);
-                  
+
                   return (
-                    <div 
-                      key={idx} 
+                    <div
+                      key={idx}
                       className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-sm hover:shadow transition-shadow overflow-hidden"
                     >
                       <div className="p-4">
                         <div className="flex items-start gap-3 mb-2">
                           {favicon && (
-                            <img 
-                              src={favicon} 
-                              alt="" 
+                            <img
+                              src={favicon}
+                              alt=""
                               className="w-5 h-5 mt-1 rounded"
                               onError={(e) => {
                                 (e.target as HTMLImageElement).style.display = 'none';
-                              }} 
+                              }}
                             />
                           )}
                           <div className="flex-1 min-w-0">
@@ -309,25 +286,36 @@ export function WebSearchToolView({
                             </Tooltip>
                           </TooltipProvider>
                         </div>
-                        
+
                         {result.snippet && (
                           <p className={cn(
                             "text-sm text-zinc-600 dark:text-zinc-400",
                             isExpanded ? "" : "line-clamp-2"
                           )}>
-                            {result.snippet}
+                            {result?.snippet
+                              ?.replace(/\\\\\n/g, ' ')
+                              ?.replace(/\\\\n/g, ' ')
+                              ?.replace(/\\n/g, ' ')
+                              ?.replace(/\\\\\t/g, ' ')
+                              ?.replace(/\\\\t/g, ' ')
+                              ?.replace(/\\t/g, ' ')
+                              ?.replace(/\\\\\r/g, ' ')
+                              ?.replace(/\\\\r/g, ' ')
+                              ?.replace(/\\r/g, ' ')
+                              ?.replace(/\s+/g, ' ')
+                              ?.trim()}
                           </p>
                         )}
                       </div>
-                      
+
                       {isExpanded && (
                         <div className="bg-zinc-50 px-4 dark:bg-zinc-800/50 border-t border-zinc-200 dark:border-zinc-800 p-3 flex justify-between items-center">
                           <div className="text-xs text-zinc-500 dark:text-zinc-400">
                             Source: {cleanUrl(result.url)}
                           </div>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
+                          <Button
+                            variant="outline"
+                            size="sm"
                             className="h-7 text-xs bg-white dark:bg-zinc-900"
                             asChild
                           >
@@ -363,7 +351,7 @@ export function WebSearchToolView({
           </div>
         )}
       </CardContent>
-      
+
       <div className="px-4 py-2 h-10 bg-gradient-to-r from-zinc-50/90 to-zinc-100/90 dark:from-zinc-900/90 dark:to-zinc-800/90 backdrop-blur-sm border-t border-zinc-200 dark:border-zinc-800 flex justify-between items-center gap-4">
         <div className="h-full flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
           {!isStreaming && searchResults.length > 0 && (
@@ -373,7 +361,7 @@ export function WebSearchToolView({
             </Badge>
           )}
         </div>
-        
+
         <div className="text-xs text-zinc-500 dark:text-zinc-400">
           {toolTimestamp && !isStreaming
             ? formatTimestamp(toolTimestamp)

@@ -157,6 +157,17 @@ export const ChatInput = forwardRef<ChatInputHandles, ChatInputProps>(
       }
     };
 
+    const handleTranscription = (transcribedText: string) => {
+      const currentValue = isControlled ? controlledValue : uncontrolledValue;
+      const newValue = currentValue ? `${currentValue} ${transcribedText}` : transcribedText;
+
+      if (isControlled) {
+        controlledOnChange(newValue);
+      } else {
+        setUncontrolledValue(newValue);
+      }
+    };
+
     const removeUploadedFile = (index: number) => {
       const fileToRemove = uploadedFiles[index];
 
@@ -230,7 +241,7 @@ export const ChatInput = forwardRef<ChatInputHandles, ChatInputProps>(
           }}
         >
           <div className="w-full text-sm flex flex-col justify-between items-start rounded-lg">
-            <CardContent className="w-full p-1.5 pb-2 bg-sidebar rounded-2xl border">
+            <CardContent className="w-full p-1.5 pb-2 bg-[#efefef] dark:bg-sidebar rounded-2xl border">
               <AttachmentGroup
                 files={uploadedFiles || []}
                 sandboxId={sandboxId}
@@ -245,6 +256,7 @@ export const ChatInput = forwardRef<ChatInputHandles, ChatInputProps>(
                 value={value}
                 onChange={handleChange}
                 onSubmit={handleSubmit}
+                onTranscription={handleTranscription}
                 placeholder={placeholder}
                 loading={loading}
                 disabled={disabled}
