@@ -132,6 +132,36 @@ export const siteConfig = {
       },
     ],
   },
+  featureSection: {
+    title: 'Powerful Features',
+    description: 'Discover what makes Operator the ultimate AI agent for your workflows',
+    items: [
+      {
+        id: 1,
+        title: 'Autonomous Task Execution',
+        content: 'Operator can handle complex multi-step tasks independently, learning from context and adapting to your specific requirements.',
+        image: 'https://images.unsplash.com/photo-1555949963-aa79dcee981c?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2400&q=80'
+      },
+      {
+        id: 2,
+        title: 'Tool Integration',
+        content: 'Seamlessly integrate with your existing tools and workflows. Operator works with popular platforms and APIs.',
+        image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2400&q=80'
+      },
+      {
+        id: 3,
+        title: 'Real-time Learning',
+        content: 'Operator learns from your interactions and feedback, continuously improving its performance for your specific use cases.',
+        image: 'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2400&q=80'
+      },
+      {
+        id: 4,
+        title: 'Privacy & Security',
+        content: 'Your data stays private with local processing options and enterprise-grade security features built from the ground up.',
+        image: 'https://images.unsplash.com/photo-1563206767-5b18f218e8de?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2400&q=80'
+      }
+    ],
+  },
   cloudPricingItems: [
     {
       name: 'Free',
