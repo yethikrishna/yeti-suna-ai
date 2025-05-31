@@ -1,4 +1,6 @@
-import { useState, useEffect } from 'react';
+'use client';
+
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -11,7 +13,7 @@ import Image from 'next/image';
 import Cal, { getCalApi } from '@calcom/embed-react';
 import { useTheme } from 'next-themes';
 
-export function KortixProcessModal() {
+export function OmniProcessModal() {
   const [open, setOpen] = useState(false);
   const isDesktop = useMediaQuery('(min-width: 768px)');
   const { resolvedTheme } = useTheme();
@@ -41,13 +43,11 @@ export function KortixProcessModal() {
             <div className="relative z-10 flex flex-col h-full">
               <div className="mb-8 mt-0 flex-shrink-0">
                 <Image
-                  src={
-                    isDarkMode ? '/kortix-logo-white.svg' : '/kortix-logo.svg'
-                  }
-                  alt="Kortix Logo"
+                  src="/ChatGPT Image May 9, 2025, 06_36_00 PM.png"
+                  alt="OMNI Logo"
                   width={60}
                   height={21}
-                  className="h-6 w-auto"
+                  className="h-6 w-auto object-contain"
                 />
               </div>
 
@@ -141,7 +141,7 @@ export function KortixProcessModal() {
             <div className="h-full overflow-auto">
               <Cal
                 namespace="enterprise-demo"
-                calLink="team/kortix/enterprise-demo"
+                calLink="team/omni/enterprise-demo"
                 style={{ width: '100%', height: '100%' }}
                 config={{
                   layout: 'month_view',

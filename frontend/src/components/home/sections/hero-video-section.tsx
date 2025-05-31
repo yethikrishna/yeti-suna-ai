@@ -7,16 +7,16 @@ export function HeroVideoSection() {
         <HeroVideoDialog
           className="block dark:hidden"
           animationStyle="from-center"
-          videoSrc="https://www.youtube.com/embed/Jnxq0osSg2c?si=k8ddEM8h8lver20s"
-          thumbnailSrc="/thumbnail-light.png"
-          thumbnailAlt="Hero Video"
+          videoSrc="https://www.youtube.com/embed/dQw4w9WgXcQ"
+          thumbnailSrc="/ChatGPT Image May 9, 2025, 06_36_00 PM.png"
+          thumbnailAlt="OMNI Hero Video"
         />
         <HeroVideoDialog
           className="hidden dark:block"
           animationStyle="from-center"
-          videoSrc="https://www.youtube.com/embed/Jnxq0osSg2c?si=k8ddEM8h8lver20s"
-          thumbnailSrc="/thumbnail-dark.png"
-          thumbnailAlt="Hero Video"
+          videoSrc="https://www.youtube.com/embed/dQw4w9WgXcQ"
+          thumbnailSrc="/ChatGPT Image May 9, 2025, 06_36_00 PM.png"
+          thumbnailAlt="OMNI Hero Video"
         />
       </div>
     </div>
