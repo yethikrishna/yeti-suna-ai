@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+import sentry
 from contextlib import asynccontextmanager
 from agentpress.thread_manager import ThreadManager
 from services.supabase import DBConnection
@@ -17,6 +18,7 @@ from collections import OrderedDict
 from agent import api as agent_api
 from sandbox import api as sandbox_api
 from services import billing as billing_api
+from services import transcription as transcription_api
 
 # Load environment variables (these will be available through config)
 load_dotenv()
@@ -106,18 +108,17 @@ async def log_requests_middleware(request: Request, call_next):
 
 # Define allowed origins based on environment
 allowed_origins = ["https://www.suna.so", "https://suna.so", "https://staging.suna.so", "http://localhost:3000", "https://operator.becomeomni.com"]
+allow_origin_regex = None
 
 # Add staging-specific origins
 if config.ENV_MODE == EnvMode.STAGING:
-    allowed_origins.append("http://localhost:3000")
-    
-# Add local-specific origins
-if config.ENV_MODE == EnvMode.LOCAL:
-    allowed_origins.append("http://localhost:3000")
+    allowed_origins.append("https://staging.suna.so")
+    allow_origin_regex = r"https://suna-.*-prjcts\.vercel\.app"
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
+    allow_origin_regex=allow_origin_regex,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization"],
@@ -131,6 +132,12 @@ app.include_router(sandbox_api.router, prefix="/api")
 
 # Include the billing router with a prefix
 app.include_router(billing_api.router, prefix="/api")
+
+# Import and include the MCP router
+from mcp_local import api as mcp_api
+app.include_router(mcp_api.router, prefix="/api")
+# Include the transcription router with a prefix
+app.include_router(transcription_api.router, prefix="/api")
 
 @app.get("/api/health")
 async def health_check():
