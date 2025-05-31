@@ -162,6 +162,56 @@ export const siteConfig = {
       }
     ],
   },
+  growthSection: {
+    title: 'Growing with the Community',
+    description: 'Join thousands of developers and businesses already using Operator to transform their workflows',
+    items: [
+      {
+        id: 1,
+        content: (
+          <div className="flex flex-col gap-4">
+            <div className="text-6xl font-bold text-primary">10K+</div>
+            <div className="text-2xl font-semibold">Active Users</div>
+          </div>
+        ),
+        title: 'Trusted by Developers Worldwide',
+        description: 'Over 10,000 developers and teams are already using Operator to automate their daily tasks and boost productivity.',
+      },
+      {
+        id: 2,
+        content: (
+          <div className="flex flex-col gap-4">
+            <div className="text-6xl font-bold text-primary">500+</div>
+            <div className="text-2xl font-semibold">GitHub Stars</div>
+          </div>
+        ),
+        title: 'Open Source Growth',
+        description: 'Our growing GitHub community contributes to continuous improvements and new features that benefit everyone.',
+      },
+      {
+        id: 3,
+        content: (
+          <div className="flex flex-col gap-4">
+            <div className="text-6xl font-bold text-primary">24/7</div>
+            <div className="text-2xl font-semibold">Automation</div>
+          </div>
+        ),
+        title: 'Always Working for You',
+        description: 'Operator works around the clock, handling tasks and workflows so you can focus on what matters most.',
+      },
+      {
+        id: 4,
+        content: (
+          <div className="flex flex-col gap-4">
+            <div className="text-6xl font-bold text-primary">100%</div>
+            <div className="text-2xl font-semibold">Open Source</div>
+          </div>
+        ),
+        title: 'Fully Transparent',
+        description: 'Complete transparency with open source code that you can inspect, modify, and contribute to.',
+      },
+    ],
+  },
   cloudPricingItems: [
     {
       name: 'Free',
