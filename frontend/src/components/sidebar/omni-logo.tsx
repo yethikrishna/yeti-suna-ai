@@ -1,7 +1,5 @@
-'use client';
-
-import Image from 'next/image';
 import { useTheme } from 'next-themes';
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 
 export function OmniLogo() {
@@ -27,4 +25,4 @@ export function OmniLogo() {
       className="h-6 w-6"
     />
   );
-}
+} 

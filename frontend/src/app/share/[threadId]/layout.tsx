@@ -1,17 +1,30 @@
 import { Metadata } from 'next';
 import { getThread, getProject } from '@/lib/api-server';
 
+export const metadata: Metadata = {
+  title: 'Shared Conversation | OMNI Operator',
+  description: 'Replay this Agent conversation on OMNI Operator',
+  robots: {
+    index: false,
+    follow: false,
+  },
+  openGraph: {
+    title: 'Shared Conversation | OMNI Operator',
+    description: 'Replay this Agent conversation on OMNI Operator',
+  },
+}
+
 export async function generateMetadata({ params }): Promise<Metadata> {
   const { threadId } = await params;
   const fallbackMetaData = {
-    title: 'Shared Conversation | Kortix Suna',
-    description: 'Replay this Agent conversation on Kortix Suna',
+    title: 'Shared Conversation | OMNI Operator',
+    description: 'Replay this Agent conversation on OMNI Operator',
     alternates: {
       canonical: `${process.env.NEXT_PUBLIC_URL}/share/${threadId}`,
     },
     openGraph: {
-      title: 'Shared Conversation | Kortix Suna',
-      description: 'Replay this Agent conversation on Kortix Suna',
+      title: 'Shared Conversation | OMNI Operator',
+      description: 'Replay this Agent conversation on OMNI Operator',
       images: [`${process.env.NEXT_PUBLIC_URL}/share-page/og-fallback.png`],
     },
   };
@@ -29,10 +42,10 @@ export async function generateMetadata({ params }): Promise<Metadata> {
       process.env.NEXT_PUBLIC_ENV_MODE === 'LOCAL' ||
       process.env.NEXT_PUBLIC_ENV_MODE === 'local';
 
-    const title = projectData.name || 'Shared Conversation | Kortix Suna';
+    const title = projectData.name || 'Shared Conversation | OMNI Operator';
     const description =
       projectData.description ||
-      'Replay this Agent conversation on Kortix Suna';
+      'Replay this Agent conversation on OMNI Operator';
     const ogImage = isDevelopment
       ? `${process.env.NEXT_PUBLIC_URL}/share-page/og-fallback.png`
       : `${process.env.NEXT_PUBLIC_URL}/api/share-page/og-image?title=${projectData.name}`;

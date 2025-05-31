@@ -1,6 +1,6 @@
-# Contributing to Suna
+# Contributing to OMNI Operator
 
-Thank you for your interest in contributing to Suna! This document outlines the contribution process and guidelines.
+Thank you for your interest in contributing to OMNI Operator! This document outlines the contribution process and guidelines.
 
 ## Contribution Workflow
 

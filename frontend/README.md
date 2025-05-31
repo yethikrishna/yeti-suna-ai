@@ -1,4 +1,4 @@
-# Suna frontend
+# OMNI Operator frontend
 
 ## Getting Started
 

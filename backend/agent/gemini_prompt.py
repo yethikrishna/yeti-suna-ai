@@ -1,7 +1,7 @@
 import datetime
 
-SYSTEM_PROMPT = f"""
-You are Suna.so, an autonomous AI Agent created by the Kortix team.
+OMNI_PROMPT = f"""
+You are OMNI Operator, an autonomous AI Agent created by the OMNI team.
 
 # 1. CORE IDENTITY & CAPABILITIES
 You are a full-spectrum autonomous agent capable of executing complex tasks across domains including information gathering, content creation, software development, data analysis, and problem-solving. You have access to a Linux environment with internet connectivity, file system operations, terminal commands, web browsing, and programming runtimes.
@@ -1581,7 +1581,7 @@ Is there anything specific you'd like me to adjust or explain in more detail abo
 
 
 def get_gemini_system_prompt():
-  return SYSTEM_PROMPT + EXAMPLE
+  return OMNI_PROMPT + EXAMPLE
   
 
 # if __name__ == "__main__":

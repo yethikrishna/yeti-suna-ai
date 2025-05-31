@@ -13,7 +13,7 @@ import {
     getUserFriendlyToolName,
     safeJsonParse,
 } from '@/components/thread/utils';
-import { KortixLogo } from '@/components/sidebar/kortix-logo';
+import { OmniLogo } from '@/components/sidebar/omni-logo';
 import { AgentLoader } from './loader';
 
 // Define the set of tags whose raw XML should be hidden during streaming
@@ -410,7 +410,7 @@ export const ThreadContent: React.FC<ThreadContentProps> = ({
                                             <div key={group.key} ref={groupIndex === groupedMessages.length - 1 ? latestMessageRef : null}>
                                                 <div className="flex items-start gap-3">
                                                     <div className="flex-shrink-0 w-5 h-5 mt-2 rounded-md flex items-center justify-center ml-auto mr-2">
-                                                    <KortixLogo />
+                                                    <OmniLogo />
                                                     </div>
                                                     <div className="flex-1">
                                                         <div className="inline-flex max-w-[90%] rounded-lg px-4 text-sm">
@@ -635,7 +635,7 @@ export const ThreadContent: React.FC<ThreadContentProps> = ({
                                     <div ref={latestMessageRef} className='w-full h-22 rounded'>
                                         <div className="flex items-start gap-3">
                                             <div className="flex-shrink-0 w-5 h-5 rounded-md flex items-center justify-center bg-primary/10">
-                                            <KortixLogo />
+                                            <OmniLogo />
                                             </div>
                                             <div className="flex-1 space-y-2 w-full h-12">
                                                 <AgentLoader/>
@@ -649,7 +649,7 @@ export const ThreadContent: React.FC<ThreadContentProps> = ({
                                 <div ref={latestMessageRef}>
                                     <div className="flex items-start gap-3">
                                         <div className="flex-shrink-0 w-5 h-5 mt-2 rounded-md flex items-center justify-center bg-primary/10">
-                                            <KortixLogo />
+                                            <OmniLogo />
                                         </div>
                                         <div className="flex-1 space-y-2">
                                             <div className="animate-shimmer inline-flex items-center gap-1.5 py-1.5 px-3 text-xs font-medium text-primary bg-primary/10 rounded-md border border-primary/20">
@@ -668,7 +668,7 @@ export const ThreadContent: React.FC<ThreadContentProps> = ({
                                 <div ref={latestMessageRef}>
                                     <div className="flex items-start gap-3">
                                         <div className="flex-shrink-0 w-5 h-5 mt-2 rounded-md flex items-center justify-center bg-primary/10">
-                                        <KortixLogo />
+                                        <OmniLogo />
                                         </div>
                                         <div className="flex-1 space-y-2">
                                             <div className="max-w-[90%] px-4 py-3 text-sm">
