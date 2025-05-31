@@ -1,19 +1,6 @@
 import { Metadata } from 'next';
 import { getThread, getProject } from '@/lib/api-server';
 
-export const metadata: Metadata = {
-  title: 'Shared Conversation | OMNI Operator',
-  description: 'Replay this Agent conversation on OMNI Operator',
-  robots: {
-    index: false,
-    follow: false,
-  },
-  openGraph: {
-    title: 'Shared Conversation | OMNI Operator',
-    description: 'Replay this Agent conversation on OMNI Operator',
-  },
-}
-
 export async function generateMetadata({ params }): Promise<Metadata> {
   const { threadId } = await params;
   const fallbackMetaData = {
