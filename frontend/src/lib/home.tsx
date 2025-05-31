@@ -5,7 +5,8 @@ import { ThirdBentoAnimation } from '@/components/home/third-bento-animation';
 import { FlickeringGrid } from '@/components/home/ui/flickering-grid';
 import { Globe } from '@/components/home/ui/globe';
 import { cn } from '@/lib/utils';
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
+import React from 'react';
 import { config } from '@/lib/config';
 
 export const Highlight = ({
@@ -52,7 +53,7 @@ export const siteConfig = {
   name: 'Operator by OMNI',
   description: 'The Generalist AI Agent that acts on your behalf.',
   cta: 'Start Free',
-  url: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+  url: typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000',
   keywords: ['AI Agent', 'Generalist AI', 'Open Source AI', 'Autonomous Agent'],
   links: {
     email: 'support@omni.ai',
@@ -102,6 +103,34 @@ export const siteConfig = {
     description:
       'Operator by OMNI – is a generalist AI Agent that acts on your behalf.',
     inputPlaceholder: 'Ask Operator to...',
+  },
+  bentoSection: {
+    title: 'Why Choose Operator?',
+    description: 'Discover the advantages of using our open-source AI agent',
+    items: [
+      {
+        id: 1,
+        content: (
+          <div className="relative flex size-full max-w-lg items-center justify-center overflow-hidden [mask-image:linear-gradient(to_top,transparent,black_50%)] -translate-y-20">
+            <FlickeringGrid />
+          </div>
+        ),
+        title: 'Open Source Security',
+        description:
+          'Benefit from the security of open source code that thousands of eyes can review, audit, and improve.',
+      },
+      {
+        id: 2,
+        content: (
+          <div className="relative flex size-full max-w-lg items-center justify-center overflow-hidden [mask-image:linear-gradient(to_top,transparent,black_50%)] -translate-y-20">
+            <Globe className="top-28" />
+          </div>
+        ),
+        title: 'Community Powered',
+        description:
+          "Join a thriving community of developers and users continuously enhancing and expanding Operator's capabilities.",
+      },
+    ],
   },
   cloudPricingItems: [
     {
@@ -704,9 +733,9 @@ export const siteConfig = {
     {
       title: 'Operator',
       links: [
-        { id: 1, title: 'About', url: 'https://operator.ai' },
-        { id: 3, title: 'Contact', url: 'mailto:hey@operator.ai' },
-        { id: 4, title: 'Careers', url: 'https://operator.ai/careers' },
+        { id: 1, title: 'About', url: 'https://operator.omni.ai' },
+        { id: 3, title: 'Contact', url: 'mailto:hey@operator.omni.ai' },
+        { id: 4, title: 'Careers', url: 'https://operator.omni.ai/careers' },
       ],
     },
     {
@@ -727,12 +756,12 @@ export const siteConfig = {
         {
           id: 9,
           title: 'Privacy Policy',
-          url: 'https://operator.ai/legal?tab=privacy',
+          url: 'https://operator.omni.ai/legal?tab=privacy',
         },
         {
           id: 10,
           title: 'Terms of Service',
-          url: 'https://operator.ai/legal?tab=terms',
+          url: 'https://operator.omni.ai/legal?tab=terms',
         },
         {
           id: 11,
@@ -783,7 +812,7 @@ export const siteConfig = {
       ),
       image:
         'https://images.unsplash.com/photo-1576091160550-2173dba999ef?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2400&q=80',
-      url: 'https://operator.ai/share/2fbf0552-87d6-4d12-be25-d54f435bc493',
+      url: 'https://operator.omni.ai/share/2fbf0552-87d6-4d12-be25-d54f435bc493',
     },
     {
       id: 'vc-list',
@@ -818,7 +847,7 @@ export const siteConfig = {
       ),
       image:
         'https://images.unsplash.com/photo-1444653614773-995cb1ef9efa?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2400&q=80',
-      url: 'https://operator.ai/share/a172382b-aa77-42a2-a3e1-46f32a0f9c37',
+      url: 'https://operator.omni.ai/share/a172382b-aa77-42a2-a3e1-46f32a0f9c37',
     },
     {
       id: 'candidate-search',
@@ -860,7 +889,7 @@ export const siteConfig = {
       ),
       image:
         'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2400&q=80',
-      url: 'https://operator.ai/share/d9e39c94-4f6f-4b5a-b1a0-b681bfe0dee8',
+      url: 'https://operator.omni.ai/share/d9e39c94-4f6f-4b5a-b1a0-b681bfe0dee8',
     },
     {
       id: 'company-trip',
@@ -909,7 +938,7 @@ export const siteConfig = {
       ),
       image:
         'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2400&q=80',
-      url: 'https://operator.ai/share/23f7d904-eb66-4a9c-9247-b9704ddfd233',
+      url: 'https://operator.omni.ai/share/23f7d904-eb66-4a9c-9247-b9704ddfd233',
     },
     {
       id: 'excel-spreadsheet',
@@ -951,7 +980,7 @@ export const siteConfig = {
       ),
       image:
         'https://images.unsplash.com/photo-1532153975070-2e9ab71f1b14?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2400&q=80',
-      url: 'https://operator.ai/share/bf6a819b-6af5-4ef7-b861-16e5261ceeb0',
+      url: 'https://operator.omni.ai/share/bf6a819b-6af5-4ef7-b861-16e5261ceeb0',
     },
     {
       id: 'speaker-prospecting',
@@ -993,7 +1022,7 @@ export const siteConfig = {
       ),
       image:
         'https://images.unsplash.com/photo-1523580494863-6f3031224c94?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2400&q=80',
-      url: 'https://operator.ai/share/6830cc6d-3fbd-492a-93f8-510a5f48ce50',
+      url: 'https://operator.omni.ai/share/6830cc6d-3fbd-492a-93f8-510a5f48ce50',
     },
     {
       id: 'scientific-papers',
@@ -1035,7 +1064,7 @@ export const siteConfig = {
       ),
       image:
         'https://images.unsplash.com/photo-1532153975070-2e9ab71f1b14?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2400&q=80',
-      url: 'https://operator.ai/share/a106ef9f-ed97-46ee-8e51-7bfaf2ac3c29',
+      url: 'https://operator.omni.ai/share/a106ef9f-ed97-46ee-8e51-7bfaf2ac3c29',
     },
     {
       id: 'lead-generation',
@@ -1077,13 +1106,13 @@ export const siteConfig = {
       ),
       image:
         'https://images.unsplash.com/photo-1552581234-26160f608093?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2400&q=80',
-      url: 'https://operator.ai/share/a01744fc-6b33-434c-9d4e-67d7e820297c',
+      url: 'https://operator.omni.ai/share/a01744fc-6b33-434c-9d4e-67d7e820297c',
     },
     {
       id: 'seo-analysis',
       title: 'SEO Analysis',
       description:
-        "Based on my website operator.ai, generate an SEO report analysis, find top-ranking pages by keyword clusters, and identify topics I'm missing.",
+        "Based on my website operator.omni.ai, generate an SEO report analysis, find top-ranking pages by keyword clusters, and identify topics I'm missing.",
       category: 'marketing',
       featured: true,
       icon: (
@@ -1126,7 +1155,7 @@ export const siteConfig = {
       ),
       image:
         'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2400&q=80',
-      url: 'https://operator.ai/share/59be8603-3225-4c15-a948-ab976e5912f6',
+      url: 'https://operator.omni.ai/share/59be8603-3225-4c15-a948-ab976e5912f6',
     },
     {
       id: 'personal-trip',
@@ -1175,7 +1204,7 @@ export const siteConfig = {
       ),
       image:
         'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2400&q=80',
-      url: 'https://operator.ai/share/8442cc76-ac8b-438c-b539-4b93909a2218',
+      url: 'https://operator.omni.ai/share/8442cc76-ac8b-438c-b539-4b93909a2218',
     },
     {
       id: 'funded-startups',
@@ -1210,7 +1239,7 @@ export const siteConfig = {
       ),
       image:
         'https://images.unsplash.com/photo-1444653614773-995cb1ef9efa?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2400&q=80',
-      url: 'https://operator.ai/share/f04c871c-6bf5-4464-8e9c-5351c9cf5a60',
+      url: 'https://operator.omni.ai/share/f04c871c-6bf5-4464-8e9c-5351c9cf5a60',
     },
     {
       id: 'scrape-forums',
@@ -1252,7 +1281,7 @@ export const siteConfig = {
       ),
       image:
         'https://images.unsplash.com/photo-1523580494863-6f3031224c94?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2400&q=80',
-      url: 'https://operator.ai/share/53bcd4c7-40d6-4293-9f69-e2638ddcfad8',
+      url: 'https://operator.omni.ai/share/53bcd4c7-40d6-4293-9f69-e2638ddcfad8',
     },
   ],
 };
