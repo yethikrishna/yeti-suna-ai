@@ -1,10 +1,10 @@
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Agent Marketplace | Kortix Suna',
-  description: 'Discover and add powerful AI agents created by the community to your personal library',
+  title: 'Agent Marketplace | Operator by OMNI',
+  description: 'Browse and share agents on the Operator marketplace',
   openGraph: {
-    title: 'Agent Marketplace | Kortix Suna',
+    title: 'Agent Marketplace | Operator by OMNI',
     description: 'Discover and add powerful AI agents created by the community to your personal library',
     type: 'website',
   },

@@ -25,31 +25,22 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL(siteConfig.url),
-  title: {
-    default: siteConfig.name,
-    template: `%s - ${siteConfig.name}`,
-  },
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL || 'https://localhost:3000',
+  ),
+  title: 'Operator - Open Source Generalist AI Agent',
   description:
-    'Suna is a fully open source AI assistant that helps you accomplish real-world tasks with ease. Through natural conversation, Suna becomes your digital companion for research, data analysis, and everyday challenges.',
+    'The Generalist AI Agent that acts on your behalf. Operator is 100% open source and free.',
   keywords: [
-    'AI',
-    'artificial intelligence',
-    'browser automation',
-    'web scraping',
-    'file management',
-    'AI assistant',
-    'open source',
-    'research',
-    'data analysis',
+    'OMNI Team - Adam Cohen Hillel, Marko Kraemer, Domenico Gagliardi, and Quoc Dat Le',
   ],
-  authors: [{ name: 'Kortix Team', url: 'https://suna.so' }],
+  authors: [{ name: 'OMNI Team', url: 'https://operator.omni.ai' }],
   creator:
-    'Kortix Team - Adam Cohen Hillel, Marko Kraemer, Domenico Gagliardi, and Quoc Dat Le',
+    'OMNI Team - Adam Cohen Hillel, Marko Kraemer, Domenico Gagliardi, and Quoc Dat Le',
   publisher:
-    'Kortix Team - Adam Cohen Hillel, Marko Kraemer, Domenico Gagliardi, and Quoc Dat Le',
+    'OMNI Team - Adam Cohen Hillel, Marko Kraemer, Domenico Gagliardi, and Quoc Dat Le',
   category: 'Technology',
-  applicationName: 'Suna',
+  applicationName: 'Operator by OMNI',
   formatDetection: {
     telephone: false,
     email: false,
@@ -64,38 +55,19 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: 'Suna - Open Source Generalist AI Agent',
+    title: 'Operator - Open Source Generalist AI Agent',
     description:
-      'Suna is a fully open source AI assistant that helps you accomplish real-world tasks with ease through natural conversation.',
-    url: siteConfig.url,
-    siteName: 'Suna',
-    images: [
-      {
-        url: '/banner.png',
-        width: 1200,
-        height: 630,
-        alt: 'Suna - Open Source Generalist AI Agent',
-        type: 'image/png',
-      },
-    ],
+      'The Generalist AI Agent that acts on your behalf. Operator is 100% open source and free.',
+    url: '/',
+    siteName: 'Operator by OMNI',
     locale: 'en_US',
     type: 'website',
   },
   twitter: {
+    title: 'Operator - Open Source Generalist AI Agent',
     card: 'summary_large_image',
-    title: 'Suna - Open Source Generalist AI Agent',
-    description:
-      'Suna is a fully open source AI assistant that helps you accomplish real-world tasks with ease through natural conversation.',
-    creator: '@kortixai',
-    site: '@kortixai',
-    images: [
-      {
-        url: '/banner.png',
-        width: 1200,
-        height: 630,
-        alt: 'Suna - Open Source Generalist AI Agent',
-      },
-    ],
+    creator: '@omni_ai',
+    site: '@omni_ai',
   },
   icons: {
     icon: [{ url: '/favicon.png', sizes: 'any' }],
