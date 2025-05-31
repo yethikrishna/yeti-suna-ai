@@ -16,11 +16,11 @@ export function OmniLogo() {
   return (
     <div className="flex h-6 w-6 items-center justify-center flex-shrink-0">
       <Image
-        src="/omni-symbol.svg"
+        src="/ChatGPT Image May 9, 2025, 06_36_00 PM.png"
         alt="OMNI"
         width={24}
         height={24}
-        className={`${mounted && theme === 'dark' ? 'invert' : ''}`}
+        className="object-contain"
       />
     </div>
   );

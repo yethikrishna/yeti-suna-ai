@@ -424,7 +424,7 @@ export const PlaybackControls = ({
               <div className="flex items-center justify-center w-6 h-6 rounded-md overflow-hidden bg-primary/10">
                 <Link href="/">
                   <img
-                    src="/omni-symbol.svg"
+                    src="/ChatGPT Image May 9, 2025, 06_36_00 PM.png"
                     alt="OMNI"
                     width={16}
                     height={16}

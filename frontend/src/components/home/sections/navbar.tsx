@@ -99,11 +99,7 @@ export function Navbar() {
   const toggleDrawer = () => setIsDrawerOpen((prev) => !prev);
   const handleOverlayClick = () => setIsDrawerOpen(false);
 
-  const logoSrc = !mounted
-    ? '/omni-logo.svg'
-    : resolvedTheme === 'dark'
-      ? '/omni-logo-white.svg'
-      : '/omni-logo.svg';
+  const logoSrc = "/ChatGPT Image May 9, 2025, 06_36_00 PM.png";
 
   return (
     <header
