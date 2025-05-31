@@ -1,156 +1,157 @@
-'use client';
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
   DialogTrigger,
+  DialogTitle,
 } from '@/components/ui/dialog';
-import { useTheme } from 'next-themes';
+import { useMediaQuery } from '@/hooks/use-media-query';
 import Image from 'next/image';
+import Cal, { getCalApi } from '@calcom/embed-react';
+import { useTheme } from 'next-themes';
 
-export function OmniProcessModal() {
+export function KortixProcessModal() {
   const [open, setOpen] = useState(false);
+  const isDesktop = useMediaQuery('(min-width: 768px)');
   const { resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
+  const isDarkMode = resolvedTheme === 'dark';
 
   useEffect(() => {
-    setMounted(true);
+    (async function () {
+      const cal = await getCalApi({ namespace: 'enterprise-demo' });
+      cal('ui', { hideEventTypeDetails: true, layout: 'month_view' });
+    })();
   }, []);
 
-  const handleSchedule = () => {
-    // Open Cal.com modal
-    const cal = (window as any).Cal;
-    if (cal) {
-      cal('ui', {
-        styles: { branding: { brandColor: '#000000' } },
-        hideEventTypeDetails: false,
-        layout: 'month_view',
-      });
-      cal('openModal', {
-        calLink: 'team/omni/enterprise-demo',
-        config: { layout: 'month_view' },
-      });
-    } else {
-      // Fallback to direct link
-      window.open('https://cal.com/team/omni/enterprise-demo', '_blank');
-    }
-    setOpen(false);
-  };
-
-  if (!mounted) {
-    return (
-      <Button
-        variant="outline"
-        size="sm"
-        className="w-full text-xs bg-background/50 hover:bg-background/80"
-        disabled
-      >
-        Loading...
-      </Button>
-    );
-  }
-
-  const logoSrc =
-    resolvedTheme === 'dark' ? '/omni-logo-white.svg' : '/omni-logo.svg'
-
   return (
-    <>
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogTrigger asChild>
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full text-xs bg-background/50 hover:bg-background/80"
-          >
-            Enterprise Demo
-          </Button>
-        </DialogTrigger>
-        <DialogContent className="sm:max-w-[500px] p-6">
-          <DialogHeader className="text-center pb-4">
-            <div className="flex justify-center mb-4">
-              <Image
-                src={logoSrc}
-                alt="OMNI Logo"
-                width={140}
-                height={28}
-                className="h-7 w-auto"
-              />
-            </div>
-            <DialogTitle className="text-2xl font-semibold">
-              Transform Your Business with AI Employees
-            </DialogTitle>
-            <DialogDescription className="text-base text-muted-foreground leading-relaxed">
-              Discover how OMNI Operator can revolutionize your workflows with
-              autonomous AI agents that handle complex tasks across your
-              organization.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 gap-4">
-              <div className="flex items-start space-x-3 p-4 bg-muted/30 rounded-lg">
-                <div className="w-2 h-2 rounded-full bg-primary mt-2.5 flex-shrink-0"></div>
-                <div>
-                  <h4 className="font-medium text-sm">Custom AI Workflows</h4>
-                  <p className="text-xs text-muted-foreground">
-                    Deploy specialized AI agents tailored to your business
-                    processes and requirements.
-                  </p>
-                </div>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="default" size="sm" className="w-full text-xs">
+          Learn More
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="p-0 gap-0 border-none max-w-[70vw] rounded-xl overflow-hidden">
+        <DialogTitle className="sr-only">
+          Custom AI Employees for your Business.
+        </DialogTitle>
+        <div className="grid grid-cols-1 md:grid-cols-2 h-[800px]">
+          {/* Info Panel */}
+          <div className="p-8 flex flex-col bg-white dark:bg-black relative h-full overflow-y-auto border-r border-gray-200 dark:border-gray-800">
+            <div className="relative z-10 flex flex-col h-full">
+              <div className="mb-8 mt-0 flex-shrink-0">
+                <Image
+                  src={
+                    isDarkMode ? '/kortix-logo-white.svg' : '/kortix-logo.svg'
+                  }
+                  alt="Kortix Logo"
+                  width={60}
+                  height={21}
+                  className="h-6 w-auto"
+                />
               </div>
 
-              <div className="flex items-start space-x-3 p-4 bg-muted/30 rounded-lg">
-                <div className="w-2 h-2 rounded-full bg-primary mt-2.5 flex-shrink-0"></div>
-                <div>
-                  <h4 className="font-medium text-sm">Enterprise Security</h4>
-                  <p className="text-xs text-muted-foreground">
-                    SOC 2 compliant infrastructure with advanced data protection
-                    and privacy controls.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start space-x-3 p-4 bg-muted/30 rounded-lg">
-                <div className="w-2 h-2 rounded-full bg-primary mt-2.5 flex-shrink-0"></div>
-                <div>
-                  <h4 className="font-medium text-sm">24/7 Expert Support</h4>
-                  <p className="text-xs text-muted-foreground">
-                    Dedicated support team and implementation specialists to
-                    ensure success.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="border-t pt-4">
-              <p className="text-sm text-muted-foreground text-center mb-4">
-                Ready to see OMNI Operator in action? Book a personalized demo
-                with our team.
+              <h2 className="text-2xl md:text-3xl font-semibold tracking-tight mb-4 text-foreground flex-shrink-0">
+                Custom AI Employees for your Business
+              </h2>
+              <p className="text-base md:text-lg text-muted-foreground mb-8 max-w-lg flex-shrink-0">
+                Create custom AI employees for your business based on your human
+                employees data.
               </p>
-              <div className="flex gap-3">
-                <Button
-                  onClick={handleSchedule}
-                  className="flex-1 bg-primary hover:bg-primary/90"
-                >
-                  Schedule Demo
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setOpen(false)}
-                  className="flex-1"
-                >
-                  Maybe Later
-                </Button>
+
+              <div className="space-y-8 mb-auto flex-shrink-0">
+                <div className="transition-all duration-300 hover:translate-x-1 group">
+                  <h3 className="text-base md:text-lg font-medium mb-3 flex items-center">
+                    <span className="bg-primary text-primary-foreground w-7 h-7 rounded-full inline-flex items-center justify-center mr-3 text-sm group-hover:shadow-md transition-all duration-300">
+                      1
+                    </span>
+                    <span>Record</span>
+                  </h3>
+                  <p className="text-base text-muted-foreground ml-10">
+                    We record what employees do to understand their workflows
+                    and tasks.
+                  </p>
+                </div>
+
+                <div className="transition-all duration-300 hover:translate-x-1 group">
+                  <h3 className="text-base md:text-lg font-medium mb-3 flex items-center">
+                    <span className="bg-primary text-primary-foreground w-7 h-7 rounded-full inline-flex items-center justify-center mr-3 text-sm group-hover:shadow-md transition-all duration-300">
+                      2
+                    </span>
+                    <span>Train</span>
+                  </h3>
+                  <p className="text-base text-muted-foreground ml-10">
+                    AI is trained on the captured data to learn the tasks and
+                    decision-making.
+                  </p>
+                </div>
+
+                <div className="transition-all duration-300 hover:translate-x-1 group">
+                  <h3 className="text-base md:text-lg font-medium mb-3 flex items-center">
+                    <span className="bg-primary text-primary-foreground w-7 h-7 rounded-full inline-flex items-center justify-center mr-3 text-sm group-hover:shadow-md transition-all duration-300">
+                      3
+                    </span>
+                    <span>Automate</span>
+                  </h3>
+                  <p className="text-base text-muted-foreground ml-10">
+                    AI agents automate tasks previously done by humans, with
+                    continuous learning and improvement.
+                  </p>
+                </div>
+              </div>
+
+              <div className="border-t border-gray-200 dark:border-gray-800 pt-6 mt-6 flex-shrink-0">
+                <p className="text-base font-medium mb-3">Key Benefits</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-y-2 gap-x-4">
+                  <div className="flex items-center">
+                    <div className="w-2 h-2 rounded-full bg-primary mr-2"></div>
+                    <p className="text-sm text-muted-foreground">
+                      Reduce operational costs
+                    </p>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-2 h-2 rounded-full bg-primary mr-2"></div>
+                    <p className="text-sm text-muted-foreground">
+                      Increase workflow efficiency
+                    </p>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-2 h-2 rounded-full bg-primary mr-2"></div>
+                    <p className="text-sm text-muted-foreground">
+                      Improve task accuracy
+                    </p>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-2 h-2 rounded-full bg-primary mr-2"></div>
+                    <p className="text-sm text-muted-foreground">
+                      Scale operations seamlessly
+                    </p>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-2 h-2 rounded-full bg-primary mr-2"></div>
+                    <p className="text-sm text-muted-foreground">
+                      24/7 productivity
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
-    </>
+          <div className="bg-white dark:bg-[#171717] h-full overflow-hidden">
+            <div className="h-full overflow-auto">
+              <Cal
+                namespace="enterprise-demo"
+                calLink="team/kortix/enterprise-demo"
+                style={{ width: '100%', height: '100%' }}
+                config={{
+                  layout: 'month_view',
+                  hideEventTypeDetails: 'false',
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

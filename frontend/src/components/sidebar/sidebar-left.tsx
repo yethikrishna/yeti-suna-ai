@@ -6,7 +6,7 @@ import { Menu } from 'lucide-react';
 
 import { NavAgents } from '@/components/sidebar/nav-agents';
 import { NavUserWithTeams } from '@/components/sidebar/nav-user-with-teams';
-import { OmniLogo } from '@/components/sidebar/omni-logo';
+import { KortixLogo } from '@/components/sidebar/kortix-logo';
 import { CTACard } from '@/components/sidebar/cta';
 import {
   Sidebar,
@@ -93,16 +93,11 @@ export function SidebarLeft({
       <SidebarHeader className="px-2 py-2">
         <div className="flex h-[40px] items-center px-1 relative">
           <Link href="/dashboard">
-            <OmniLogo />
+            <KortixLogo />
           </Link>
           {state !== 'collapsed' && (
             <div className="ml-2 transition-all duration-200 ease-in-out whitespace-nowrap">
-              <div className="flex items-center gap-2">
-                <OmniLogo />
-                <span className="text-lg font-semibold text-foreground/80">
-                  OMNI
-                </span>
-              </div>
+              {/* <span className="font-semibold"> SUNA</span> */}
             </div>
           )}
           <div className="ml-auto flex items-center gap-2">

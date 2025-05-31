@@ -68,7 +68,7 @@ export function CommandToolView({
   }, [assistantContent]);
 
   const command = rawCommand
-    ?.replace(/^omni@computer:~\$\s*/g, '')
+    ?.replace(/^suna@computer:~\$\s*/g, '')
     ?.replace(/\\n/g, '')
     ?.replace(/\n/g, '')
     ?.trim();

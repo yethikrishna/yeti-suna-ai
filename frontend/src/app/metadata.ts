@@ -4,14 +4,14 @@ import { siteConfig } from '@/lib/site';
 export const metadata: Metadata = {
   title: siteConfig.name,
   description: siteConfig.description,
-  keywords: ['OMNI Operator', 'AI', 'Agent'],
+  keywords: ['Kortix Suna', 'AI', 'Agent'],
   authors: [
     {
-      name: 'OMNI AI Corp',
-      url: 'https://omni.ai',
+      name: 'Kortix AI Corp',
+      url: 'https://kortix.ai',
     },
   ],
-  creator: 'OMNI AI Corp',
+  creator: 'Kortix AI Corp',
   openGraph: {
     type: 'website',
     locale: 'en_US',
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: siteConfig.name,
     description: siteConfig.description,
-    creator: '@omniai',
+    creator: '@kortixai',
   },
   robots: {
     index: true,
