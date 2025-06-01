@@ -214,7 +214,7 @@ const CharacterCard = ({ character, index }: any) => {
         className={`w-full rounded-2xl overflow-hidden backdrop-blur-sm border transition-all duration-300 shadow-xl group cursor-pointer ${
           theme === 'light'
             ? 'bg-white/50 border-gray-300 hover:border-gray-400 shadow-lg hover:shadow-xl'
-            : 'bg-black/40 border-white/10 hover:border-purple-500/30 hover:shadow-[0_0_30px_rgba(168,85,247,0.15)] hover:shadow-purple-500/20'
+            : 'bg-card border-border hover:border-purple-500/30 hover:shadow-[0_0_30px_rgba(168,85,247,0.15)] hover:shadow-purple-500/20'
         }`}
       >
         <div className="relative h-[450px] md:h-[600px] overflow-hidden">
@@ -374,13 +374,13 @@ const TrailerCard = ({ trailer, index }: any) => {
       <div className={`p-4 backdrop-blur-sm ${
         theme === 'light' 
           ? 'bg-white/90 border-t border-gray-200' 
-          : 'bg-black/80 border-t border-purple-500/20'
+          : 'bg-card border-t border-purple-500/20'
       }`}>
         <h3 className={`text-lg font-semibold ${
-          theme === 'light' ? 'text-gray-900' : 'text-white'
+          theme === 'light' ? 'text-gray-900' : 'text-foreground'
         }`}>{trailer.title}</h3>
         <p className={`text-sm mt-1 ${
-          theme === 'light' ? 'text-gray-600' : 'text-white/70'
+          theme === 'light' ? 'text-gray-600' : 'text-muted-foreground'
         }`}>{trailer.date}</p>
       </div>
     </motion.div>
@@ -491,7 +491,7 @@ export default function GTA6Page() {
     <div className={`relative min-h-screen transition-colors duration-300 ${
       theme === 'light' 
         ? 'bg-gradient-to-br from-gray-50 to-gray-100' 
-        : 'bg-black/90'
+        : 'bg-background'
     }`}>
       <div className="container mx-auto px-4 py-6 max-w-[1400px]">
         {/* Fixed Navigation Menu */}
@@ -504,7 +504,7 @@ export default function GTA6Page() {
           <div className={`backdrop-blur-xl shadow-2xl rounded-2xl p-3 border transition-all duration-300 ${
             theme === 'light'
               ? 'bg-white/90 border-gray-300 hover:border-gray-400 shadow-lg'
-              : 'bg-black/80 border-white/20 hover:border-purple-500/40 hover:shadow-[0_0_25px_rgba(168,85,247,0.1)]'
+              : 'bg-card border-border hover:border-purple-500/40 hover:shadow-[0_0_25px_rgba(168,85,247,0.1)]'
           }`}>
             <ul className="flex items-center space-x-3">
               <li>
@@ -515,7 +515,7 @@ export default function GTA6Page() {
                   className={`px-4 py-2 text-sm rounded-xl transition-all duration-300 flex items-center gap-2 font-medium ${
                     theme === 'light'
                       ? 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
-                      : 'text-white/70 hover:text-white hover:bg-white/10 hover:shadow-[0_0_10px_rgba(168,85,247,0.2)] hover:border hover:border-purple-500/30'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-accent hover:shadow-[0_0_10px_rgba(168,85,247,0.2)] hover:border hover:border-purple-500/30'
                   }`}
                 >
                   <Play size={14} />
@@ -530,7 +530,7 @@ export default function GTA6Page() {
                   className={`px-4 py-2 text-sm rounded-xl transition-all duration-300 flex items-center gap-2 font-medium ${
                     theme === 'light'
                       ? 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
-                      : 'text-white/70 hover:text-white hover:bg-white/10 hover:shadow-[0_0_10px_rgba(168,85,247,0.2)] hover:border hover:border-purple-500/30'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-accent hover:shadow-[0_0_10px_rgba(168,85,247,0.2)] hover:border hover:border-purple-500/30'
                   }`}
                 >
                   <Map size={14} />
@@ -545,7 +545,7 @@ export default function GTA6Page() {
                   className={`px-4 py-2 text-sm rounded-xl transition-all duration-300 flex items-center gap-2 font-medium ${
                     theme === 'light'
                       ? 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
-                      : 'text-white/70 hover:text-white hover:bg-white/10 hover:shadow-[0_0_10px_rgba(168,85,247,0.2)] hover:border hover:border-purple-500/30'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-accent hover:shadow-[0_0_10px_rgba(168,85,247,0.2)] hover:border hover:border-purple-500/30'
                   }`}
                 >
                     <Star size={14} />
@@ -577,7 +577,7 @@ export default function GTA6Page() {
                 className={`flex items-center justify-center w-12 h-12 bg-gradient-to-r from-primary/90 to-primary rounded-full shadow-2xl transition-all backdrop-blur-sm border ${
                   theme === 'light' 
                     ? 'text-white border-gray-300 shadow-lg' 
-                    : 'text-white border-purple-500/30 hover:shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:border-purple-400/50'
+                    : 'text-primary-foreground border-purple-500/30 hover:shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:border-purple-400/50'
                 }`}
                 aria-label="Back to top"
               >
@@ -595,7 +595,7 @@ export default function GTA6Page() {
           className={`relative h-[85vh] w-full overflow-hidden rounded-3xl mb-20 border shadow-2xl ${
             theme === 'light' 
               ? 'border-gray-300 shadow-xl' 
-              : 'border-white/10 hover:border-purple-500/20 transition-all duration-500'
+              : 'border-border hover:border-purple-500/20 transition-all duration-500'
           }`}
         >
           {/* Enhanced gradient overlay */}
@@ -711,7 +711,7 @@ export default function GTA6Page() {
             className={`backdrop-blur-sm rounded-2xl p-6 md:p-8 border mb-12 transition-all duration-300 ${
               theme === 'light'
                 ? 'bg-white/70 border-gray-300 shadow-lg'
-                : 'bg-black/40 border-white/10 hover:border-purple-500/20 hover:shadow-[0_0_20px_rgba(168,85,247,0.05)]'
+                : 'bg-card border-border hover:border-purple-500/20 hover:shadow-[0_0_20px_rgba(168,85,247,0.05)]'
             }`}
           >
             
@@ -719,15 +719,15 @@ export default function GTA6Page() {
               <div className={`backdrop-blur-sm border rounded-xl p-5 transition-all duration-300 ${
                 theme === 'light'
                   ? 'bg-gray-50/60 border-gray-300 shadow-sm'
-                  : 'bg-black/30 border-white/10 hover:border-purple-500/30'
+                  : 'bg-muted/30 border-border hover:border-purple-500/30'
               }`}>
                 <p className={`italic text-lg ${
-                  theme === 'light' ? 'text-gray-800' : 'text-white/80'
+                  theme === 'light' ? 'text-gray-800' : 'text-foreground'
                 }`}>
                   "When the sun fades and the neon glows, everyone has something to gain — and more to lose."
                 </p>
                 <p className={`text-sm mt-2 ${
-                  theme === 'light' ? 'text-gray-600' : 'text-white/60'
+                  theme === 'light' ? 'text-gray-600' : 'text-muted-foreground'
                 }`}>
                   — Only in Leonida
                 </p>
@@ -750,7 +750,7 @@ export default function GTA6Page() {
                     className={`w-full pl-10 pr-4 py-2 rounded-xl border transition-colors ${
                       theme === 'light'
                         ? 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-primary'
-                        : 'bg-black/20 border-white/20 text-white placeholder-white/50 focus:border-purple-500/60 focus:shadow-[0_0_15px_rgba(168,85,247,0.2)]'
+                        : 'bg-input border-border text-foreground placeholder-muted-foreground focus:border-purple-500/60 focus:shadow-[0_0_15px_rgba(168,85,247,0.2)]'
                     }`}
                     aria-label="Search cities"
                   />
