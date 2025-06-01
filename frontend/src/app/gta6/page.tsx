@@ -9,8 +9,8 @@ declare global {
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { Calendar, MapPin, ChevronUp, Home, ChevronRight, ChevronDown, Play, Star, Map, Quote, ExternalLink, Camera, Sun, Moon } from 'lucide-react';
-import { useState, useEffect, useRef } from 'react';
+import { Calendar, MapPin, ChevronUp, Home, ChevronRight, ChevronDown, Play, Star, Map, Quote, ExternalLink, Camera, Sun, Moon, Search, Filter, Grid, Eye, ArrowLeft, X, ChevronLeft } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
@@ -18,15 +18,186 @@ import { useTheme } from 'next-themes';
 import { characters } from './data/characterData';
 
 // Safe Image component
-const SafeImage = ({ src, alt, ...props }: any) => {
-  return (
-    <Image 
-      src={src}
-      alt={alt || "Image"}
+const SafeImage = ({ src, alt, priority = false, ...props }: any) => {
+  const [imgSrc, setImgSrc] = useState(src);
+  const [hasError, setHasError] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  return hasError ? (
+    <div className="w-full h-full bg-gray-800 flex items-center justify-center text-gray-400">
+      <Camera size={48} />
+    </div>
+  ) : (
+    <Image
       {...props}
+      src={imgSrc}
+      alt={alt}
+      priority={priority}
+      loading={priority ? "eager" : "lazy"}
+      onError={() => setHasError(true)}
+      onLoadingComplete={() => setIsLoading(false)}
+      className={`${props.className} ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
     />
   );
 };
+
+// Enhanced city data with more details
+const citiesData = [
+  {
+    id: "vice-city",
+    name: "Vice City",
+    folder: "Vice%20City",
+    images: 9,
+    region: "Metropolitan",
+    type: "Urban",
+    description: "The crown jewel of Leonida, where the sun fades and the neon glows.",
+    longDescription: "Vice City is the beating heart of Leonida, a sprawling metropolis where art deco architecture meets modern skyscrapers. Known for its vibrant nightlife, luxury beaches, and the shadowy underworld that operates beneath its glamorous surface.",
+    highlights: [
+      "Iconic neon-lit streets and art deco architecture",
+      "World-class beaches and luxury resorts", 
+      "Thriving nightlife and entertainment district",
+      "Major port and financial center"
+    ],
+    pointsOfInterest: [
+      "Ocean Drive - Famous beachfront boulevard",
+      "Downtown Financial District",
+      "Little Havana Cultural Quarter",
+      "Port of Vice City",
+      "Miami Beach Resort Area"
+    ],
+    coordinates: { x: 45, y: 60 },
+    featuredImage: "Vice_City_01.jpg"
+  },
+  {
+    id: "port-gellhorn",
+    name: "Port Gellhorn",
+    folder: "Port%20Gellhorn",
+    images: 8,
+    region: "Industrial",
+    type: "Port",
+    description: "A bustling port town with opportunities for those willing to take risks.",
+    longDescription: "Port Gellhorn serves as one of Leonida's major shipping hubs, where legitimate cargo and questionable imports flow through daily. The industrial waterfront contrasts with upscale residential areas, creating a city of stark divisions.",
+    highlights: [
+      "Major shipping and logistics hub",
+      "Industrial waterfront and cargo facilities",
+      "Mixed residential and commercial districts",
+      "Strategic location for various enterprises"
+    ],
+    pointsOfInterest: [
+      "Gellhorn Container Terminal",
+      "Industrial Waterfront",
+      "Riverside Residential Area",
+      "Commercial Harbor District",
+      "Freight Rail Junction"
+    ],
+    coordinates: { x: 25, y: 35 },
+    featuredImage: "Port_Gellhorn_01.jpg"
+  },
+  {
+    id: "mount-kalaga",
+    name: "Mount Kalaga National Park",
+    folder: "Mount%20Kalaga%20National%20Park",
+    images: 6,
+    region: "Wilderness",
+    type: "Natural",
+    description: "Rugged wilderness that provides the perfect hideaway.",
+    longDescription: "Mount Kalaga National Park offers pristine wilderness in the heart of Leonida. Dense forests, winding trails, and secluded areas make it both a nature lover's paradise and a haven for those seeking privacy from prying eyes.",
+    highlights: [
+      "Vast wilderness and hiking trails",
+      "Dense forest coverage and wildlife",
+      "Remote camping and recreation areas", 
+      "Natural hideaways and secluded spots"
+    ],
+    pointsOfInterest: [
+      "Mount Kalaga Peak",
+      "Forest Ranger Station",
+      "Hidden Lake Campground",
+      "Wildlife Observation Points",
+      "Remote Cabin Areas"
+    ],
+    coordinates: { x: 15, y: 20 },
+    featuredImage: "Mount_Kalaga_National_Park_01.jpg"
+  },
+  {
+    id: "leonida-keys",
+    name: "Leonida Keys",
+    folder: "Leonida%20Keys",
+    images: 5,
+    region: "Coastal",
+    type: "Islands",
+    description: "A tropical paradise where smugglers and tourists mix freely.",
+    longDescription: "The Leonida Keys are a chain of tropical islands connected by scenic bridges. While tourists flock here for the pristine beaches and crystal-clear waters, the remote location and numerous hidden coves make it ideal for less legitimate activities.",
+    highlights: [
+      "Tropical island paradise with pristine beaches",
+      "Connected by scenic bridges and waterways",
+      "Popular tourist destination",
+      "Numerous hidden coves and secluded areas"
+    ],
+    pointsOfInterest: [
+      "Key West Marina",
+      "Tropical Beach Resorts",
+      "Coral Reef Diving Sites",
+      "Mangrove Channels",
+      "Secluded Island Coves"
+    ],
+    coordinates: { x: 70, y: 80 },
+    featuredImage: "Leonida_Keys_01.jpg"
+  },
+  {
+    id: "grassrivers",
+    name: "Grassrivers",
+    folder: "Grassrivers",
+    images: 4,
+    region: "Urban",
+    type: "Cultural",
+    description: "Where the music scene is as vibrant as the streets are dangerous.",
+    longDescription: "Grassrivers pulses with musical energy, from underground hip-hop venues to mainstream recording studios. The creative atmosphere attracts artists from across the country, but the streets tell a different story of struggle and survival.",
+    highlights: [
+      "Thriving music and arts scene",
+      "Underground venues and recording studios",
+      "Street art and creative culture",
+      "Diverse neighborhoods with rich history"
+    ],
+    pointsOfInterest: [
+      "Music Mile Recording District",
+      "Street Art Galleries",
+      "Underground Music Venues",
+      "Cultural Community Centers",
+      "Artist Studio Complexes"
+    ],
+    coordinates: { x: 35, y: 45 },
+    featuredImage: "Grassrivers_01.jpg"
+  },
+  {
+    id: "ambrosia",
+    name: "Ambrosia",
+    folder: "Ambrosia",
+    images: 4,
+    region: "Coastal",
+    type: "Residential",
+    description: "A pristine coastal town with a dark underbelly.",
+    longDescription: "Ambrosia presents itself as an idyllic coastal community with beautiful beaches and charming downtown areas. However, beneath the surface lies a network of corruption and illegal activities that contrast sharply with its pristine appearance.",
+    highlights: [
+      "Picturesque coastal community",
+      "Beautiful beaches and waterfront",
+      "Charming downtown and local businesses",
+      "Hidden networks and secret operations"
+    ],
+    pointsOfInterest: [
+      "Ambrosia Beach Promenade",
+      "Historic Downtown District",
+      "Coastal Lighthouse",
+      "Marina and Yacht Club",
+      "Scenic Overlook Points"
+    ],
+    coordinates: { x: 55, y: 25 },
+    featuredImage: "Ambrosia_01.jpg"
+  }
+];
+
+// Filter options
+const regionFilters = ["All", "Metropolitan", "Industrial", "Wilderness", "Coastal", "Urban"];
+const typeFilters = ["All", "Urban", "Port", "Natural", "Islands", "Cultural", "Residential"];
 
 // Character Card Component - Enhanced Light Theme
 const CharacterCard = ({ character, index }: any) => {
@@ -214,55 +385,17 @@ const TrailerCard = ({ trailer, index }: any) => {
 
 export default function GTA6Page() {
   const [showBackToTop, setShowBackToTop] = useState(false);
-  const [showCharactersDropdown, setShowCharactersDropdown] = useState(false);
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   
-  // Updated locations data for the Leonida map with all required fields
-  const locations = [
-    { 
-      id: "vice-city", 
-      name: "Vice City", 
-      folder: "Vice%20City",
-      images: 9,
-      description: "The crown jewel of Leonida, where the sun fades and the neon glows." 
-    },
-    { 
-      id: "leonida-keys", 
-      name: "Leonida Keys", 
-      folder: "Leonida%20Keys",
-      images: 5,
-      description: "A tropical paradise where smugglers and tourists mix freely." 
-    },
-    { 
-      id: "grassrivers", 
-      name: "Grassrivers", 
-      folder: "Grassrivers",
-      images: 4,
-      description: "Where the music scene is as vibrant as the streets are dangerous." 
-    },
-    { 
-      id: "port-gellhorn", 
-      name: "Port Gellhorn", 
-      folder: "Port%20Gellhorn",
-      images: 8,
-      description: "A bustling port town with opportunities for those willing to take risks." 
-    },
-    { 
-      id: "ambrosia", 
-      name: "Ambrosia", 
-      folder: "Ambrosia",
-      images: 4,
-      description: "A pristine coastal town with a dark underbelly." 
-    },
-    { 
-      id: "mount-kalaga", 
-      name: "Mount Kalaga National Park", 
-      folder: "Mount%20Kalaga%20National%20Park",
-      images: 6,
-      description: "Rugged wilderness that provides the perfect hideaway." 
-    }
-  ];
+  // Cities Gallery State
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedRegion, setSelectedRegion] = useState("All");
+  const [selectedType, setSelectedType] = useState("All");
+  const [selectedCity, setSelectedCity] = useState<any>(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [showFilters, setShowFilters] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
   
   // Mock data for trailers with YouTube IDs
   const trailers = [
@@ -296,12 +429,58 @@ export default function GTA6Page() {
     };
   }, []);
 
-  const scrollToCharacter = (characterId: string) => {
-    const element = document.getElementById(`character-${characterId}`);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-    setShowCharactersDropdown(false);
+  // Filter cities based on search and filters
+  const filteredCities = citiesData.filter(city => {
+    const matchesSearch = city.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         city.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesRegion = selectedRegion === "All" || city.region === selectedRegion;
+    const matchesType = selectedType === "All" || city.type === selectedType;
+    
+    return matchesSearch && matchesRegion && matchesType;
+  });
+
+  // Keyboard navigation for city modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!selectedCity) return;
+      
+      if (e.key === 'Escape') {
+        setSelectedCity(null);
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        navigateImage('prev');
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        navigateImage('next');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedCity]);
+
+  const navigateImage = useCallback((direction: 'prev' | 'next') => {
+    if (!selectedCity) return;
+    
+    setCurrentImageIndex(prev => {
+      if (direction === 'next') {
+        return prev >= selectedCity.images - 1 ? 0 : prev + 1;
+      } else {
+        return prev <= 0 ? selectedCity.images - 1 : prev - 1;
+      }
+    });
+  }, [selectedCity]);
+
+  const openCityModal = (city: any) => {
+    setSelectedCity(city);
+    setCurrentImageIndex(0);
+    document.body.style.overflow = 'hidden';
+  };
+
+  const closeCityModal = () => {
+    setSelectedCity(null);
+    setCurrentImageIndex(0);
+    document.body.style.overflow = 'unset';
   };
 
   return (
@@ -355,8 +534,8 @@ export default function GTA6Page() {
                 </motion.a>
               </li>
               <li>
-                <motion.button
-                  onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+                <motion.a
+                  href="#characters"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   className={`px-4 py-2 text-sm rounded-xl transition-all duration-300 flex items-center gap-2 font-medium ${
@@ -365,125 +544,9 @@ export default function GTA6Page() {
                       : 'text-white/70 hover:text-white hover:bg-white/10'
                   }`}
                 >
-                  {mounted && (
-                    <>
-                      <Sun className={`h-4 w-4 rotate-0 scale-100 transition-all ${theme === 'dark' ? 'dark:-rotate-90 dark:scale-0' : ''}`} />
-                      <Moon className={`absolute h-4 w-4 rotate-90 scale-0 transition-all ${theme === 'dark' ? 'dark:rotate-0 dark:scale-100' : ''}`} />
-                    </>
-                  )}
-                  Theme
-                </motion.button>
-              </li>
-              <li className="relative group">
-                <motion.button 
-                  onClick={() => setShowCharactersDropdown(!showCharactersDropdown)}
-                  onMouseEnter={() => {
-                    clearTimeout(window.closeDropdownTimeout);
-                    setShowCharactersDropdown(true);
-                  }}
-                  onMouseLeave={() => {
-                    window.closeDropdownTimeout = setTimeout(() => {
-                      setShowCharactersDropdown(false);
-                    }, 300);
-                  }}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className={`px-4 py-2 text-sm rounded-xl transition-all duration-300 flex items-center justify-between gap-2 min-w-[130px] font-medium ${
-                    theme === 'light'
-                      ? 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
-                      : 'text-white/70 hover:text-white hover:bg-white/10'
-                  }`}
-                >
-                  <span className="flex items-center gap-2">
-                    <Star size={14} />
-                    Characters
-                  </span>
-                  <ChevronDown 
-                    size={16} 
-                    className={`transition-transform duration-300 ${showCharactersDropdown ? 'rotate-180' : ''}`} 
-                  />
-                </motion.button>
-                
-                <AnimatePresence>
-                  {showCharactersDropdown && (
-                    <motion.div 
-                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                      transition={{ duration: 0.2 }}
-                      className={`absolute top-full right-0 mt-3 w-64 backdrop-blur-xl border rounded-2xl shadow-2xl overflow-hidden py-3 character-dropdown ${
-                        theme === 'light'
-                          ? 'bg-white/95 border-gray-300 shadow-xl'
-                          : 'bg-black/95 border-white/30'
-                      }`}
-                      onMouseEnter={() => {
-                        clearTimeout(window.closeDropdownTimeout);
-                        setShowCharactersDropdown(true);
-                      }}
-                      onMouseLeave={() => {
-                        window.closeDropdownTimeout = setTimeout(() => {
-                          setShowCharactersDropdown(false);
-                        }, 300);
-                      }}
-                    >
-                      <div className="max-h-[70vh] overflow-y-auto custom-scrollbar px-2">
-                        {characters.map((character, index) => (
-                          <motion.button
-                            key={character.id}
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.2, delay: index * 0.05 }}
-                            onClick={() => scrollToCharacter(character.id)}
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            className={`character-item w-full text-left px-4 py-3 text-sm transition-all duration-300 flex items-center gap-3 rounded-xl mb-1 ${
-                              theme === 'light'
-                                ? 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
-                                : 'text-white/80 hover:text-white hover:bg-white/10'
-                            }`}
-                          >
-                            <div className={`w-12 h-12 rounded-full overflow-hidden flex-shrink-0 border-2 transition-colors ${
-                              theme === 'light'
-                                ? 'bg-gray-100 border-gray-300 hover:border-gray-400'
-                                : 'bg-black/50 border-white/20 hover:border-white/40'
-                            }`}>
-                              <Image 
-                                src={`/gta6/characters/${character.mainImage}`} 
-                                alt={character.info.name} 
-                                width={48} 
-                                height={48} 
-                                className="object-cover w-full h-full"
-                              />
-                            </div>
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2">
-                                <span className={`font-semibold ${
-                                  theme === 'light' ? 'text-gray-900' : 'text-white'
-                                }`}>
-                                  {character.info.name}
-                                </span>
-                                {(character.id === 'lucia' || character.id === 'jason') && (
-                                  <motion.span 
-                                    animate={{ rotate: [0, 360] }}
-                                    transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                                    className="text-yellow-500"
-                                  >
-                                    ★
-                                  </motion.span>
-                                )}
-                              </div>
-                              <span className={`text-xs ${
-                                theme === 'light' ? 'text-gray-600' : 'text-white/60'
-                              }`}>
-                                {character.info.officialDescription?.[0]?.slice(0, 30)}...
-                              </span>
-                            </div>
-                          </motion.button>
-                        ))}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                  <Star size={14} />
+                  Characters
+                </motion.a>
               </li>
             </ul>
           </div>
@@ -664,74 +727,306 @@ export default function GTA6Page() {
                 </p>
               </div>
             </div>
-            
-            {/* Enhanced City Grid with Images and Links */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-              {locations.map((location, index) => (
-                <motion.div 
-                  key={location.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: 0.1 * index }}
-                  viewport={{ once: true }}
-                >
-                  <Link 
-                    href={`/gta6/cities/${location.id}`}
-                    className={`block backdrop-blur-sm border rounded-xl overflow-hidden group transition-all duration-300 cursor-pointer ${
+
+            {/* Search and Filters */}
+            <div className="mb-8">
+              <div className="flex flex-col lg:flex-row gap-4 items-center justify-between mb-4">
+                {/* Search */}
+                <div className="relative flex-1 max-w-md">
+                  <Search size={20} className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${
+                    theme === 'light' ? 'text-gray-400' : 'text-white/40'
+                  }`} />
+                  <input
+                    type="text"
+                    placeholder="Search cities..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className={`w-full pl-10 pr-4 py-2 rounded-xl border transition-colors ${
                       theme === 'light'
-                        ? 'bg-white/60 border-gray-300 hover:border-primary hover:shadow-lg hover:shadow-primary/10'
-                        : 'bg-black/30 border-white/10 hover:border-primary/30 hover:shadow-[0_0_15px_rgba(var(--primary),0.15)]'
+                        ? 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-primary'
+                        : 'bg-black/20 border-white/20 text-white placeholder-white/50 focus:border-primary'
                     }`}
+                    aria-label="Search cities"
+                  />
+                </div>
+
+                {/* View Mode Toggle */}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setViewMode('grid')}
+                    className={`p-2 rounded-lg transition-colors ${
+                      viewMode === 'grid'
+                        ? 'bg-primary text-white'
+                        : theme === 'light'
+                          ? 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          : 'bg-white/10 text-white/60 hover:bg-white/20'
+                    }`}
+                    aria-label="Grid view"
+                  >
+                    <Grid size={20} />
+                  </button>
+                  <button
+                    onClick={() => setViewMode('map')}
+                    className={`p-2 rounded-lg transition-colors ${
+                      viewMode === 'map'
+                        ? 'bg-primary text-white'
+                        : theme === 'light'
+                          ? 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          : 'bg-white/10 text-white/60 hover:bg-white/20'
+                    }`}
+                    aria-label="Map view"
+                  >
+                    <Map size={20} />
+                  </button>
+                </div>
+
+                {/* Filters */}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setShowFilters(!showFilters)}
+                    className={`px-4 py-2 rounded-xl border transition-colors flex items-center gap-2 ${
+                      theme === 'light'
+                        ? 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                        : 'bg-black/20 border-white/20 text-white/70 hover:bg-white/10'
+                    }`}
+                    aria-label="Toggle filters"
+                  >
+                    <Filter size={16} />
+                    Filters
+                  </button>
+                </div>
+              </div>
+
+              {/* Filter Options */}
+              <AnimatePresence>
+                {showFilters && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="mt-4 pt-4 border-t border-gray-300/20 flex flex-col md:flex-row gap-4"
+                  >
+                    <div className="flex-1">
+                      <label className={`block text-sm font-medium mb-2 ${
+                        theme === 'light' ? 'text-gray-700' : 'text-white/70'
+                      }`}>
+                        Region
+                      </label>
+                      <select
+                        value={selectedRegion}
+                        onChange={(e) => setSelectedRegion(e.target.value)}
+                        className={`w-full p-2 rounded-lg border transition-colors ${
+                          theme === 'light'
+                            ? 'bg-white border-gray-300 text-gray-900'
+                            : 'bg-black/20 border-white/20 text-white'
+                        }`}
+                      >
+                        {regionFilters.map(region => (
+                          <option key={region} value={region}>{region}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="flex-1">
+                      <label className={`block text-sm font-medium mb-2 ${
+                        theme === 'light' ? 'text-gray-700' : 'text-white/70'
+                      }`}>
+                        Type
+                      </label>
+                      <select
+                        value={selectedType}
+                        onChange={(e) => setSelectedType(e.target.value)}
+                        className={`w-full p-2 rounded-lg border transition-colors ${
+                          theme === 'light'
+                            ? 'bg-white border-gray-300 text-gray-900'
+                            : 'bg-black/20 border-white/20 text-white'
+                        }`}
+                      >
+                        {typeFilters.map(type => (
+                          <option key={type} value={type}>{type}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Results Count */}
+            <div className={`mb-6 ${
+              theme === 'light' ? 'text-gray-600' : 'text-white/60'
+            }`}>
+              {filteredCities.length === citiesData.length ? (
+                `Showing all ${citiesData.length} cities`
+              ) : (
+                `Found ${filteredCities.length} of ${citiesData.length} cities`
+              )}
+            </div>
+
+            {/* Grid View */}
+            {viewMode === 'grid' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                {filteredCities.map((city, index) => (
+                  <motion.div
+                    key={city.id}
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: index * 0.1 }}
+                    className={`group cursor-pointer backdrop-blur-sm border rounded-2xl overflow-hidden transition-all duration-300 ${
+                      theme === 'light'
+                        ? 'bg-white/60 border-gray-300 hover:border-primary hover:shadow-xl shadow-lg'
+                        : 'bg-black/30 border-white/10 hover:border-primary/30 hover:shadow-[0_0_20px_rgba(var(--primary),0.2)]'
+                    }`}
+                    onClick={() => openCityModal(city)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        openCityModal(city);
+                      }
+                    }}
+                    aria-label={`View details for ${city.name}`}
                   >
                     {/* City Image */}
-                    <div className={`h-48 relative transition-all duration-300 ${
-                      theme === 'light'
-                        ? 'bg-gradient-to-r from-gray-200 to-gray-300 group-hover:from-primary/20 group-hover:to-primary/40'
-                        : 'bg-gradient-to-r from-white/5 to-white/10 group-hover:from-primary/20 group-hover:to-primary/40'
-                    }`}>
-                      <SafeImage
-                        src={`/vi/places/${location.folder}/${location.name.replace(/[^a-zA-Z0-9]/g, '_')}_01.jpg`}
-                        alt={location.name}
-                        fill
-                        className="object-cover transition-transform duration-300 group-hover:scale-110"
-                      />
-                      <div className={`absolute inset-0 transition-all duration-300 ${
+                    <div className="relative h-64 overflow-hidden">
+                      <div className={`absolute inset-0 z-10 transition-all duration-300 ${
                         theme === 'light'
                           ? 'bg-gray-900/20 group-hover:bg-gray-900/10'
                           : 'bg-black/30 group-hover:bg-black/20'
                       }`}></div>
-                      <div className="absolute bottom-0 left-0 w-full p-4">
-                        <h3 className="font-bold text-xl text-white drop-shadow-lg">
-                          {location.name}
-                        </h3>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Camera size={14} className="text-white/80 drop-shadow" />
-                          <span className="text-sm text-white/80 drop-shadow">
-                            {location.images} images
-                          </span>
+                      
+                      <SafeImage
+                        src={`/vi/places/${city.folder}/${city.featuredImage}`}
+                        alt={city.name}
+                        fill
+                        className="object-cover transition-transform duration-700 group-hover:scale-110"
+                      />
+                      
+                      {/* Region Badge */}
+                      <div className="absolute top-4 left-4 z-20">
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium backdrop-blur-sm ${
+                          theme === 'light'
+                            ? 'bg-white/80 text-gray-800'
+                            : 'bg-black/60 text-white'
+                        }`}>
+                          {city.region}
+                        </span>
+                      </div>
+
+                      {/* View Icon */}
+                      <div className="absolute top-4 right-4 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <div className={`p-2 rounded-full backdrop-blur-sm ${
+                          theme === 'light' ? 'bg-white/80' : 'bg-black/60'
+                        }`}>
+                          <Eye size={16} className={theme === 'light' ? 'text-gray-800' : 'text-white'} />
                         </div>
                       </div>
-                      <div className={`absolute top-2 right-2 backdrop-blur-sm rounded-full p-1 ${
-                        theme === 'light' ? 'bg-white/70' : 'bg-black/50'
-                      }`}>
-                        <ExternalLink size={16} className={theme === 'light' ? 'text-gray-700' : 'text-white/70'} />
+
+                      {/* City Name Overlay */}
+                      <div className="absolute bottom-0 left-0 right-0 p-6 z-20">
+                        <h3 className="text-2xl font-bold text-white drop-shadow-lg mb-2">
+                          {city.name}
+                        </h3>
+                        <div className="flex items-center gap-2 text-white/80">
+                          <Camera size={14} className="drop-shadow" />
+                          <span className="text-sm drop-shadow">{city.images} images</span>
+                        </div>
                       </div>
                     </div>
-                    
+
                     {/* City Info */}
-                    <div className="p-4">
-                      <p className={`text-sm mb-4 ${
-                        theme === 'light' ? 'text-gray-700' : 'text-white/80'
-                      }`}>{location.description}</p>
-                      <div className="inline-flex items-center gap-2 text-primary group-hover:text-primary/80 transition-colors text-sm font-medium">
-                        Explore {location.name}
-                        <ExternalLink size={14} />
+                    <div className="p-6">
+                      <div className="flex items-center gap-2 mb-3">
+                        <MapPin size={16} className={theme === 'light' ? 'text-gray-500' : 'text-white/50'} />
+                        <span className={`text-sm ${
+                          theme === 'light' ? 'text-gray-600' : 'text-white/60'
+                        }`}>
+                          {city.type}
+                        </span>
+                      </div>
+                      
+                      <p className={`text-sm leading-relaxed ${
+                        theme === 'light' ? 'text-gray-700' : 'text-white/70'
+                      }`}>
+                        {city.description}
+                      </p>
+
+                      <div className={`mt-4 inline-flex items-center gap-2 text-primary group-hover:text-primary/80 transition-colors text-sm font-medium`}>
+                        Explore {city.name}
+                        <ArrowLeft size={14} className="rotate-180 transform group-hover:translate-x-1 transition-transform" />
                       </div>
                     </div>
-                  </Link>
-                </motion.div>
-              ))}
-            </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+
+            {/* Map View */}
+            {viewMode === 'map' && (
+              <div className="mb-8">
+                <div className="relative aspect-video rounded-xl overflow-hidden">
+                  {/* Interactive Map Background */}
+                  <div className={`w-full h-full relative ${
+                    theme === 'light' 
+                      ? 'bg-gradient-to-br from-blue-100 to-green-100' 
+                      : 'bg-gradient-to-br from-blue-900/20 to-green-900/20'
+                  }`}>
+                    {/* City Markers */}
+                    {filteredCities.map((city, index) => (
+                      <motion.button
+                        key={city.id}
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ delay: index * 0.1 }}
+                        className="absolute transform -translate-x-1/2 -translate-y-1/2 group"
+                        style={{
+                          left: `${city.coordinates.x}%`,
+                          top: `${city.coordinates.y}%`
+                        }}
+                        onClick={() => openCityModal(city)}
+                        aria-label={`View ${city.name} details`}
+                      >
+                        {/* Marker Pin */}
+                        <div className="relative">
+                          <div className={`w-6 h-6 rounded-full border-2 transition-all duration-300 ${
+                            theme === 'light'
+                              ? 'bg-primary border-white shadow-lg group-hover:scale-125'
+                              : 'bg-primary border-black/50 shadow-xl group-hover:scale-125'
+                          }`}></div>
+                          
+                          {/* Pulse Animation */}
+                          <div className={`absolute inset-0 w-6 h-6 rounded-full animate-ping ${
+                            theme === 'light' ? 'bg-primary/30' : 'bg-primary/50'
+                          }`}></div>
+                        </div>
+
+                        {/* City Label */}
+                        <div className={`absolute top-8 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap`}>
+                          <div className={`px-3 py-2 rounded-lg backdrop-blur-sm border ${
+                            theme === 'light'
+                              ? 'bg-white/90 border-gray-300 text-gray-900 shadow-lg'
+                              : 'bg-black/80 border-white/20 text-white'
+                          }`}>
+                            <div className="text-sm font-medium">{city.name}</div>
+                            <div className={`text-xs ${
+                              theme === 'light' ? 'text-gray-600' : 'text-white/60'
+                            }`}>
+                              {city.images} images
+                            </div>
+                          </div>
+                        </div>
+                      </motion.button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className={`mt-6 text-center ${
+                  theme === 'light' ? 'text-gray-600' : 'text-white/60'
+                }`}>
+                  <p className="text-sm">Click on any marker to explore that city</p>
+                </div>
+              </div>
+            )}
             
             <div className={`backdrop-blur-sm border rounded-xl p-5 ${
               theme === 'light'
@@ -759,6 +1054,229 @@ export default function GTA6Page() {
         {/* Characters Section - Theme Aware */}
         <CharacterSection />
       </div>
+
+      {/* City Modal */}
+      <AnimatePresence>
+        {selectedCity && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            onClick={closeCityModal}
+          >
+            {/* Backdrop */}
+            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm"></div>
+            
+            {/* Modal Content */}
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className={`relative w-full max-w-6xl max-h-[90vh] overflow-hidden rounded-3xl backdrop-blur-xl border ${
+                theme === 'light'
+                  ? 'bg-white/95 border-gray-300'
+                  : 'bg-black/90 border-white/20'
+              }`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Close Button */}
+              <button
+                onClick={closeCityModal}
+                className={`absolute top-6 right-6 z-30 p-2 rounded-full backdrop-blur-sm transition-colors ${
+                  theme === 'light'
+                    ? 'bg-white/80 hover:bg-white text-gray-800'
+                    : 'bg-black/60 hover:bg-black/80 text-white'
+                }`}
+                aria-label="Close modal"
+              >
+                <X size={24} />
+              </button>
+
+              <div className="flex flex-col lg:flex-row h-full max-h-[90vh]">
+                {/* Image Carousel */}
+                <div className="lg:w-3/5 relative">
+                  <div className="relative h-64 lg:h-full">
+                    <SafeImage
+                      src={`/vi/places/${selectedCity.folder}/${selectedCity.name.replace(/[^a-zA-Z0-9]/g, '_')}_${String(currentImageIndex + 1).padStart(2, '0')}.jpg`}
+                      alt={`${selectedCity.name} - Image ${currentImageIndex + 1}`}
+                      fill
+                      className="object-cover"
+                      priority
+                    />
+                    
+                    {/* Navigation Arrows */}
+                    {selectedCity.images > 1 && (
+                      <>
+                        <button
+                          onClick={() => navigateImage('prev')}
+                          className={`absolute left-4 top-1/2 transform -translate-y-1/2 p-3 rounded-full backdrop-blur-sm transition-all ${
+                            theme === 'light'
+                              ? 'bg-white/80 hover:bg-white text-gray-800'
+                              : 'bg-black/60 hover:bg-black/80 text-white'
+                          }`}
+                          aria-label="Previous image"
+                        >
+                          <ChevronLeft size={24} />
+                        </button>
+                        
+                        <button
+                          onClick={() => navigateImage('next')}
+                          className={`absolute right-4 top-1/2 transform -translate-y-1/2 p-3 rounded-full backdrop-blur-sm transition-all ${
+                            theme === 'light'
+                              ? 'bg-white/80 hover:bg-white text-gray-800'
+                              : 'bg-black/60 hover:bg-black/80 text-white'
+                          }`}
+                          aria-label="Next image"
+                        >
+                          <ChevronRight size={24} />
+                        </button>
+                      </>
+                    )}
+
+                    {/* Image Counter */}
+                    <div className={`absolute bottom-4 left-4 px-3 py-2 rounded-lg backdrop-blur-sm ${
+                      theme === 'light'
+                        ? 'bg-white/80 text-gray-800'
+                        : 'bg-black/60 text-white'
+                    }`}>
+                      {currentImageIndex + 1} / {selectedCity.images}
+                    </div>
+                  </div>
+                </div>
+
+                {/* City Information */}
+                <div className="lg:w-2/5 p-6 lg:p-8 overflow-y-auto">
+                  <div className="space-y-6">
+                    {/* Header */}
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                          theme === 'light'
+                            ? 'bg-gray-100 text-gray-700'
+                            : 'bg-white/10 text-white/70'
+                        }`}>
+                          {selectedCity.region}
+                        </span>
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                          theme === 'light'
+                            ? 'bg-gray-100 text-gray-700'
+                            : 'bg-white/10 text-white/70'
+                        }`}>
+                          {selectedCity.type}
+                        </span>
+                      </div>
+                      <h2 className={`text-3xl font-bold mb-4 ${
+                        theme === 'light' ? 'text-gray-900' : 'text-white'
+                      }`}>
+                        {selectedCity.name}
+                      </h2>
+                      <p className={`text-lg leading-relaxed ${
+                        theme === 'light' ? 'text-gray-700' : 'text-white/80'
+                      }`}>
+                        {selectedCity.longDescription}
+                      </p>
+                    </div>
+
+                    {/* Highlights */}
+                    <div>
+                      <h3 className={`text-xl font-semibold mb-3 flex items-center gap-2 ${
+                        theme === 'light' ? 'text-gray-900' : 'text-white'
+                      }`}>
+                        <Star size={20} className="text-primary" />
+                        Highlights
+                      </h3>
+                      <ul className="space-y-2">
+                        {selectedCity.highlights.map((highlight: string, index: number) => (
+                          <li 
+                            key={index}
+                            className={`flex items-start gap-2 ${
+                              theme === 'light' ? 'text-gray-700' : 'text-white/80'
+                            }`}
+                          >
+                            <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2 flex-shrink-0"></div>
+                            {highlight}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {/* Points of Interest */}
+                    <div>
+                      <h3 className={`text-xl font-semibold mb-3 flex items-center gap-2 ${
+                        theme === 'light' ? 'text-gray-900' : 'text-white'
+                      }`}>
+                        <MapPin size={20} className="text-primary" />
+                        Points of Interest
+                      </h3>
+                      <ul className="space-y-2">
+                        {selectedCity.pointsOfInterest.map((poi: string, index: number) => (
+                          <li 
+                            key={index}
+                            className={`flex items-start gap-2 ${
+                              theme === 'light' ? 'text-gray-700' : 'text-white/80'
+                            }`}
+                          >
+                            <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2 flex-shrink-0"></div>
+                            {poi}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {/* Image Gallery Thumbnails */}
+                    {selectedCity.images > 1 && (
+                      <div>
+                        <h3 className={`text-xl font-semibold mb-3 flex items-center gap-2 ${
+                          theme === 'light' ? 'text-gray-900' : 'text-white'
+                        }`}>
+                          <Camera size={20} className="text-primary" />
+                          Gallery
+                        </h3>
+                        <div className="grid grid-cols-4 gap-2">
+                          {Array.from({ length: selectedCity.images }, (_, index) => (
+                            <button
+                              key={index}
+                              onClick={() => setCurrentImageIndex(index)}
+                              className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all ${
+                                currentImageIndex === index
+                                  ? 'border-primary'
+                                  : theme === 'light'
+                                    ? 'border-gray-300 hover:border-gray-400'
+                                    : 'border-white/20 hover:border-white/40'
+                              }`}
+                            >
+                              <SafeImage
+                                src={`/vi/places/${selectedCity.folder}/${selectedCity.name.replace(/[^a-zA-Z0-9]/g, '_')}_${String(index + 1).padStart(2, '0')}.jpg`}
+                                alt={`${selectedCity.name} thumbnail ${index + 1}`}
+                                fill
+                                className="object-cover"
+                              />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Action Button */}
+                    <div className="pt-4">
+                      <Link
+                        href={`/gta6/cities/${selectedCity.id}`}
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary to-primary/80 text-white rounded-xl font-medium transition-all hover:shadow-lg hover:shadow-primary/20"
+                        onClick={closeCityModal}
+                      >
+                        <Eye size={18} />
+                        View Full Details
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
