@@ -1,4 +1,5 @@
 import json
+from typing import Union, Dict, Any
 
 from agentpress.tool import Tool, ToolResult, openapi_schema, xml_schema
 from agent.tools.data_providers.LinkedinProvider import LinkedinProvider
@@ -137,7 +138,7 @@ Use this tool when you need to discover what endpoints are available.
         self,
         service_name: str,
         route: str,
-        payload: str # this actually a json string
+        payload: Union[Dict[str, Any], str, None] = None
     ) -> ToolResult:
         """
         Execute a call to a specific data provider endpoint.
@@ -145,10 +146,26 @@ Use this tool when you need to discover what endpoints are available.
         Parameters:
         - service_name: The name of the data provider (e.g., 'linkedin')
         - route: The key of the endpoint to call
-        - payload: The payload to send with the data provider call
+        - payload: The payload to send with the data provider call (dict or JSON string)
         """
         try:
-            payload = json.loads(payload)
+            # Handle payload - it can be either a dict or a JSON string
+            if isinstance(payload, str):
+                try:
+                    payload = json.loads(payload)
+                except json.JSONDecodeError as e:
+                    return self.fail_response(f"Invalid JSON in payload: {str(e)}")
+            elif payload is None:
+                payload = {}
+            elif isinstance(payload, dict):
+                # Payload is already a dict, use it as-is
+                pass
+            else:
+                # Handle other types by converting to dict
+                try:
+                    payload = dict(payload)
+                except (TypeError, ValueError):
+                    return self.fail_response(f"Invalid payload type: {type(payload)}. Expected dict or JSON string.")
 
             if not service_name:
                 return self.fail_response("service_name is required.")
@@ -161,7 +178,7 @@ Use this tool when you need to discover what endpoints are available.
             
             data_provider = self.register_data_providers[service_name]
             if route == service_name:
-                return self.fail_response(f"route '{route}' is the same as service_name '{service_name}'. YOU FUCKING IDIOT!")
+                return self.fail_response(f"route '{route}' is the same as service_name '{service_name}'. Please use a valid endpoint route.")
             
             if route not in data_provider.get_endpoints().keys():
                 return self.fail_response(f"Endpoint '{route}' not found in {service_name} data provider.")
