@@ -26,6 +26,7 @@ from dotenv import load_dotenv
 # Load script-specific environment variables
 load_dotenv(".env")
 
+from backend.utils.config import config # Added
 from services.supabase import DBConnection
 from sandbox.sandbox import daytona
 from utils.logger import logger
@@ -243,6 +244,11 @@ async def process_sandboxes(inactive_projects: List[Dict[str, Any]], dry_run: bo
 
 async def main():
     """Main function to run the script."""
+    if config.DATABASE_TYPE == "sqlite":
+        logger.info(f"Script {__file__} is disabled in SQLite mode as its functionality is Supabase-specific (relies on billing_customers table).")
+        print(f"Script {__file__} is disabled in SQLite mode.")
+        return
+
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Archive sandboxes for projects without active billing')
     parser.add_argument('--dry-run', action='store_true', help='Show what would be archived without actually archiving')

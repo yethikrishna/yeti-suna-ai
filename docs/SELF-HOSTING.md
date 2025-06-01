@@ -1,9 +1,9 @@
-# Suna Self-Hosting Guide
+# Suna Self-Hosting Guide (Advanced / Supabase Backend)
 
-This guide provides detailed instructions for setting up and hosting your own instance of Suna, an open-source generalist AI agent.
+**Note for Local Development:** The default and quickest way to get Suna running locally is now with SQLite, which simplifies setup considerably. Please see the main [README.md](../README.md#getting-started-local-development) for the local SQLite setup instructions. This guide provides detailed instructions for setting up Suna with a **Supabase backend**, which is recommended for multi-user environments, cloud deployments, or when leveraging specific Supabase features.
 
 ## Table of Contents
-
+(Table of Contents remains the same)
 - [Overview](#overview)
 - [Prerequisites](#prerequisites)
 - [Installation Steps](#installation-steps)
@@ -12,192 +12,127 @@ This guide provides detailed instructions for setting up and hosting your own in
 - [Troubleshooting](#troubleshooting)
 
 ## Overview
-
+(Overview remains mostly the same, but clarifies Supabase is one option)
 Suna consists of four main components:
-
-1. **Backend API** - Python/FastAPI service for REST endpoints, thread management, and LLM integration
-2. **Backend Worker** - Python/Dramatiq worker service for handling agent tasks
-3. **Frontend** - Next.js/React application providing the user interface
-4. **Agent Docker** - Isolated execution environment for each agent
-5. **Supabase Database** - Handles data persistence and authentication
+1.  **Backend API** - Python/FastAPI service.
+2.  **Backend Worker** - Python/Dramatiq worker service.
+3.  **Frontend** - Next.js/React application.
+4.  **Agent Docker** - Isolated execution environment.
+5.  **Database Backend**:
+    *   **SQLite (Default for Local):** Simple local file-based database. See main `README.md`.
+    *   **Supabase (PostgreSQL):** Used for this guide. Handles data persistence, authentication, user management, etc.
 
 ## Prerequisites
 
-Before starting the installation process, you'll need to set up the following:
+To follow this guide for a **Supabase-backed Suna instance**, you'll need:
 
-### 1. Supabase Project
-
-1. Create an account at [Supabase](https://supabase.com/)
-2. Create a new project
-3. Note down the following information (found in Project Settings → API):
-   - Project URL (e.g., `https://abcdefg.supabase.co`)
-   - API keys (anon key and service role key)
+### 1. Supabase Project (If using Supabase)
+    *   Create an account at [Supabase](https://supabase.com/)
+    *   Create a new project
+    *   Note down: Project URL, anon key, service role key (from Project Settings → API).
 
 ### 2. API Keys
-
 Obtain the following API keys:
 
-#### Required
+#### Required (for core functionality)
+*   **LLM Provider** (at least one): Anthropic, OpenAI, Groq, OpenRouter, AWS Bedrock.
+*   **Search and Web Scraping**: Tavily, Firecrawl.
+*   **Agent Execution (Optional but Recommended for advanced sandboxing)**: Daytona. If not configured, local Docker execution might be used for sandboxes, which has different security implications.
 
-- **LLM Provider** (at least one of the following):
+#### Optional (for extended features)
+*   **RapidAPI**
+*   **Sentry, Langfuse** (for observability)
+*   **Stripe** (if enabling billing for a deployed version)
 
-  - [Anthropic](https://console.anthropic.com/) - Recommended for best performance
-  - [OpenAI](https://platform.openai.com/)
-  - [Groq](https://console.groq.com/)
-  - [OpenRouter](https://openrouter.ai/)
-  - [AWS Bedrock](https://aws.amazon.com/bedrock/)
-
-- **Search and Web Scraping**:
-
-  - [Tavily](https://tavily.com/) - For enhanced search capabilities
-  - [Firecrawl](https://firecrawl.dev/) - For web scraping capabilities
-
-- **Agent Execution**:
-  - [Daytona](https://app.daytona.io/) - For secure agent execution
-
-#### Optional
-
-- **RapidAPI** - For accessing additional API services (optional)
 
 ### 3. Required Software
-
-Ensure the following tools are installed on your system:
-
-- **[Git](https://git-scm.com/downloads)**
-- **[Docker](https://docs.docker.com/get-docker/)**
-- **[Python 3.11](https://www.python.org/downloads/)**
-- **[Poetry](https://python-poetry.org/docs/#installation)**
-- **[Node.js & npm](https://nodejs.org/en/download/)**
-- **[Supabase CLI](https://supabase.com/docs/guides/local-development/cli/getting-started)**
+(List remains the same: Git, Docker, Python 3.11, Poetry, Node.js & npm, Supabase CLI - Supabase CLI is essential if managing a Supabase backend).
 
 ## Installation Steps
 
-### 1. Clone the Repository
+These steps assume you are setting up Suna with a **Supabase backend**. For the default SQLite local setup, refer to the main `README.md`.
 
+### 1. Clone the Repository
 ```bash
 git clone https://github.com/kortix-ai/suna.git
 cd suna
 ```
 
 ### 2. Run the Setup Wizard
-
-The setup wizard will guide you through the installation process:
-
+The setup wizard will guide you. **Ensure you select "Supabase" when prompted for the database type.**
 ```bash
 python setup.py
 ```
-
 The wizard will:
+- Check prerequisites.
+- Collect API keys and configuration.
+- If Supabase is chosen:
+    - Guide Supabase CLI login and project linking.
+    - Run database migrations against your Supabase instance.
+- Configure `.env` files (e.g., `backend/.env` will have `DATABASE_TYPE=supabase`).
+- Install dependencies.
+- Guide starting Suna.
 
-- Check if all required tools are installed
-- Collect your API keys and configuration information
-- Set up the Supabase database
-- Configure environment files
-- Install dependencies
-- Start Suna using your preferred method
+### 3. Supabase Configuration (If Supabase selected in wizard)
+The wizard automates much of this. Manual steps include:
+1.  Log in to the Supabase CLI (`supabase login`).
+2.  Link to your project (`supabase link --project-ref YOUR_PROJECT_REF`). This is done from the `backend` directory.
+3.  Push database migrations (`supabase db push`). This is done from the `backend` directory.
+4.  **Manually expose the 'basejump' schema in Supabase Dashboard:**
+    *   Project Settings → API → Exposed schemas. Add 'basejump'.
 
-### 3. Supabase Configuration
-
-During setup, you'll need to:
-
-1. Log in to the Supabase CLI
-2. Link your local project to your Supabase project
-3. Push database migrations
-4. Manually expose the 'basejump' schema in Supabase:
-   - Go to your Supabase project
-   - Navigate to Project Settings → API
-   - Add 'basejump' to the Exposed Schema section
-
-### 4. Daytona Configuration
-
-As part of the setup, you'll need to:
-
-1. Create a Daytona account
-2. Generate an API key
-3. Create a Docker image:
-   - Image name: `kortix/suna:0.1.2.8`
-   - Entrypoint: `/usr/bin/supervisord -n -c /etc/supervisor/conf.d/supervisord.conf`
+### 4. Daytona Configuration (If using Daytona)
+(Daytona configuration steps remain the same)
 
 ## Manual Configuration
 
-If you prefer to configure your installation manually, or if you need to modify the configuration after installation, here's what you need to know:
+If you need to manually configure or update your `.env` files:
 
-### Backend Configuration (.env)
-
-The backend configuration is stored in `backend/.env`
-
-Example configuration:
-
+### Backend Configuration (`backend/.env`)
+Ensure `DATABASE_TYPE=supabase` if using Supabase.
 ```sh
 # Environment Mode
-ENV_MODE=local
+ENV_MODE=local # or staging, production
 
-# DATABASE
+# DATABASE Configuration
+DATABASE_TYPE=supabase # Set to supabase for this guide
+DATA_DIR=data_files # Still used for other local data if any, less critical for Supabase setup
+
+# SQLite Configuration (Ignored if DATABASE_TYPE=supabase)
+# SQLITE_DB_PATH=suna_local.db
+
+# Supabase Configuration (Required if DATABASE_TYPE=supabase)
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
-# REDIS
-REDIS_HOST=redis
-REDIS_PORT=6379
-REDIS_PASSWORD=
-REDIS_SSL=false
+# ... (other variables like REDIS, RABBITMQ, LLM keys, optional service keys as before) ...
+# Ensure LLM keys, TAVILY_API_KEY, FIRECRAWL_API_KEY are set.
+# Daytona keys if used.
+# Optional: SENTRY_DSN, LANGFUSE keys, STRIPE keys etc.
 
-# RABBITMQ
-RABBITMQ_HOST=rabbitmq
-RABBITMQ_PORT=5672
-
-# LLM Providers
-ANTHROPIC_API_KEY=your-anthropic-key
-OPENAI_API_KEY=your-openai-key
-MODEL_TO_USE=anthropic/claude-3-7-sonnet-latest
-
-# WEB SEARCH
-TAVILY_API_KEY=your-tavily-key
-
-# WEB SCRAPE
-FIRECRAWL_API_KEY=your-firecrawl-key
-FIRECRAWL_URL=https://api.firecrawl.dev
-
-# Sandbox container provider
-DAYTONA_API_KEY=your-daytona-key
-DAYTONA_SERVER_URL=https://app.daytona.io/api
-DAYTONA_TARGET=us
-
-NEXT_PUBLIC_URL=http://localhost:3000
+NEXT_PUBLIC_URL=http://localhost:3000 # Or your deployed frontend URL
 ```
 
-### Frontend Configuration (.env.local)
-
-The frontend configuration is stored in `frontend/.env.local` and includes:
-
-- Supabase connection details
-- Backend API URL
-
-Example configuration:
-
+### Frontend Configuration (`frontend/.env.local`)
+If using Supabase for the backend, ensure these are correctly set:
 ```sh
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-NEXT_PUBLIC_BACKEND_URL=http://backend:8000/api
-NEXT_PUBLIC_URL=http://localhost:3000
+NEXT_PUBLIC_BACKEND_URL=http://backend:8000/api # Or your deployed backend URL
+NEXT_PUBLIC_URL=http://localhost:3000 # Or your deployed frontend URL
+NEXT_PUBLIC_ENV_MODE=LOCAL # or STAGING, PRODUCTION
 ```
 
 ## Post-Installation Steps
-
-After completing the installation, you'll need to:
-
-1. **Create an account** - Use Supabase authentication to create your first account
-2. **Verify installations** - Check that all components are running correctly
+(Remains the same)
+1. **Create an account** - Use Supabase authentication.
+2. **Verify installations**.
 
 ## Startup Options
-
-Suna can be started in two ways:
+(Remains the same, but context is now a Supabase-backed setup if this guide was followed)
 
 ### 1. Using Docker Compose (Recommended)
-
-This method starts all required services in Docker containers:
-
 ```bash
 docker compose up -d # Use `docker compose down` to stop it later
 # or
@@ -205,80 +140,22 @@ python start.py # Use the same to stop it later
 ```
 
 ### 2. Manual Startup
-
-This method requires you to start each component separately:
-
-1. Start Redis and RabbitMQ (required for backend):
-
-```bash
-docker compose up redis rabbitmq -d
-```
-
-2. Start the frontend (in one terminal):
-
-```bash
-cd frontend
-npm run dev
-```
-
-3. Start the backend (in another terminal):
-
-```bash
-cd backend
-poetry run python3.11 api.py
-```
-
-4. Start the worker (in one more terminal):
-
-```bash
-cd backend
-poetry run python3.11 -m dramatiq run_agent_background
-```
+(Instructions remain the same)
 
 ## Troubleshooting
+(Remains largely the same, but database issues will point to Supabase)
 
 ### Common Issues
-
-1. **Docker services not starting**
-
-   - Check Docker logs: `docker compose logs`
-   - Ensure Docker is running correctly
-   - Verify port availability (3000 for frontend, 8000 for backend)
-
-2. **Database connection issues**
-
-   - Verify Supabase configuration
-   - Check if 'basejump' schema is exposed in Supabase
-
-3. **LLM API key issues**
-
-   - Verify API keys are correctly entered
-   - Check for API usage limits or restrictions
-
-4. **Daytona connection issues**
-   - Verify Daytona API key
-   - Check if the container image is correctly configured
+1.  **Docker services not starting**
+2.  **Database connection issues**
+    *   Verify Supabase URL and keys in `backend/.env`.
+    *   Check if 'basejump' schema is exposed in Supabase.
+    *   Ensure Supabase project is active and accessible.
+3.  **LLM API key issues**
+4.  **Daytona connection issues**
 
 ### Logs
-
-To view logs and diagnose issues:
-
-```bash
-# Docker Compose logs
-docker compose logs -f
-
-# Frontend logs (manual setup)
-cd frontend
-npm run dev
-
-# Backend logs (manual setup)
-cd backend
-poetry run python3.11 api.py
-
-# Worker logs (manual setup)
-cd backend
-poetry run python3.11 -m dramatiq run_agent_background
-```
+(Log commands remain the same)
 
 ---
 

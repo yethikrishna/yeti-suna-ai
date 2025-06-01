@@ -23,6 +23,7 @@ from dotenv import load_dotenv
 # Load script-specific environment variables
 load_dotenv(".env")
 
+from backend.utils.config import config # Added
 from services.supabase import DBConnection
 from utils.logger import logger
 
@@ -100,7 +101,12 @@ async def update_all_customers_to_active() -> Dict[str, int]:
 
 async def main():
     """Main function to run the script."""
-    logger.info("Starting customer status update process")
+    if config.DATABASE_TYPE == "sqlite":
+        logger.info(f"Script {__file__} is disabled in SQLite mode as it targets Supabase-specific billing tables.")
+        print(f"Script {__file__} is disabled in SQLite mode.")
+        return
+
+    logger.info("Starting customer status update process (Supabase mode)")
     
     try:
         # Initialize global DB connection
@@ -139,4 +145,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main()) 
+    asyncio.run(main())

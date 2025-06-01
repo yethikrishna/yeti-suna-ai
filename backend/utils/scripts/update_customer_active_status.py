@@ -28,9 +28,10 @@ import stripe
 load_dotenv(".env")
 
 # Import relative modules
+from backend.utils.config import config # Ensure config is first for DB_TYPE check
 from services.supabase import DBConnection
 from utils.logger import logger
-from utils.config import config
+# from utils.config import config # Already imported above
 
 # Initialize Stripe with the API key
 stripe.api_key = config.STRIPE_SECRET_KEY
@@ -230,8 +231,13 @@ async def update_customer_batch(subscription_status: Dict[str, bool]) -> Dict[st
 
 async def main():
     """Main function to run the script."""
+    if config.DATABASE_TYPE == "sqlite":
+        logger.info(f"Script {__file__} is disabled in SQLite mode as it interacts with Stripe and Supabase-specific billing tables.")
+        print(f"Script {__file__} is disabled in SQLite mode.")
+        return
+
     total_start_time = time.time()
-    logger.info("Starting customer active status update process")
+    logger.info("Starting customer active status update process (Supabase mode)")
     
     try:
         # Check Stripe API key
