@@ -23,14 +23,14 @@ export const characters: Character[] = [
   {
     id: 'jason',
     name: 'Jason Duval',
-    mainImage: 'jason/Jason_Duval_01.jpeg',
-    bgImagePath: '/gta6/characters/jason/Hero_BG_Jason_Duval.jpeg',
+    mainImage: 'Jason Duval/Jason_Duval_01.jpg',
+    bgImagePath: '/vi/people/Jason Duval/Jason_Duval_01.jpg',
     fgImagePath: '',
     additionalImages: [
-      'jason/Jason_Duval_02.jpeg', 
-      'jason/Jason_Duval_03.jpeg', 
-      'jason/Jason_Duval_04.jpeg', 
-      'jason/Jason_Duval_05.jpeg'
+      'Jason Duval/Jason_Duval_02.jpg', 
+      'Jason Duval/Jason_Duval_03.jpg', 
+      'Jason Duval/Jason_Duval_04.jpg', 
+      'Jason Duval/Jason_Duval_05.jpg'
     ],
     info: {
       name: 'Jason Duval',
@@ -46,14 +46,14 @@ export const characters: Character[] = [
   {
     id: 'lucia',
     name: 'Lucia Caminos',
-    mainImage: 'lucia/Lucia_Caminos_01.jpeg',
-    bgImagePath: '/gta6/characters/lucia/Hero_BG_Lucia_caminos.jpeg',
+    mainImage: 'Lucia Caminos/Lucia_Caminos_01.jpg',
+    bgImagePath: '/vi/people/Lucia Caminos/Lucia_Caminos_01.jpg',
     fgImagePath: '',
     additionalImages: [
-      'lucia/Lucia_Caminos_02.jpeg', 
-      'lucia/Lucia_Caminos_03.jpeg', 
-      'lucia/Lucia_Caminos_04.jpeg', 
-      'lucia/Lucia_Caminos_05.jpeg'
+      'Lucia Caminos/Lucia_Caminos_02.jpg', 
+      'Lucia Caminos/Lucia_Caminos_03.jpg', 
+      'Lucia Caminos/Lucia_Caminos_04.jpg', 
+      'Lucia Caminos/Lucia_Caminos_05.jpg'
     ],
     info: {
       name: 'Lucia Caminos',
@@ -70,13 +70,13 @@ export const characters: Character[] = [
   {
     id: 'cal',
     name: 'Cal Hampton',
-    mainImage: 'cal/Cal_Hampton_01.jpeg',
-    bgImagePath: '/gta6/characters/cal/Hero_BG_Cal_Hampton.jpeg',
-    fgImagePath: '/gta6/characters/cal/Hero_FG_Cal_Hampton.png',
+    mainImage: 'Cal Hampton/Cal_Hampton_01.jpg',
+    bgImagePath: '/vi/people/Cal Hampton/Cal_Hampton_01.jpg',
+    fgImagePath: '',
     additionalImages: [
-      'cal/Cal_Hampton_02.jpeg', 
-      'cal/Cal_Hampton_03.jpeg', 
-      'cal/Cal_Hampton_04.jpeg'
+      'Cal Hampton/Cal_Hampton_02.jpg', 
+      'Cal Hampton/Cal_Hampton_03.jpg', 
+      'Cal Hampton/Cal_Hampton_04.jpg'
     ],
     info: {
       name: 'Cal Hampton',
@@ -92,13 +92,13 @@ export const characters: Character[] = [
   {
     id: 'boobie',
     name: 'Boobie Ike',
-    mainImage: 'boobie/Boobie_Ike_01.jpeg',
-    bgImagePath: '/gta6/characters/boobie/Hero_BG_Boobie_Ike(1).jpeg',
-    fgImagePath: '/gta6/characters/boobie/Hero_FG_Boobie_Ike(1).png',
+    mainImage: 'Boobie Ike/Boobie_Ike_01.jpg',
+    bgImagePath: '/vi/people/Boobie Ike/Boobie_Ike_01.jpg',
+    fgImagePath: '',
     additionalImages: [
-      'boobie/Boobie_Ike_02.jpeg', 
-      'boobie/Boobie_Ike_03.jpeg', 
-      'boobie/Boobie_Ike_04.jpeg',
+      'Boobie Ike/Boobie_Ike_02.jpg', 
+      'Boobie Ike/Boobie_Ike_03.jpg', 
+      'Boobie Ike/Boobie_Ike_04.jpg',
     ],
     info: {
       name: 'Boobie Ike',
@@ -114,13 +114,13 @@ export const characters: Character[] = [
   {
     id: 'dre',
     name: 'Dre\'Quan Priest',
-    mainImage: 'dre/DreQuan_Priest_01.jpeg',
-    bgImagePath: '/gta6/characters/dre/Hero_BG_DreQuan_Priest(2).jpeg',
-    fgImagePath: '/gta6/characters/dre/Hero_FG_DreQuan_Priest(2).png',
+    mainImage: 'DreQuan Priest/DreQuan_Priest_01.jpg',
+    bgImagePath: '/vi/people/DreQuan Priest/DreQuan_Priest_01.jpg',
+    fgImagePath: '',
     additionalImages: [
-      'dre/DreQuan_Priest_02.jpeg', 
-      'dre/DreQuan_Priest_03.jpeg', 
-      'dre/DreQuan_Priest_04.jpeg',
+      'DreQuan Priest/DreQuan_Priest_02.jpg', 
+      'DreQuan Priest/DreQuan_Priest_03.jpg', 
+      'DreQuan Priest/DreQuan_Priest_04.jpg',
     ],
     info: {
       name: 'Dre\'Quan Priest',
@@ -136,13 +136,13 @@ export const characters: Character[] = [
   {
     id: 'real',
     name: 'Real Dimez',
-    mainImage: 'real/Real_Dimez_01.jpeg',
-    bgImagePath: '/gta6/characters/real/Hero_BG_Real_Dimez(3).jpeg',
-    fgImagePath: '/gta6/characters/real/Hero_FG_Real_Dimez(3).png',
+    mainImage: 'Real Dimez/Real_Dimez_01.jpg',
+    bgImagePath: '/vi/people/Real Dimez/Real_Dimez_01.jpg',
+    fgImagePath: '',
     additionalImages: [
-      'real/Real_Dimez_02.jpeg', 
-      'real/Real_Dimez_03.jpeg', 
-      'real/Real_Dimez_04.jpeg'
+      'Real Dimez/Real_Dimez_02.jpg', 
+      'Real Dimez/Real_Dimez_03.jpg', 
+      'Real Dimez/Real_Dimez_04.jpg'
     ],
     info: {
       name: 'Real Dimez',
@@ -158,13 +158,13 @@ export const characters: Character[] = [
   {
     id: 'raul',
     name: 'Raul Bautista',
-    mainImage: 'raul/Raul_Bautista_01.jpeg',
-    bgImagePath: '/gta6/characters/raul/Hero_BG_Raul_Bautista(4).jpeg',
-    fgImagePath: '/gta6/characters/raul/Hero_FG_Raul_Bautista(4).png',
+    mainImage: 'Raul Bautista/Raul_Bautista_01.jpg',
+    bgImagePath: '/vi/people/Raul Bautista/Raul_Bautista_01.jpg',
+    fgImagePath: '',
     additionalImages: [
-      'raul/Raul_Bautista_02.jpeg', 
-      'raul/Raul_Bautista_03.jpeg', 
-      'raul/Raul_Bautista_04.jpeg',
+      'Raul Bautista/Raul_Bautista_02.jpg', 
+      'Raul Bautista/Raul_Bautista_03.jpg', 
+      'Raul Bautista/Raul_Bautista_04.jpg',
     ],
     info: {
       name: 'Raul Bautista',
@@ -180,13 +180,13 @@ export const characters: Character[] = [
   {
     id: 'brian',
     name: 'Brian Heder',
-    mainImage: 'brian/Brian_Heder_01.jpeg',
-    bgImagePath: '/gta6/characters/brian/Hero_BG_Brian_Heder(5).jpeg',
-    fgImagePath: '/gta6/characters/brian/Hero_FG_Brian_Heder(5).png',
+    mainImage: 'Brian Heder/Brian_Heder_01.jpg',
+    bgImagePath: '/vi/people/Brian Heder/Brian_Heder_01.jpg',
+    fgImagePath: '',
     additionalImages: [
-      'brian/Brian_Heder_02.jpeg', 
-      'brian/Brian_Heder_03.jpeg', 
-      'brian/Brian_Heder_04.jpeg'
+      'Brian Heder/Brian_Heder_02.jpg', 
+      'Brian Heder/Brian_Heder_03.jpg', 
+      'Brian Heder/Brian_Heder_04.jpg'
     ],
     info: {
       name: 'Brian Heder',

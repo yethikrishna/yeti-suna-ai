@@ -4,11 +4,115 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
-import { Calendar, ChevronLeft, MapPin, Heart, User, Star, Shield, Clock, Sparkles, ExternalLink, Map, Quote, Play, Sun, Moon } from "lucide-react";
+import { Calendar, ChevronLeft, MapPin, Heart, User, Star, Shield, Clock, Sparkles, ExternalLink, Map, Quote, Play, Sun, Moon, Camera, X, ChevronUp, ChevronDown, Home } from "lucide-react";
 import Link from "next/link";
 import { useTheme } from 'next-themes';
 
 import { characters } from "../data/characterData";
+
+// Cities data for dropdown
+const citiesData = [
+  { id: "vice-city", name: "Vice City" },
+  { id: "port-gellhorn", name: "Port Gellhorn" },
+  { id: "mount-kalaga", name: "Mount Kalaga National Park" },
+  { id: "leonida-keys", name: "Leonida Keys" },
+  { id: "grassrivers", name: "Grassrivers" },
+  { id: "ambrosia", name: "Ambrosia" }
+];
+
+// Dropdown Component
+const Dropdown = ({ label, items, theme, icon }: any) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="relative">
+      <motion.button
+        onClick={() => setIsOpen(!isOpen)}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        className={`px-4 py-2 text-sm rounded-xl transition-all duration-300 flex items-center gap-2 font-medium ${
+          theme === 'light'
+            ? 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
+            : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+        }`}
+      >
+        {icon}
+        {label}
+        <motion.div
+          animate={{ rotate: isOpen ? 180 : 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          <ChevronDown size={14} />
+        </motion.div>
+      </motion.button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className={`absolute top-full mt-2 w-64 rounded-xl border shadow-xl z-50 ${
+              theme === 'light'
+                ? 'bg-white/95 border-gray-300 backdrop-blur-xl'
+                : 'bg-black/90 border-white/10 backdrop-blur-xl'
+            }`}
+            onMouseLeave={() => setIsOpen(false)}
+          >
+            <div className="p-2 max-h-64 overflow-y-auto">
+              {items.map((item: any) => (
+                <Link
+                  key={item.id}
+                  href={label === 'Characters' ? `/gta6/${item.id}` : `/gta6/cities/${item.id}`}
+                  className={`block px-3 py-2 rounded-lg transition-all duration-200 ${
+                    theme === 'light'
+                      ? 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
+                      : 'text-white/80 hover:text-white hover:bg-white/10'
+                  }`}
+                  onClick={() => setIsOpen(false)}
+                >
+                  {item.info?.name || item.name}
+                </Link>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+// Safe Image component
+const SafeImage = ({ src, alt, priority = false, ...props }: any) => {
+  const [imgSrc, setImgSrc] = useState(src);
+  const [hasError, setHasError] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Update imgSrc when src prop changes
+  useEffect(() => {
+    setImgSrc(src);
+    setHasError(false);
+    setIsLoading(true);
+  }, [src]);
+
+  return hasError ? (
+    <div className="w-full h-full bg-gray-800 flex items-center justify-center text-gray-400">
+      <Camera size={48} />
+    </div>
+  ) : (
+    <Image 
+      {...props}
+      src={imgSrc}
+      alt={alt}
+      priority={priority}
+      loading={priority ? "eager" : "lazy"}
+      onError={() => setHasError(true)}
+      onLoadingComplete={() => setIsLoading(false)}
+      className={`${props.className} ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
+    />
+  );
+};
 
 const CharacterDetailPage = () => {
   const params = useParams();
@@ -17,6 +121,7 @@ const CharacterDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("background");
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [showBackToTop, setShowBackToTop] = useState(false);
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
@@ -98,6 +203,14 @@ const CharacterDetailPage = () => {
   // Add character to location relationships data
   useEffect(() => {
     setMounted(true);
+    
+    const handleScroll = () => {
+      setShowBackToTop(window.scrollY > 300);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    handleScroll();
+    
     const characterId = params.characterId as string;
     const foundCharacter = characters.find(c => c.id === characterId);
     
@@ -316,11 +429,40 @@ const CharacterDetailPage = () => {
     }
     
     setLoading(false);
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
   }, [params, router]);
 
   const handleImageClick = (image: string) => {
     setSelectedImage(image);
   };
+
+  // Keyboard navigation for lightbox
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (selectedImage && e.key === 'Escape') {
+        setSelectedImage(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedImage]);
+
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (selectedImage) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [selectedImage]);
 
   if (loading) {
     return (
@@ -369,9 +511,40 @@ const CharacterDetailPage = () => {
     <div className={`min-h-screen transition-colors duration-300 ${
       theme === 'light' 
         ? 'bg-gradient-to-br from-gray-50 to-gray-100' 
-        : 'bg-black'
+        : 'bg-background'
     }`}>
-      {/* Image Lightbox */}
+      {/* Back to Top Button */}
+      <AnimatePresence>
+        {showBackToTop && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0, y: 20 }}
+            transition={{ duration: 0.3 }}
+            className="fixed bottom-6 right-6 z-50"
+          >
+            <motion.a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              whileHover={{ scale: 1.1, rotate: 360 }}
+              whileTap={{ scale: 0.9 }}
+              className={`flex items-center justify-center w-12 h-12 bg-gradient-to-r from-primary/90 to-primary rounded-full shadow-2xl transition-all backdrop-blur-sm border ${
+                theme === 'light' 
+                  ? 'text-white border-gray-300 shadow-lg' 
+                  : 'text-primary-foreground border-border hover:shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:border-purple-400/50'
+              }`}
+              aria-label="Back to top"
+            >
+              <ChevronUp size={22} />
+            </motion.a>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Enhanced Image Lightbox */}
       <AnimatePresence>
         {selectedImage && (
           <motion.div 
@@ -381,32 +554,117 @@ const CharacterDetailPage = () => {
             className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
             onClick={() => setSelectedImage(null)}
           >
+            {/* Backdrop */}
+            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm"></div>
+            
             <motion.div
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.9 }}
-              className="relative max-w-4xl max-h-[80vh] rounded-2xl overflow-hidden"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="relative max-w-7xl max-h-[90vh] rounded-2xl overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
             >
-              <Image
+              {/* Image */}
+              <SafeImage
                 src={`/gta6/characters/${selectedImage}`}
                 alt={character.info.name}
-                width={900}
-                height={600}
-                className="object-contain"
+                width={1200}
+                height={800}
+                className="object-contain max-h-[90vh] w-auto"
+                priority
               />
+              
+              {/* Close Button */}
               <button 
-                className="absolute top-4 right-4 bg-black/50 text-white p-2 rounded-full"
+                className={`absolute top-6 right-6 p-3 rounded-full backdrop-blur-sm transition-all z-30 ${
+                  theme === 'light'
+                    ? 'bg-white/80 hover:bg-white text-gray-800'
+                    : 'bg-black/60 hover:bg-black/80 text-white hover:shadow-[0_0_15px_rgba(168,85,247,0.4)] hover:border hover:border-purple-500/50'
+                }`}
                 onClick={() => setSelectedImage(null)}
+                aria-label="Close lightbox"
               >
-                <ChevronLeft size={20} />
+                <X size={24} />
               </button>
+              
+              {/* Image Info */}
+              <div className="absolute bottom-6 left-6 z-30">
+                <div className={`px-4 py-3 rounded-xl backdrop-blur-sm ${
+                  theme === 'light'
+                    ? 'bg-white/80 text-gray-800'
+                    : 'bg-black/60 text-white'
+                }`}>
+                  <h3 className="font-semibold text-lg">{character.info.name}</h3>
+                  <p className={`text-sm ${
+                    theme === 'light' ? 'text-gray-600' : 'text-white/70'
+                  }`}>Character Gallery</p>
+                </div>
+              </div>
+              
+              {/* Help Text */}
+              <div className="absolute bottom-6 right-6 z-30">
+                <div className={`px-3 py-2 rounded-lg backdrop-blur-sm text-sm ${
+                  theme === 'light'
+                    ? 'bg-white/60 text-gray-700'
+                    : 'bg-black/40 text-white/60'
+                }`}>
+                  Press ESC to close
+                </div>
+              </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <div className="container mx-auto px-4 py-6 max-w-[1400px]">
-        {/* Back button */}
+      <div className="container mx-auto px-4 py-6 max-w-[1400px] pt-20">
+        {/* Fixed Navigation Menu */}
+        <motion.nav 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.5 }}
+          className="fixed top-4 left-1/2 transform -translate-x-1/2 z-40 flex flex-col space-y-2"
+        >
+          <div className={`backdrop-blur-xl shadow-2xl rounded-2xl p-3 border transition-all duration-300 ${
+            theme === 'light'
+              ? 'bg-white/90 border-gray-300 hover:border-gray-400 shadow-lg'
+              : 'bg-card border-border'
+          }`}>
+            <ul className="flex items-center space-x-3">
+              <li>
+                <Link 
+                  href="/"
+                  className={`px-4 py-2 text-sm rounded-xl transition-all duration-300 flex items-center gap-2 font-medium ${
+                    theme === 'light'
+                      ? 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+                  }`}
+                >
+                  <Home size={14} />
+                  Home
+                </Link>
+              </li>
+              <li>
+                <Dropdown 
+                  label="Characters" 
+                  items={characters} 
+                  theme={theme}
+                  icon={<User size={14} />}
+                />
+              </li>
+              <li>
+                <Dropdown 
+                  label="Cities" 
+                  items={citiesData} 
+                  theme={theme}
+                  icon={<Map size={14} />}
+                />
+              </li>
+            </ul>
+          </div>
+        </motion.nav>
+
+        {/* Enhanced Back Navigation */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -414,18 +672,18 @@ const CharacterDetailPage = () => {
         >
           <Link 
             href="/gta6"
-            className={`flex items-center gap-2 transition-colors ${
+            className={`flex items-center gap-2 transition-all duration-300 px-4 py-2 rounded-xl ${
               theme === 'light' 
-                ? 'text-gray-700 hover:text-gray-900' 
-                : 'text-white/70 hover:text-white'
+                ? 'text-gray-700 hover:text-gray-900 hover:bg-gray-100' 
+                : 'text-white/70 hover:text-white hover:bg-white/10'
             }`}
           >
             <ChevronLeft size={20} />
-            Back to GTA VI
+            <span className="font-medium">Back to GTA VI</span>
           </Link>
         </motion.div>
 
-        {/* Hero Section */}
+        {/* Enhanced Hero Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -447,7 +705,7 @@ const CharacterDetailPage = () => {
               : 'bg-gradient-to-r from-black/70 via-transparent to-black/40'
           }`}></div>
           
-          <Image
+          <SafeImage
             src={`/gta6/characters/${character.heroImage || character.mainImage}`}
             alt={character.info.name}
             fill
@@ -552,7 +810,7 @@ const CharacterDetailPage = () => {
           </div>
         </motion.div>
 
-        {/* Tabs Navigation */}
+        {/* Enhanced Tabs Navigation */}
         <div className="mb-8 flex overflow-x-auto no-scrollbar">
           <div className={`flex backdrop-blur-sm rounded-full p-1 border mx-auto ${
             theme === 'light'
@@ -560,9 +818,11 @@ const CharacterDetailPage = () => {
               : 'bg-black/20 border-white/10'
           }`}>
             {tabs.map(tab => (
-              <button
+              <motion.button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 className={`px-5 py-2 rounded-full flex items-center gap-2 transition-all duration-300 ${
                   activeTab === tab.id 
                     ? "bg-gradient-to-r from-primary/90 to-primary text-white shadow-lg"
@@ -573,7 +833,7 @@ const CharacterDetailPage = () => {
               >
                 {tab.icon}
                 <span className="text-sm font-medium whitespace-nowrap">{tab.label}</span>
-              </button>
+              </motion.button>
             ))}
           </div>
         </div>
@@ -714,7 +974,7 @@ const CharacterDetailPage = () => {
                       <div className={`mt-6 relative aspect-[3/4] rounded-xl overflow-hidden border ${
                         theme === 'light' ? 'border-gray-300 shadow-lg' : 'border-white/10'
                       }`}>
-                        <Image
+                        <SafeImage
                           src={`/gta6/characters/${character.fgImagePath}`}
                           alt={character.info.name}
                           fill
@@ -1046,7 +1306,7 @@ const CharacterDetailPage = () => {
                         >
                           <div className="w-16 h-16 rounded-full overflow-hidden bg-black/50 flex-shrink-0 border-2 border-white/20">
                             {relatedCharacter ? (
-                              <Image 
+                              <SafeImage 
                                 src={`/gta6/characters/${relatedCharacter.mainImage}`} 
                                 alt={person} 
                                 width={64} 
@@ -1299,71 +1559,124 @@ const CharacterDetailPage = () => {
                 {character.additionalImages && character.additionalImages.length > 0 ? (
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {/* Main Image */}
-                    <div 
+                    <motion.div 
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.5 }}
                       className={`relative aspect-square rounded-xl overflow-hidden border cursor-pointer group ${
                         theme === 'light' ? 'border-gray-300 shadow-lg' : 'border-white/20'
                       }`}
                       onClick={() => handleImageClick(character.mainImage)}
                     >
-                      <Image
+                      <SafeImage
                         src={`/gta6/characters/${character.mainImage}`}
                         alt={`${character.info.name} main`}
                         fill
                         className="object-cover transition-transform duration-500 group-hover:scale-110"
                       />
+                      <div className={`absolute inset-0 transition-all duration-300 ${
+                        theme === 'light'
+                          ? 'bg-gray-900/0 group-hover:bg-gray-900/20'
+                          : 'bg-black/0 group-hover:bg-black/30'
+                      }`}></div>
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                         <div className="absolute bottom-3 left-3 text-white text-sm font-medium drop-shadow">Main Image</div>
                       </div>
-                    </div>
+                    </motion.div>
                     
                     {/* Hero Image */}
                     {character.heroImage && (
-                      <div 
+                      <motion.div 
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.5, delay: 0.1 }}
                         className={`relative aspect-square rounded-xl overflow-hidden border cursor-pointer group ${
                           theme === 'light' ? 'border-gray-300 shadow-lg' : 'border-white/20'
                         }`}
                         onClick={() => handleImageClick(character.heroImage)}
                       >
-                        <Image
+                        <SafeImage
                           src={`/gta6/characters/${character.heroImage}`}
                           alt={`${character.info.name} hero`}
                           fill
                           className="object-cover transition-transform duration-500 group-hover:scale-110"
                         />
+                        <div className={`absolute inset-0 transition-all duration-300 ${
+                          theme === 'light'
+                            ? 'bg-gray-900/0 group-hover:bg-gray-900/20'
+                            : 'bg-black/0 group-hover:bg-black/30'
+                        }`}></div>
                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                           <div className="absolute bottom-3 left-3 text-white text-sm font-medium drop-shadow">Hero Image</div>
                         </div>
-                      </div>
+                      </motion.div>
                     )}
                     
                     {/* Additional Images */}
                     {character.additionalImages.map((image: string, index: number) => (
-                      <div 
+                      <motion.div 
                         key={index}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.5, delay: 0.2 + (index * 0.1) }}
                         className={`relative aspect-square rounded-xl overflow-hidden border cursor-pointer group ${
                           theme === 'light' ? 'border-gray-300 shadow-lg' : 'border-white/20'
                         }`}
                         onClick={() => handleImageClick(image)}
                       >
-                        <Image
+                        <SafeImage
                           src={`/gta6/characters/${image}`}
                           alt={`${character.info.name} ${index + 1}`}
                           fill
                           className="object-cover transition-transform duration-500 group-hover:scale-110"
                         />
+                        <div className={`absolute inset-0 transition-all duration-300 ${
+                          theme === 'light'
+                            ? 'bg-gray-900/0 group-hover:bg-gray-900/20'
+                            : 'bg-black/0 group-hover:bg-black/30'
+                        }`}></div>
                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                           <div className="absolute bottom-3 left-3 text-white text-sm font-medium drop-shadow">Click to Expand</div>
                         </div>
-                      </div>
+                      </motion.div>
                     ))}
                   </div>
                 ) : (
-                  <div className={`text-center py-8 ${
+                  <div className={`text-center py-12 ${
                     theme === 'light' ? 'text-gray-600' : 'text-white/60'
                   }`}>
-                    No additional images available for this character.
+                    <Camera size={48} className="mx-auto mb-4 opacity-50" />
+                    <p>No additional images available for this character.</p>
                   </div>
                 )}
+                
+                {/* Release info */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.6 }}
+                  className={`mt-8 backdrop-blur-sm border rounded-xl p-6 ${
+                    theme === 'light'
+                      ? 'bg-gray-50/80 border-gray-300'
+                      : 'bg-black/30 border-white/10'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-3">
+                    <Calendar className="text-primary" size={20} />
+                    <h3 className={`font-semibold text-lg ${
+                      theme === 'light' ? 'text-gray-900' : 'text-white'
+                    }`}>Grand Theft Auto VI</h3>
+                  </div>
+                  <p className={`text-sm mb-4 ${
+                    theme === 'light' ? 'text-gray-600' : 'text-white/70'
+                  }`}>
+                    Experience {character.info.name}'s story in the most anticipated game of the decade.
+                  </p>
+                  <div className="bg-gradient-to-r from-red-600 to-pink-600 text-white px-4 py-2 rounded-xl shadow-lg inline-block">
+                    <div className="text-sm font-semibold">Coming</div>
+                    <div className="text-lg font-bold">May 26, 2026</div>
+                  </div>
+                </motion.div>
               </motion.div>
             )}
           </motion.div>

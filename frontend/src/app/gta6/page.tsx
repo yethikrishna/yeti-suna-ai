@@ -9,7 +9,7 @@ declare global {
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { Calendar, MapPin, ChevronUp, Home, ChevronRight, ChevronDown, Play, Star, Map, Quote, ExternalLink, Camera, Sun, Moon, Search, Filter, Grid, Eye, ArrowLeft, X, ChevronLeft } from 'lucide-react';
+import { Calendar, MapPin, ChevronUp, Home, ChevronRight, ChevronDown, Play, Star, Map, Quote, ExternalLink, Camera, Sun, Moon, Search, Filter, Grid, Eye, ArrowLeft, X, ChevronLeft, Expand, Minimize } from 'lucide-react';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
@@ -22,6 +22,13 @@ const SafeImage = ({ src, alt, priority = false, ...props }: any) => {
   const [imgSrc, setImgSrc] = useState(src);
   const [hasError, setHasError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Update imgSrc when src prop changes
+  useEffect(() => {
+    setImgSrc(src);
+    setHasError(false);
+    setIsLoading(true);
+  }, [src]);
 
   return hasError ? (
     <div className="w-full h-full bg-gray-800 flex items-center justify-center text-gray-400">
@@ -72,7 +79,7 @@ const citiesData = [
     id: "port-gellhorn",
     name: "Port Gellhorn",
     folder: "Port%20Gellhorn",
-    images: 8,
+    images: 5,
     region: "Industrial",
     type: "Port",
     description: "A bustling port town with opportunities for those willing to take risks.",
@@ -172,7 +179,7 @@ const citiesData = [
     id: "ambrosia",
     name: "Ambrosia",
     folder: "Ambrosia",
-    images: 4,
+    images: 5,
     region: "Coastal",
     type: "Residential",
     description: "A pristine coastal town with a dark underbelly.",
@@ -225,7 +232,7 @@ const CharacterCard = ({ character, index }: any) => {
           }`}></div>
           
           <SafeImage 
-            src={`/gta6/characters/${character.heroImage || character.mainImage}`}
+            src={`/vi/people/${character.heroImage || character.mainImage}`}
             alt={character.info.name}
             fill
             className="object-cover object-top transition-transform duration-700 group-hover:scale-105"
@@ -357,6 +364,33 @@ const TrailerCard = ({ trailer, index, onTrailerSelect }: any) => {
   );
 };
 
+// Helper function to generate image path
+const generateImagePath = (city: any, imageIndex: number) => {
+  const decodedFolder = decodeURIComponent(city.folder);
+  const baseNumber = String(imageIndex + 1).padStart(2, '0');
+  
+  // Try different naming patterns
+  const patterns = [
+    `${city.name.replace(/\s+/g, '_')}_${baseNumber}.jpg`,
+    `${city.name.replace(/[^a-zA-Z0-9]/g, '_')}_${baseNumber}.jpg`,
+    `${city.featuredImage.split('_')[0]}_${city.featuredImage.split('_')[1]}_${baseNumber}.jpg`,
+    `${city.featuredImage.replace('_01.jpg', `_${baseNumber}.jpg`)}`,
+  ];
+  
+  const finalPath = `/vi/places/${decodedFolder}/${patterns[0]}`;
+  
+  // Debug logging
+  console.log('City:', city.name);
+  console.log('Image Index:', imageIndex);
+  console.log('Decoded Folder:', decodedFolder);
+  console.log('Featured Image:', city.featuredImage);
+  console.log('Generated patterns:', patterns);
+  console.log('Final path:', finalPath);
+  console.log('---');
+  
+  return finalPath;
+};
+
 export default function GTA6Page() {
   const [showBackToTop, setShowBackToTop] = useState(false);
   const { theme, setTheme } = useTheme();
@@ -370,6 +404,7 @@ export default function GTA6Page() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
+  const [isFullscreen, setIsFullscreen] = useState(false);
   
   // Trailer Modal State
   const [selectedTrailer, setSelectedTrailer] = useState<any>(null);
@@ -422,19 +457,26 @@ export default function GTA6Page() {
       if (!selectedCity) return;
       
       if (e.key === 'Escape') {
-        setSelectedCity(null);
+        if (isFullscreen) {
+          setIsFullscreen(false);
+        } else {
+          setSelectedCity(null);
+        }
       } else if (e.key === 'ArrowLeft') {
         e.preventDefault();
         navigateImage('prev');
       } else if (e.key === 'ArrowRight') {
         e.preventDefault();
         navigateImage('next');
+      } else if (e.key === 'f' || e.key === 'F') {
+        e.preventDefault();
+        setIsFullscreen(!isFullscreen);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedCity]);
+  }, [selectedCity, isFullscreen]);
 
   const navigateImage = useCallback((direction: 'prev' | 'next') => {
     if (!selectedCity) return;
@@ -451,13 +493,23 @@ export default function GTA6Page() {
   const openCityModal = (city: any) => {
     setSelectedCity(city);
     setCurrentImageIndex(0);
+    setIsFullscreen(false);
     document.body.style.overflow = 'hidden';
   };
 
   const closeCityModal = () => {
     setSelectedCity(null);
     setCurrentImageIndex(0);
+    setIsFullscreen(false);
     document.body.style.overflow = 'unset';
+  };
+
+  const openFullscreen = () => {
+    setIsFullscreen(true);
+  };
+
+  const closeFullscreen = () => {
+    setIsFullscreen(false);
   };
 
   return (
@@ -591,7 +643,7 @@ export default function GTA6Page() {
             className="absolute inset-0"
           >
             <SafeImage 
-              src="/gta6/jason_and_lucia.jpeg" 
+              src="/vi/people/Jason_and_Lucia_01/Jason_and_Lucia_01_landscape.jpg" 
               alt="Grand Theft Auto VI" 
               fill 
               sizes="100vw"
@@ -729,7 +781,7 @@ export default function GTA6Page() {
                       }`}></div>
                       
                       <SafeImage
-                        src={`/vi/places/${city.folder}/${city.featuredImage}`}
+                        src={generateImagePath(city, currentImageIndex)}
                         alt={city.name}
                         fill
                         className="object-cover transition-transform duration-700 group-hover:scale-110"
@@ -884,7 +936,7 @@ export default function GTA6Page() {
                 <div className="lg:w-3/5 relative">
                   <div className="relative h-64 lg:h-full">
                     <SafeImage
-                      src={`/vi/places/${selectedCity.folder}/${selectedCity.name.replace(/[^a-zA-Z0-9]/g, '_')}_${String(currentImageIndex + 1).padStart(2, '0')}.jpg`}
+                      src={generateImagePath(selectedCity, currentImageIndex)}
                       alt={`${selectedCity.name} - Image ${currentImageIndex + 1}`}
                       fill
                       className="object-cover"
@@ -928,6 +980,20 @@ export default function GTA6Page() {
                     }`}>
                       {currentImageIndex + 1} / {selectedCity.images}
                     </div>
+
+                    {/* Fullscreen Button */}
+                    <button
+                      onClick={openFullscreen}
+                      className={`absolute bottom-4 right-4 p-2 rounded-lg backdrop-blur-sm transition-all ${
+                        theme === 'light'
+                          ? 'bg-white/80 hover:bg-white text-gray-800'
+                          : 'bg-black/60 hover:bg-black/80 text-white hover:shadow-[0_0_15px_rgba(168,85,247,0.4)] hover:border hover:border-purple-500/50'
+                      }`}
+                      aria-label="View fullscreen"
+                      title="Pressione F para tela cheia"
+                    >
+                      <Expand size={20} />
+                    </button>
                   </div>
                 </div>
 
@@ -1033,7 +1099,7 @@ export default function GTA6Page() {
                               }`}
                             >
                               <SafeImage
-                                src={`/vi/places/${selectedCity.folder}/${selectedCity.name.replace(/[^a-zA-Z0-9]/g, '_')}_${String(index + 1).padStart(2, '0')}.jpg`}
+                                src={generateImagePath(selectedCity, index)}
                                 alt={`${selectedCity.name} thumbnail ${index + 1}`}
                                 fill
                                 className="object-cover"
@@ -1063,6 +1129,143 @@ export default function GTA6Page() {
                 </div>
               </div>
             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Fullscreen Image Modal */}
+      <AnimatePresence>
+        {isFullscreen && selectedCity && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-black"
+            onClick={closeFullscreen}
+          >
+            {/* Fullscreen Image */}
+            <div className="relative w-full h-full flex items-center justify-center">
+              <SafeImage
+                src={generateImagePath(selectedCity, currentImageIndex)}
+                alt={`${selectedCity.name} - Image ${currentImageIndex + 1}`}
+                fill
+                className="object-contain"
+                priority
+              />
+              
+              {/* Navigation Arrows for Fullscreen */}
+              {selectedCity.images > 1 && (
+                <>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigateImage('prev');
+                    }}
+                    className="absolute left-6 top-1/2 transform -translate-y-1/2 p-4 rounded-full bg-black/60 hover:bg-black/80 text-white transition-all hover:shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:border hover:border-purple-500/50"
+                    aria-label="Previous image"
+                  >
+                    <ChevronLeft size={32} />
+                  </button>
+                  
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigateImage('next');
+                    }}
+                    className="absolute right-6 top-1/2 transform -translate-y-1/2 p-4 rounded-full bg-black/60 hover:bg-black/80 text-white transition-all hover:shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:border hover:border-purple-500/50"
+                    aria-label="Next image"
+                  >
+                    <ChevronRight size={32} />
+                  </button>
+                </>
+              )}
+
+              {/* Fullscreen Controls */}
+              <div className="absolute top-6 left-0 right-0 flex justify-between items-center px-6 z-30">
+                {/* City Info */}
+                <div className="text-white">
+                  <h3 className="text-2xl font-bold mb-1">{selectedCity.name}</h3>
+                  <p className="text-white/80">Image {currentImageIndex + 1} of {selectedCity.images}</p>
+                </div>
+
+                {/* Control Buttons */}
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      closeFullscreen();
+                    }}
+                    className="p-3 rounded-full bg-black/60 hover:bg-black/80 text-white transition-all hover:shadow-[0_0_15px_rgba(168,85,247,0.4)] hover:border hover:border-purple-500/50"
+                    aria-label="Exit fullscreen"
+                    title="Pressione ESC para sair"
+                  >
+                    <Minimize size={24} />
+                  </button>
+                  
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      closeFullscreen();
+                    }}
+                    className="p-3 rounded-full bg-black/60 hover:bg-black/80 text-white transition-all hover:shadow-[0_0_15px_rgba(168,85,247,0.4)] hover:border hover:border-purple-500/50"
+                    aria-label="Close fullscreen"
+                  >
+                    <X size={24} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Thumbnail Navigation Bar */}
+              {selectedCity.images > 1 && (
+                <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-30">
+                  <div className="flex items-center gap-2 px-4 py-3 bg-black/60 rounded-full backdrop-blur-sm">
+                    {Array.from({ length: Math.min(selectedCity.images, 8) }, (_, index) => {
+                      // Show current image in center with 3 on each side
+                      const startIndex = Math.max(0, Math.min(selectedCity.images - 8, currentImageIndex - 3));
+                      const actualIndex = startIndex + index;
+                      
+                      return (
+                        <button
+                          key={actualIndex}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCurrentImageIndex(actualIndex);
+                          }}
+                          className={`relative w-12 h-12 rounded-lg overflow-hidden border-2 transition-all ${
+                            currentImageIndex === actualIndex
+                              ? 'border-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.6)]'
+                              : 'border-white/30 hover:border-white/60'
+                          }`}
+                        >
+                          <SafeImage
+                            src={generateImagePath(selectedCity, actualIndex)}
+                            alt={`${selectedCity.name} thumbnail ${actualIndex + 1}`}
+                            fill
+                            className="object-cover"
+                          />
+                        </button>
+                      );
+                    })}
+                    
+                    {/* Show dots if there are more images */}
+                    {selectedCity.images > 8 && (
+                      <div className="text-white/60 px-2">
+                        ...
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Help Text */}
+              <div className="absolute bottom-6 right-6 z-30 text-white/60 text-sm">
+                <div className="bg-black/40 px-3 py-2 rounded-lg backdrop-blur-sm">
+                  <div>← → para navegar</div>
+                  <div>F para tela cheia</div>
+                  <div>ESC para sair</div>
+                </div>
+              </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
