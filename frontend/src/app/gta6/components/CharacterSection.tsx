@@ -1,9 +1,42 @@
 "use client";
 
-import { motion } from 'framer-motion';
-import { MapPin } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
 import Image from 'next/image';
 import { characters } from '../data/characterData';
+import { Camera, MapPin } from "lucide-react";
+
+// Safe Image component
+const SafeImage = ({ src, alt, priority = false, ...props }: any) => {
+  const [imgSrc, setImgSrc] = useState(src);
+  const [hasError, setHasError] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Update imgSrc when src prop changes
+  useEffect(() => {
+    setImgSrc(src);
+    setHasError(false);
+    setIsLoading(true);
+  }, [src]);
+
+  return hasError ? (
+    <div className="w-full h-full bg-gray-800 flex items-center justify-center text-gray-400">
+      <Camera size={48} />
+    </div>
+  ) : (
+    <Image 
+      {...props}
+      src={imgSrc}
+      alt={alt}
+      priority={priority}
+      loading={priority ? "eager" : "lazy"}
+      onError={() => setHasError(true)}
+      onLoadingComplete={() => setIsLoading(false)}
+      className={`${props.className} ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
+    />
+  );
+};
 
 // Character Card Component
 const CharacterCard = ({ character, index }: any) => {
@@ -19,11 +52,12 @@ const CharacterCard = ({ character, index }: any) => {
       <div className="relative h-[450px] md:h-[600px] overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent z-10"></div>
         
-        <Image 
-          src={`/gta6/characters/${character.heroImage || character.mainImage}`}
+        <SafeImage
+          src={`/vi/people/${character.heroImage || character.mainImage}`}
           alt={character.info.name}
           fill
-          className="object-cover object-top"
+          className="object-cover object-top transition-all duration-500 group-hover:scale-110"
+          priority={index < 4}
         />
         
         <div className="absolute bottom-0 left-0 right-0 p-6 z-20">

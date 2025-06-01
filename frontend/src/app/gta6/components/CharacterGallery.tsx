@@ -26,7 +26,7 @@ export default function CharacterGallery({
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [showControls, setShowControls] = useState(false);
-  const folderPath = `/gta6/characters`;
+  const folderPath = `/vi/people`;
   
   // Use mainImage and additionalImages to create a combined gallery
   const allImages = [mainImage, ...(additionalImages || [])];

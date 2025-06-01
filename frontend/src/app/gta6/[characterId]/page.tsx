@@ -566,7 +566,7 @@ const CharacterDetailPage = () => {
             >
               {/* Image */}
               <SafeImage
-                src={`/gta6/characters/${selectedImage}`}
+                src={`/vi/people/${selectedImage}`}
                 alt={character.info.name}
                 width={1200}
                 height={800}
@@ -705,7 +705,7 @@ const CharacterDetailPage = () => {
           }`}></div>
           
           <SafeImage
-            src={`/gta6/characters/${character.heroImage || character.mainImage}`}
+            src={`/vi/people/${character.heroImage || character.mainImage}`}
             alt={character.info.name}
             fill
             className="object-cover object-center transition-transform duration-10000 group-hover:scale-105"
@@ -935,110 +935,6 @@ const CharacterDetailPage = () => {
             </div>
           </motion.section>
           
-          {/* Skills & Traits Section */}
-          <motion.section
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            viewport={{ once: true }}
-            className={`backdrop-blur-sm rounded-2xl p-6 md:p-8 border ${
-              theme === 'light'
-                ? 'bg-white/70 border-gray-300 shadow-lg'
-                : 'bg-black/40 border-white/10'
-            }`}
-          >
-            <h2 className={`text-2xl font-bold mb-6 flex items-center gap-2 ${
-              theme === 'light' ? 'text-gray-900' : 'text-white'
-            }`}>
-              <Star className="text-primary" />
-              Skills & Traits
-            </h2>
-            
-            {(character.id === 'jason' || character.id === 'lucia') && (
-              <div className="mb-8 bg-gradient-to-r from-primary/20 to-transparent p-4 rounded-xl border border-primary/30">
-                <h3 className="text-lg font-semibold text-white mb-2 flex items-center gap-2">
-                  <Star className="text-yellow-500" />
-                  Playable Character
-                </h3>
-                <p className="text-white/80 text-sm drop-shadow">
-                  {character.id === 'jason' ? 
-                    "Jason's military background gives him advantages in tactical situations and weapon handling. His connections in the Keys provide access to smuggling routes and operations." :
-                    "Lucia's combat skills and strategic thinking make her formidable in confrontations. Her time in prison has given her unique connections and street credibility throughout Leonida."}
-                </p>
-              </div>
-            )}
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {character.info.skills && character.info.skills.length > 0 && (
-                <div>
-                  <h3 className={`text-xl font-semibold mb-4 ${
-                    theme === 'light' ? 'text-gray-900' : 'text-white'
-                  }`}>Skills</h3>
-                  <div className="grid grid-cols-1 gap-3">
-                    {character.info.skills.map((skill: string, index: number) => (
-                      <div 
-                        key={index} 
-                        className={`backdrop-blur-sm border rounded-lg p-3 flex items-center gap-3 ${
-                          theme === 'light'
-                            ? 'bg-gray-50/80 border-gray-300'
-                            : 'bg-black/30 border-white/10'
-                        }`}
-                      >
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/80 to-primary flex items-center justify-center flex-shrink-0">
-                          <Shield size={18} className="text-white" />
-                        </div>
-                        <div>
-                          <div className={`font-medium ${
-                            theme === 'light' ? 'text-gray-900' : 'text-white'
-                          }`}>{skill}</div>
-                          {character.id === 'jason' && skill === "Military Training" && (
-                            <div className={`text-xs mt-1 ${
-                              theme === 'light' ? 'text-gray-600' : 'text-white/60'
-                            }`}>Improved accuracy and tactical awareness</div>
-                          )}
-                          {character.id === 'lucia' && skill === "Hand-to-hand Combat" && (
-                            <div className={`text-xs mt-1 ${
-                              theme === 'light' ? 'text-gray-600' : 'text-white/60'
-                            }`}>Enhanced melee combat abilities</div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              
-              {character.info.personalityTraits && character.info.personalityTraits.length > 0 && (
-                <div>
-                  <h3 className={`text-xl font-semibold mb-4 ${
-                    theme === 'light' ? 'text-gray-900' : 'text-white'
-                  }`}>Personality Traits</h3>
-                  <div className="space-y-3">
-                    {character.info.personalityTraits.map((trait: string, index: number) => (
-                      <div 
-                        key={index} 
-                        className={`backdrop-blur-sm border rounded-lg p-3 flex items-center gap-3 ${
-                          theme === 'light'
-                            ? 'bg-gray-50/80 border-gray-300'
-                            : 'bg-black/30 border-white/10'
-                        }`}
-                      >
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-500/80 to-yellow-600 flex items-center justify-center flex-shrink-0">
-                          <Sparkles size={18} className="text-white" />
-                        </div>
-                        <div>
-                          <div className={`font-medium ${
-                            theme === 'light' ? 'text-gray-900' : 'text-white'
-                          }`}>{trait}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </motion.section>
-          
           {/* Video Section */}
           {characterVideoMap[character.id] && (
             <motion.section
@@ -1223,7 +1119,7 @@ const CharacterDetailPage = () => {
                       <div className="w-16 h-16 rounded-full overflow-hidden bg-black/50 flex-shrink-0 border-2 border-white/20">
                         {relatedCharacter ? (
                           <SafeImage 
-                            src={`/gta6/characters/${relatedCharacter.mainImage}`} 
+                            src={`/vi/people/${relatedCharacter.mainImage}`} 
                             alt={person} 
                             width={64} 
                             height={64} 
@@ -1281,173 +1177,6 @@ const CharacterDetailPage = () => {
                 No known relationships for this character.
               </div>
             )}
-            
-            <div className={`mt-8 p-4 backdrop-blur-sm rounded-xl border ${
-              theme === 'light'
-                ? 'bg-gray-50/80 border-gray-300'
-                : 'bg-black/20 border-white/10'
-            }`}>
-              <h3 className={`text-lg font-semibold mb-2 ${
-                theme === 'light' ? 'text-gray-900' : 'text-white'
-              }`}>About GTA VI</h3>
-              <p className={`text-sm ${
-                theme === 'light' ? 'text-gray-600' : 'text-white/70'
-              }`}>
-                Grand Theft Auto VI explores the intertwined lives of characters across the state of Leonida, 
-                where ambition, crime, and opportunity collide. When the sun fades and the neon glows, 
-                everyone has something to gain — and more to lose.
-              </p>
-            </div>
-          </motion.section>
-          
-          {/* World Tab */}
-          <motion.section
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            viewport={{ once: true }}
-            className={`backdrop-blur-sm rounded-2xl p-6 md:p-8 border ${
-              theme === 'light'
-                ? 'bg-white/70 border-gray-300 shadow-lg'
-                : 'bg-black/40 border-white/10'
-            }`}
-          >
-            <h2 className={`text-2xl font-bold mb-6 flex items-center gap-2 ${
-              theme === 'light' ? 'text-gray-900' : 'text-white'
-            }`}>
-              <Map className="text-primary" />
-              Explore Leonida
-            </h2>
-            
-            <div className="mb-8">
-              <div className={`backdrop-blur-sm border rounded-xl p-5 ${
-                theme === 'light'
-                  ? 'bg-gray-50/80 border-gray-300'
-                  : 'bg-black/30 border-white/10'
-              }`}>
-                <p className={`italic text-lg ${
-                  theme === 'light' ? 'text-gray-800' : 'text-white/80'
-                }`}>
-                  "When the sun fades and the neon glows, everyone has something to gain — and more to lose."
-                </p>
-                <p className={`text-sm mt-2 ${
-                  theme === 'light' ? 'text-gray-600' : 'text-white/60'
-                }`}>
-                  — Only in Leonida
-                </p>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {locations.map((location, index) => {
-                // Check if this location is associated with the character
-                const isCharacterLocation = character.locations?.includes(location.name);
-                
-                return (
-                  <motion.div 
-                    key={location.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.1 * index }}
-                    className={`backdrop-blur-sm border rounded-xl overflow-hidden group ${
-                      isCharacterLocation 
-                        ? "border-primary/30 shadow-[0_0_15px_rgba(var(--primary),0.15)]" 
-                        : theme === 'light'
-                          ? 'bg-gray-50/80 border-gray-300'
-                          : 'bg-black/30 border-white/10'
-                    }`}
-                  >
-                    <div className={`h-32 relative ${
-                      isCharacterLocation 
-                        ? "bg-gradient-to-r from-primary/20 to-primary/40" 
-                        : theme === 'light'
-                          ? "bg-gradient-to-r from-gray-200 to-gray-300"
-                          : "bg-gradient-to-r from-white/5 to-white/10"
-                    }`}>
-                      <div className={`absolute inset-0 ${
-                        theme === 'light' ? 'bg-gray-900/20' : 'bg-black/30'
-                      }`}></div>
-                      <div className="absolute bottom-0 left-0 w-full p-4">
-                        <h3 className="text-white font-bold text-xl drop-shadow">{location.name}</h3>
-                        {isCharacterLocation && (
-                          <div className="flex items-center mt-1">
-                            <div className="w-3 h-3 rounded-full bg-primary animate-pulse mr-2"></div>
-                            <span className="text-white/80 text-xs drop-shadow">Character Connection</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <div className="p-4">
-                      <p className={`text-sm ${
-                        theme === 'light' ? 'text-gray-700' : 'text-white/80'
-                      }`}>{location.description}</p>
-                      
-                      {/* Character-specific location description */}
-                      {isCharacterLocation && (
-                        <div className={`mt-3 p-2 rounded-lg border ${
-                          theme === 'light'
-                            ? 'bg-primary/10 border-primary/30'
-                            : 'bg-black/40 border-primary/20'
-                        }`}>
-                          <p className={`text-xs ${
-                            theme === 'light' ? 'text-gray-800' : 'text-white/90'
-                          }`}>
-                            {character.id === 'jason' && location.name === 'Leonida Keys' && 
-                              "Jason works for local drug runners in the Keys after his Army stint."}
-                              
-                            {character.id === 'lucia' && location.name === 'Leonida Penitentiary' && 
-                              "Lucia was imprisoned here before a stroke of luck got her out."}
-                              
-                            {character.id === 'lucia' && location.name === 'Vice City' && 
-                              "Lucia is planning to make her fortune in Vice City with Jason."}
-                              
-                            {character.id === 'boobie' && location.name === 'Vice City' && 
-                              "Boobie runs a legitimate empire including real estate, a strip club, and a recording studio."}
-                              
-                            {character.id === 'drequan' && location.name === 'Grassrivers' && 
-                              "Dre'Quan started as a street hustler here before moving into the music business."}
-                              
-                            {character.id === 'drequan' && location.name === 'Vice City' && 
-                              "Dre'Quan books acts into Boobie's strip club while building Only Raw Records."}
-                              
-                            {character.id === 'realdimez' && location.name === 'Grassrivers' && 
-                              "Bae-Luxe and Roxy grew up shaking down local dealers here before their rap career."}
-                              
-                            {character.id === 'raul' && location.name === 'Port Gellhorn' && 
-                              "Raul uses Port Gellhorn as a base for planning his heists."}
-                              
-                            {character.id === 'brian' && location.name === 'Leonida Keys' && 
-                              "Brian runs smuggling operations through his boat yard in the Keys."}
-                              
-                            {character.id === 'brian' && location.name === 'Ambrosia' && 
-                              "Brian owns property here where Jason stays rent-free in exchange for helping with local shakedowns."}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </div>
-            
-            <div className={`mt-8 backdrop-blur-sm border rounded-xl p-5 ${
-              theme === 'light'
-                ? 'bg-gray-50/80 border-gray-300'
-                : 'bg-black/30 border-white/10'
-            }`}>
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                  <h3 className={`font-bold text-xl mb-1 ${
-                    theme === 'light' ? 'text-gray-900' : 'text-white'
-                  }`}>Grand Theft Auto VI</h3>
-                  <p className={theme === 'light' ? 'text-gray-600' : 'text-white/60'}>Experience the story across the state of Leonida</p>
-                </div>
-                <div className="bg-gradient-to-r from-red-600 to-pink-600 text-white px-4 py-2 rounded-xl shadow-lg">
-                  <div className="text-sm font-semibold">Coming</div>
-                  <div className="text-lg font-bold">May 26, 2026</div>
-                </div>
-              </div>
-            </div>
           </motion.section>
           
           {/* Gallery Tab */}
@@ -1482,7 +1211,7 @@ const CharacterDetailPage = () => {
                   onClick={() => handleImageClick(character.mainImage)}
                 >
                   <SafeImage
-                    src={`/gta6/characters/${character.mainImage}`}
+                    src={`/vi/people/${character.mainImage}`}
                     alt={`${character.info.name} main`}
                     fill
                     className="object-cover transition-transform duration-500 group-hover:scale-110"
@@ -1509,7 +1238,7 @@ const CharacterDetailPage = () => {
                     onClick={() => handleImageClick(character.heroImage)}
                   >
                     <SafeImage
-                      src={`/gta6/characters/${character.heroImage}`}
+                      src={`/vi/people/${character.heroImage}`}
                       alt={`${character.info.name} hero`}
                       fill
                       className="object-cover transition-transform duration-500 group-hover:scale-110"
@@ -1538,7 +1267,7 @@ const CharacterDetailPage = () => {
                     onClick={() => handleImageClick(image)}
                   >
                     <SafeImage
-                      src={`/gta6/characters/${image}`}
+                      src={`/vi/people/${image}`}
                       alt={`${character.info.name} ${index + 1}`}
                       fill
                       className="object-cover transition-transform duration-500 group-hover:scale-110"
@@ -1562,33 +1291,6 @@ const CharacterDetailPage = () => {
                 <p>No additional images available for this character.</p>
               </div>
             )}
-            
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.6 }}
-              className={`mt-8 backdrop-blur-sm border rounded-xl p-6 ${
-                theme === 'light'
-                  ? 'bg-gray-50/80 border-gray-300'
-                  : 'bg-black/30 border-white/10'
-              }`}
-            >
-              <div className="flex items-center gap-2 mb-3">
-                <Calendar className="text-primary" size={20} />
-                <h3 className={`font-semibold text-lg ${
-                  theme === 'light' ? 'text-gray-900' : 'text-white'
-                }`}>Grand Theft Auto VI</h3>
-              </div>
-              <p className={`text-sm mb-4 ${
-                theme === 'light' ? 'text-gray-600' : 'text-white/70'
-              }`}>
-                Experience {character.info.name}'s story in the most anticipated game of the decade.
-              </p>
-              <div className="bg-gradient-to-r from-red-600 to-pink-600 text-white px-4 py-2 rounded-xl shadow-lg inline-block">
-                <div className="text-sm font-semibold">Coming</div>
-                <div className="text-lg font-bold">May 26, 2026</div>
-              </div>
-            </motion.div>
           </motion.section>
         </div>
       </div>
