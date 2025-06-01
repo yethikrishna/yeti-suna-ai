@@ -279,7 +279,7 @@ export const ThreadContent: React.FC<ThreadContentProps> = ({
     debugMode = false,
     isPreviewMode = false,
     agentName = 'Operator',
-    agentAvatar = <OmniLogo size={16} />,
+    agentAvatar = <OmniLogo />,
     emptyStateComponent,
 }) => {
     const messagesEndRef = useRef<HTMLDivElement>(null);
