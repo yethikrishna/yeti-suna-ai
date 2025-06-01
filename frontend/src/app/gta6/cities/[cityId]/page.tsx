@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, MapPin, Camera, Star, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import { useTheme } from 'next-themes';
 
 // Safe Image Component
 const SafeImage = ({ src, alt, ...props }: any) => {
@@ -114,8 +115,11 @@ const CityDetailPage = () => {
   const [city, setCity] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const { theme } = useTheme();
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const cityId = params.cityId as string;
     const cityInfo = cityData[cityId as keyof typeof cityData];
     
@@ -127,17 +131,29 @@ const CityDetailPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-white text-xl">Loading...</div>
+      <div className={`min-h-screen flex items-center justify-center transition-colors duration-300 ${
+        theme === 'light' 
+          ? 'bg-gradient-to-br from-gray-50 to-gray-100' 
+          : 'bg-black'
+      }`}>
+        <div className={`text-xl ${
+          theme === 'light' ? 'text-gray-900' : 'text-white'
+        }`}>Loading...</div>
       </div>
     );
   }
 
   if (!city) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className={`min-h-screen flex items-center justify-center transition-colors duration-300 ${
+        theme === 'light' 
+          ? 'bg-gradient-to-br from-gray-50 to-gray-100' 
+          : 'bg-black'
+      }`}>
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-white mb-4">City Not Found</h1>
+          <h1 className={`text-3xl font-bold mb-4 ${
+            theme === 'light' ? 'text-gray-900' : 'text-white'
+          }`}>City Not Found</h1>
           <Link href="/gta6" className="text-blue-400 hover:text-blue-300">
             Return to GTA VI
           </Link>
@@ -147,7 +163,45 @@ const CityDetailPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className={`min-h-screen transition-colors duration-300 ${
+      theme === 'light' 
+        ? 'bg-gradient-to-br from-gray-50 to-gray-100' 
+        : 'bg-black'
+    }`}>
+      {/* Image Modal */}
+      <AnimatePresence>
+        {selectedImage && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
+            onClick={() => setSelectedImage(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+              className="relative max-w-5xl max-h-[80vh] rounded-2xl overflow-hidden"
+            >
+              <SafeImage
+                src={selectedImage}
+                alt={city.name}
+                width={1200}
+                height={800}
+                className="object-contain"
+              />
+              <button 
+                className="absolute top-4 right-4 bg-black/50 text-white p-2 rounded-full backdrop-blur-sm"
+                onClick={() => setSelectedImage(null)}
+              >
+                <ChevronLeft size={20} />
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <div className="container mx-auto px-4 py-6 max-w-[1400px]">
         <motion.div
@@ -157,7 +211,11 @@ const CityDetailPage = () => {
         >
           <Link 
             href="/gta6"
-            className="flex items-center gap-2 text-white/70 hover:text-white transition-colors"
+            className={`flex items-center gap-2 transition-colors ${
+              theme === 'light' 
+                ? 'text-gray-700 hover:text-gray-900' 
+                : 'text-white/70 hover:text-white'
+            }`}
           >
             <ChevronLeft size={20} />
             Back to GTA VI
@@ -168,14 +226,24 @@ const CityDetailPage = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-black/40 backdrop-blur-sm rounded-2xl p-6 md:p-8 border border-white/10 mb-8"
+          className={`backdrop-blur-sm rounded-2xl p-6 md:p-8 border mb-8 ${
+            theme === 'light'
+              ? 'bg-white/70 border-gray-300 shadow-lg'
+              : 'bg-black/40 border-white/10'
+          }`}
         >
           <div className="flex items-center gap-3 mb-4">
             <MapPin className="text-primary" size={24} />
-            <h1 className="text-4xl md:text-5xl font-bold">{city.name}</h1>
+            <h1 className={`text-4xl md:text-5xl font-bold ${
+              theme === 'light' ? 'text-gray-900' : 'text-white'
+            }`}>{city.name}</h1>
           </div>
-          <p className="text-xl text-white/80 mb-6">{city.description}</p>
-          <p className="text-white/70 leading-relaxed">{city.longDescription}</p>
+          <p className={`text-xl mb-6 ${
+            theme === 'light' ? 'text-gray-700' : 'text-white/80'
+          }`}>{city.description}</p>
+          <p className={`leading-relaxed ${
+            theme === 'light' ? 'text-gray-600' : 'text-white/70'
+          }`}>{city.longDescription}</p>
         </motion.div>
 
         {/* Highlights */}
@@ -183,9 +251,15 @@ const CityDetailPage = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-black/40 backdrop-blur-sm rounded-2xl p-6 md:p-8 border border-white/10 mb-8"
+          className={`backdrop-blur-sm rounded-2xl p-6 md:p-8 border mb-8 ${
+            theme === 'light'
+              ? 'bg-white/70 border-gray-300 shadow-lg'
+              : 'bg-black/40 border-white/10'
+          }`}
         >
-          <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+          <h2 className={`text-2xl font-bold mb-6 flex items-center gap-2 ${
+            theme === 'light' ? 'text-gray-900' : 'text-white'
+          }`}>
             <Star className="text-primary" />
             Key Features
           </h2>
@@ -196,10 +270,14 @@ const CityDetailPage = () => {
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.3 + index * 0.1 }}
-                className="flex items-center gap-3 p-3 bg-black/30 rounded-lg border border-white/10"
+                className={`flex items-center gap-3 p-3 rounded-lg border ${
+                  theme === 'light'
+                    ? 'bg-gray-50/80 border-gray-300'
+                    : 'bg-black/30 border-white/10'
+                }`}
               >
-                <div className="w-2 h-2 bg-primary rounded-full"></div>
-                <span className="text-white/90">{highlight}</span>
+                <div className="w-2 h-2 rounded-full bg-primary flex-shrink-0"></div>
+                <span className={theme === 'light' ? 'text-gray-700' : 'text-white/80'}>{highlight}</span>
               </motion.div>
             ))}
           </div>
@@ -210,9 +288,15 @@ const CityDetailPage = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="bg-black/40 backdrop-blur-sm rounded-2xl p-6 md:p-8 border border-white/10"
+          className={`backdrop-blur-sm rounded-2xl p-6 md:p-8 border mb-8 ${
+            theme === 'light'
+              ? 'bg-white/70 border-gray-300 shadow-lg'
+              : 'bg-black/40 border-white/10'
+          }`}
         >
-          <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+          <h2 className={`text-2xl font-bold mb-6 flex items-center gap-2 ${
+            theme === 'light' ? 'text-gray-900' : 'text-white'
+          }`}>
             <Camera className="text-primary" />
             Gallery ({city.images} images)
           </h2>
@@ -242,40 +326,6 @@ const CityDetailPage = () => {
           </div>
         </motion.div>
       </div>
-
-      {/* Image Modal */}
-      <AnimatePresence>
-        {selectedImage && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
-            onClick={() => setSelectedImage(null)}
-          >
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.8, opacity: 0 }}
-              className="relative max-w-4xl max-h-[90vh] w-full h-full"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <SafeImage
-                src={selectedImage}
-                alt="City image"
-                fill
-                className="object-contain rounded-lg"
-              />
-              <button
-                onClick={() => setSelectedImage(null)}
-                className="absolute top-4 right-4 bg-black/50 backdrop-blur-sm rounded-full p-2 text-white hover:bg-black/70 transition-colors"
-              >
-                ✕
-              </button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 };
