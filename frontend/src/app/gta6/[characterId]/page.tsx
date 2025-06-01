@@ -187,6 +187,14 @@ const CharacterDetailPage = () => {
     ]
   };
 
+  // Function to get character quotes (prioritizes data from characterData.ts)
+  const getCharacterQuotes = (character: any) => {
+    if (character.info.quotes && character.info.quotes.length > 0) {
+      return character.info.quotes;
+    }
+    return characterQuotes[character.id] || [];
+  };
+
   // Character video mapping
   const characterVideoMap: { [key: string]: { name: string; file: string } } = {
     lucia: { name: "Lucia Caminos", file: "Lucia_Caminos_Video_Clip.mp4" },
@@ -242,11 +250,7 @@ const CharacterDetailPage = () => {
         ];
       }
       else if (characterId === 'boobie') {
-        foundCharacter.info.expandedDescription = [
-          "Boobie is a local Vice City legend — and acts like it. One of the few to transform his time in the streets into a legitimate empire spanning real estate, a strip club, and a recording studio — Boobie's all smiles until it's time to talk business.",
-          "Boobie might seem like he's just out for himself, but it's his partnership with the young aspiring music mogul Dre'Quan for Only Raw Records that he's most invested in — now they just need a hit."
-        ];
-        foundCharacter.info.nickname = "Jack of Hearts";
+        // Remove invented skills and personality traits - keep only what's in official description
       }
       else if (characterId === 'drequan') {
         foundCharacter.info.expandedDescription = [
@@ -255,10 +259,7 @@ const CharacterDetailPage = () => {
         ];
       }
       else if (characterId === 'realdimez') {
-        foundCharacter.info.expandedDescription = [
-          "Bae-Luxe and Roxy aka Real Dimez have been friends since high school — girls with the savvy to turn their time shaking down local dealers into cold, hard cash via spicy rap tracks and a relentless social media presence.",
-          "An early hit single with local rapper DWNPLY took Real Dimez to new heights. Now, after five years and a whole lot of trouble, they're signed to Only Raw Records, hoping lightning can strike twice."
-        ];
+        // Remove invented skills and personality traits - keep only what's in official description
       }
       else if (characterId === 'raul') {
         foundCharacter.info.expandedDescription = [
@@ -290,134 +291,80 @@ const CharacterDetailPage = () => {
         ];
       } 
       else if (characterId === 'lucia') {
-        foundCharacter.info.skills = foundCharacter.info.skills || [
-          "Hand-to-hand Combat",
-          "Street Smarts",
-          "Strategic Planning",
-          "Leadership"
-        ];
-        foundCharacter.info.personalityTraits = foundCharacter.info.personalityTraits || [
-          "Determined",
-          "Protective of family",
-          "Pragmatic",
-          "Ambitious"
-        ];
+        // Remove invented skills and personality traits - keep only what's in official description
       }
       else if (characterId === 'boobie') {
-        foundCharacter.info.skills = foundCharacter.info.skills || [
-          "Business Management",
-          "Networking",
-          "Deal Negotiation",
-          "Money Laundering"
-        ];
-        foundCharacter.info.personalityTraits = foundCharacter.info.personalityTraits || [
-          "Charismatic",
-          "Street-wise",
-          "Ambitious",
-          "Loyal to partners"
-        ];
+        // Remove invented skills and personality traits - keep only what's in official description
       }
       else if (characterId === 'drequan') {
-        foundCharacter.info.skills = foundCharacter.info.skills || [
-          "Music Production",
-          "Talent Scouting",
-          "Marketing",
-          "Street Hustling"
-        ];
-        foundCharacter.info.personalityTraits = foundCharacter.info.personalityTraits || [
-          "Business-oriented",
-          "Forward-thinking",
-          "Opportunistic",
-          "Ambitious"
-        ];
+        // Remove invented skills and personality traits - keep only official description
       }
       else if (characterId === 'realdimez') {
-        foundCharacter.info.skills = foundCharacter.info.skills || [
-          "Rap Performance",
-          "Social Media Marketing",
-          "Street Hustle",
-          "Networking"
-        ];
-        foundCharacter.info.personalityTraits = foundCharacter.info.personalityTraits || [
-          "Savvy",
-          "Ambitious",
-          "Resilient",
-          "Resourceful"
-        ];
+        // Remove invented skills and personality traits - keep only what's in official description
       }
       else if (characterId === 'raul') {
-        foundCharacter.info.skills = foundCharacter.info.skills || [
-          "Bank Robbery Planning",
-          "Recruitment",
-          "Risk Assessment",
-          "Tactical Operations"
-        ];
-        foundCharacter.info.personalityTraits = foundCharacter.info.personalityTraits || [
-          "Confident",
-          "Charming",
-          "Cunning",
-          "Reckless"
-        ];
+        // Remove invented skills and personality traits - keep only what's in official description
       }
       else if (characterId === 'brian') {
-        foundCharacter.info.skills = foundCharacter.info.skills || [
-          "Drug Smuggling",
-          "Aviation",
-          "Boat Operation",
-          "Business Management"
-        ];
-        foundCharacter.info.personalityTraits = foundCharacter.info.personalityTraits || [
-          "Appears relaxed",
-          "Calculating",
-          "Experienced",
-          "Manipulative"
-        ];
+        // Remove invented skills and personality traits - keep only what's in official description
       }
       
       // Add character-specific relationships
       if (characterId === 'jason') {
         foundCharacter.info.relationships = foundCharacter.info.relationships || {
-          "Lucia Caminos": "Potential partner in crime and romance. Meeting her could be the best or worst thing to happen to him.",
+          "Lucia Caminos": "Potential partner in crime and romance. Meeting her could be the best or worst thing to ever happen to him.",
           "Brian Heder": "Employer and landlord. Lets Jason live rent-free in exchange for doing his dirty work.",
-          "Lori Heder": "Brian's third wife. Invites Jason over for sangria occasionally."
+          "Lori Heder": "Brian's third wife. Invites Jason over for sangria occasionally.",
+          "Cal Hampton": "Friend and fellow associate of Brian's. They share casual paranoia but Jason has bigger plans."
         };
       } 
       else if (characterId === 'lucia') {
         foundCharacter.info.relationships = foundCharacter.info.relationships || {
-          "Jason Duval": "Partner in crime and potential way out of her current situation.",
-          "Lucia's Mother": "Dreams of a better life since their days in Liberty City."
+          "Jason Duval": "A life with Jason could be her way out. Their partnership represents both hope and potential danger."
         };
       }
       else if (characterId === 'boobie') {
         foundCharacter.info.relationships = foundCharacter.info.relationships || {
-          "Dre'Quan Priest": "Business partner in Only Raw Records. Boobie's most important investment.",
-          "Real Dimez": "New talent signed to Only Raw Records."
+          "Dre'Quan Priest": "Business partner in Only Raw Records. Boobie's most important investment - their partnership is what he's most invested in.",
+          "Real Dimez": "New talent signed to Only Raw Records. Now they just need a hit.",
+          "Cal Hampton": "Fellow Vice City resident in the music scene network."
         };
       }
       else if (characterId === 'drequan') {
         foundCharacter.info.relationships = foundCharacter.info.relationships || {
-          "Boobie Ike": "Business partner and owner of the strip club where Dre'Quan books acts.",
-          "Real Dimez": "Bae-Luxe and Roxy, his latest signings to Only Raw Records.",
-          "DWNPLY": "Local rapper who previously worked with Real Dimez."
+          "Boobie Ike": "Business partner and owner of the strip club where Dre'Quan books acts. Partnership in Only Raw Records.",
+          "Real Dimez": "Bae-Luxe and Roxy - his latest signings to Only Raw Records. His days booking acts might be numbered as he sets sights on Vice City.",
+          "DWNPLY": "Local rapper who previously worked with Real Dimez on their early hit single."
         };
       }
       else if (characterId === 'realdimez') {
         foundCharacter.info.relationships = foundCharacter.info.relationships || {
-          "Bae-Luxe": "One half of Real Dimez, friends since high school.",
-          "Roxy": "One half of Real Dimez, friends since high school.",
-          "Dre'Quan Priest": "Their producer and label owner at Only Raw Records.",
-          "DWNPLY": "Local rapper they had an early hit with five years ago."
+          "Bae-Luxe": "One half of Real Dimez, friends since high school. Girls with savvy who turned street dealings into rap success.",
+          "Roxy": "One half of Real Dimez, friends since high school. Together they create viral videos and hooks.",
+          "Dre'Quan Priest": "Their producer and label owner at Only Raw Records. Signed after five years of trouble.",
+          "DWNPLY": "Local rapper they had an early hit with five years ago that took them to new heights.",
+          "Boobie Ike": "Owner of Only Raw Records through partnership with Dre'Quan. Provides studio and backing."
         };
       }
       else if (characterId === 'raul') {
         foundCharacter.info.relationships = foundCharacter.info.relationships || {
-          "His Crew": "The team Raul assembles for his heists. He's always looking for new talent."
+          "His Crew": "The team Raul assembles for his heists. He's always looking for new talent ready for big risks.",
+          "Jason Duval": "Potential recruit - Jason's military background and criminal experience could be valuable for bank jobs.",
+          "Lucia Caminos": "Potential recruit - Her fighting skills and prison experience show she can handle pressure."
         };
       }
       else if (characterId === 'brian') {
         foundCharacter.info.relationships = foundCharacter.info.relationships || {
-          "Lori": "Brian's third wife, who helps run the boat yard.",
-          "Jason Duval": "Young recruit who does Brian's dirty work in exchange for free housing."
+          "Lori": "Brian's third wife, who helps run the boat yard and makes sangria.",
+          "Jason Duval": "Young recruit who does Brian's dirty work in exchange for free housing. Jason works for him in the Keys.",
+          "Cal Hampton": "Fellow associate who works with Brian. Cal is a friend of Jason and associate of Brian's operations."
+        };
+      }
+      else if (characterId === 'cal') {
+        foundCharacter.info.relationships = foundCharacter.info.relationships || {
+          "Jason Duval": "Friend with bigger plans. While Cal is happy at low tide of America, Jason wants more.",
+          "Brian Heder": "Associate whose operations Cal is involved with. Cal helps with Coast Guard monitoring.",
+          "Lori Heder": "Brian's wife who occasionally hosts Cal for drinks and updates."
         };
       }
       
@@ -1007,9 +954,9 @@ const CharacterDetailPage = () => {
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="col-span-full">
-                {characterQuotes[character.id]?.length > 0 ? (
+                {getCharacterQuotes(character).length > 0 ? (
                   <div className="space-y-6">
-                    {characterQuotes[character.id]?.map((quote, index) => (
+                    {getCharacterQuotes(character).map((quote, index) => (
                       <motion.div
                         key={index}
                         initial={{ opacity: 0, y: 20 }}

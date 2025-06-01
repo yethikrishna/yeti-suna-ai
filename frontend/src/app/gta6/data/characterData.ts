@@ -6,6 +6,9 @@ export interface CharacterInfo {
   skills?: string[];
   personalityTraits?: string[];
   relationships?: Record<string, string>;
+  quotes?: string[];
+  background?: string;
+  currentSituation?: string;
 }
 
 export interface Character {
@@ -35,13 +38,37 @@ export const characters: Character[] = [
     info: {
       name: 'Jason Duval',
       officialDescription: [
-        "Jason wants an easy life, but things just keep getting harder.",
-        "Jason grew up around grifters and crooks. After a stint in the Army trying to shake off his troubled teens, he found himself in the Keys doing what he knows best, working for local drug runners. It might be time to try something new.",
-        "If anything happens, I'm right behind you.",
-        "Another day in paradise, right?",
+        "Jason wants an easy life, but things just keep getting harder."
+      ],
+      expandedDescription: [
+        "Jason grew up around grifters and crooks. After a stint in the Army trying to shake off his troubled teens, he found himself in the Keys doing what he knows best, working for local drug runners.",
+        "It might be time to try something new.",
         "Meeting Lucia could be the best or worst thing to ever happen to him. Jason knows how he'd like it to turn out but right now, it's hard to tell."
+      ],
+      background: "Jason grew up surrounded by grifters and crooks, which shaped his early understanding of the world. His troubled teenage years led him to join the Army in an attempt to escape his past and find direction.",
+      currentSituation: "After his military service, Jason found himself in the Keys, falling back into what he knows best - working for local drug runners. Despite wanting an easy life, circumstances keep pushing him toward more complicated situations.",
+      personalityTraits: [
+        "Wants an easy life but attracts trouble",
+        "Loyal and protective of those he cares about",
+        "Experienced in criminal activities",
+        "Military background gives him tactical skills",
+        "Torn between his past and potential future"
+      ],
+      quotes: [
+        "If anything happens, I'm right behind you.",
+        "Another day in paradise, right?"
+      ],
+      relationships: {
+        "Lucia": "Meeting Lucia could be the best or worst thing to ever happen to him - the relationship represents both hope and potential danger."
+      },
+      skills: [
+        "Military training and combat experience",
+        "Street smarts from criminal background",
+        "Drug running operations",
+        "Survival skills"
       ]
-    }
+    },
+    locations: ["Leonida Keys", "Vice City"]
   },
   {
     id: 'lucia',
@@ -83,7 +110,6 @@ export const characters: Character[] = [
       officialDescription: [
         "What if everything on the internet was true?",
         "Jason's friend and a fellow associate of Brian's, Cal feels safest hanging at home, snooping on Coast Guard comms with a few beers and some private browser tabs open.",
-        "There are way too many birds flying around in perfect formation.",
         "The psychopaths are in charge. Get used to it.",
         "Cal is at the low tide of America and happy there. Casual paranoia loves company, but his friend Jason has bigger plans."
       ]
