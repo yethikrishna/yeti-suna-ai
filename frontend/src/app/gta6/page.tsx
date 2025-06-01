@@ -326,7 +326,7 @@ const TrailerCard = ({ trailer, index }: any) => {
       transition={{ duration: 0.5, delay: index * 0.1 }}
       viewport={{ once: true }}
       className={`rounded-xl overflow-hidden shadow-xl group transition-all duration-300 ${
-        theme === 'light' ? 'shadow-lg' : 'hover:shadow-[0_0_25px_rgba(168,85,247,0.2)] hover:border hover:border-purple-500/30'
+        theme === 'light' ? 'shadow-lg' : ''
       }`}
     >
       <div className="relative aspect-video overflow-hidden">
@@ -353,7 +353,7 @@ const TrailerCard = ({ trailer, index }: any) => {
                 className={`w-16 h-16 rounded-full backdrop-blur-sm flex items-center justify-center shadow-lg transition-all duration-300 ${
                   theme === 'light' 
                     ? 'bg-white/20 hover:bg-white/30' 
-                    : 'bg-white/20 hover:bg-white/30 hover:shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:border hover:border-purple-400/50'
+                    : 'bg-white/20 hover:bg-white/30'
                 }`}
               >
                 <Play size={30} className="text-white ml-1 drop-shadow" />
@@ -374,7 +374,7 @@ const TrailerCard = ({ trailer, index }: any) => {
       <div className={`p-4 backdrop-blur-sm ${
         theme === 'light' 
           ? 'bg-white/90 border-t border-gray-200' 
-          : 'bg-card border-t border-purple-500/20'
+          : 'bg-card border-t border-border'
       }`}>
         <h3 className={`text-lg font-semibold ${
           theme === 'light' ? 'text-gray-900' : 'text-foreground'
@@ -499,12 +499,12 @@ export default function GTA6Page() {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.5 }}
-          className="fixed top-4 right-4 z-50 flex flex-col space-y-2"
+          className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 flex flex-col space-y-2"
         >
           <div className={`backdrop-blur-xl shadow-2xl rounded-2xl p-3 border transition-all duration-300 ${
             theme === 'light'
               ? 'bg-white/90 border-gray-300 hover:border-gray-400 shadow-lg'
-              : 'bg-card border-border hover:border-purple-500/40 hover:shadow-[0_0_25px_rgba(168,85,247,0.1)]'
+              : 'bg-card border-border'
           }`}>
             <ul className="flex items-center space-x-3">
               <li>
@@ -515,7 +515,7 @@ export default function GTA6Page() {
                   className={`px-4 py-2 text-sm rounded-xl transition-all duration-300 flex items-center gap-2 font-medium ${
                     theme === 'light'
                       ? 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-accent hover:shadow-[0_0_10px_rgba(168,85,247,0.2)] hover:border hover:border-purple-500/30'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-accent'
                   }`}
                 >
                   <Play size={14} />
@@ -530,7 +530,7 @@ export default function GTA6Page() {
                   className={`px-4 py-2 text-sm rounded-xl transition-all duration-300 flex items-center gap-2 font-medium ${
                     theme === 'light'
                       ? 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-accent hover:shadow-[0_0_10px_rgba(168,85,247,0.2)] hover:border hover:border-purple-500/30'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-accent'
                   }`}
                 >
                   <Map size={14} />
@@ -545,7 +545,7 @@ export default function GTA6Page() {
                   className={`px-4 py-2 text-sm rounded-xl transition-all duration-300 flex items-center gap-2 font-medium ${
                     theme === 'light'
                       ? 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-accent hover:shadow-[0_0_10px_rgba(168,85,247,0.2)] hover:border hover:border-purple-500/30'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-accent'
                   }`}
                 >
                     <Star size={14} />
@@ -577,7 +577,7 @@ export default function GTA6Page() {
                 className={`flex items-center justify-center w-12 h-12 bg-gradient-to-r from-primary/90 to-primary rounded-full shadow-2xl transition-all backdrop-blur-sm border ${
                   theme === 'light' 
                     ? 'text-white border-gray-300 shadow-lg' 
-                    : 'text-primary-foreground border-purple-500/30 hover:shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:border-purple-400/50'
+                    : 'text-primary-foreground border-border hover:shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:border-purple-400/50'
                 }`}
                 aria-label="Back to top"
               >
@@ -595,7 +595,7 @@ export default function GTA6Page() {
           className={`relative h-[85vh] w-full overflow-hidden rounded-3xl mb-20 border shadow-2xl ${
             theme === 'light' 
               ? 'border-gray-300 shadow-xl' 
-              : 'border-border hover:border-purple-500/20 transition-all duration-500'
+              : 'border-border transition-all duration-500'
           }`}
         >
           {/* Enhanced gradient overlay */}
@@ -697,7 +697,7 @@ export default function GTA6Page() {
             transition={{ duration: 0.5 }}
             viewport={{ once: true }}
             className={`text-3xl md:text-4xl font-bold mb-12 text-center ${
-              theme === 'light' ? 'text-gray-900' : 'text-white'
+              theme === 'light' ? 'text-gray-900' : 'text-foreground'
             }`}
           >
             Explore Leonida
@@ -708,18 +708,14 @@ export default function GTA6Page() {
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
             viewport={{ once: true }}
-            className={`backdrop-blur-sm rounded-2xl p-6 md:p-8 border mb-12 transition-all duration-300 ${
-              theme === 'light'
-                ? 'bg-white/70 border-gray-300 shadow-lg'
-                : 'bg-card border-border hover:border-purple-500/20 hover:shadow-[0_0_20px_rgba(168,85,247,0.05)]'
-            }`}
+            className="mb-12"
           >
             
             <div className="mb-8">
-              <div className={`backdrop-blur-sm border rounded-xl p-5 transition-all duration-300 ${
+              <div className={`backdrop-blur-sm border rounded-xl p-5 ${
                 theme === 'light'
                   ? 'bg-gray-50/60 border-gray-300 shadow-sm'
-                  : 'bg-muted/30 border-border hover:border-purple-500/30'
+                  : 'bg-muted/30 border-border'
               }`}>
                 <p className={`italic text-lg ${
                   theme === 'light' ? 'text-gray-800' : 'text-foreground'
@@ -1037,14 +1033,14 @@ export default function GTA6Page() {
             <div className={`backdrop-blur-sm border rounded-xl p-5 ${
               theme === 'light'
                 ? 'bg-gray-50/60 border-gray-300 shadow-sm'
-                : 'bg-black/30 border-white/10'
+                : 'bg-muted/30 border-border'
             }`}>
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                   <h3 className={`font-bold text-xl mb-1 ${
-                    theme === 'light' ? 'text-gray-900' : 'text-white'
+                    theme === 'light' ? 'text-gray-900' : 'text-foreground'
                   }`}>Grand Theft Auto VI</h3>
-                  <p className={theme === 'light' ? 'text-gray-600' : 'text-white/60'}>
+                  <p className={theme === 'light' ? 'text-gray-600' : 'text-muted-foreground'}>
                     Experience the story across the state of Leonida
                   </p>
                 </div>
