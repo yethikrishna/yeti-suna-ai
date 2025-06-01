@@ -315,8 +315,7 @@ const CharacterSection = () => {
 };
 
 // Trailer Card Component - Enhanced Light Theme
-const TrailerCard = ({ trailer, index }: any) => {
-  const [showVideo, setShowVideo] = useState(false);
+const TrailerCard = ({ trailer, index, onTrailerSelect }: any) => {
   const { theme } = useTheme();
   
   return (
@@ -325,63 +324,34 @@ const TrailerCard = ({ trailer, index }: any) => {
       whileInView={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: index * 0.1 }}
       viewport={{ once: true }}
-      className={`rounded-xl overflow-hidden shadow-xl group transition-all duration-300 ${
-        theme === 'light' ? 'shadow-lg' : ''
+      className={`rounded-xl overflow-hidden shadow-xl group transition-all duration-300 cursor-pointer ${
+        theme === 'light' ? 'shadow-lg hover:shadow-xl' : 'hover:shadow-2xl'
       }`}
+      onClick={() => onTrailerSelect(trailer)}
     >
       <div className="relative aspect-video overflow-hidden">
-        {!showVideo ? (
-          <>
-            <div className={`absolute inset-0 transition-all duration-300 z-10 ${
-              theme === 'light'
-                ? 'bg-gray-900/20 group-hover:bg-gray-900/10'
-                : 'bg-black/30 group-hover:bg-black/10'
-            }`}></div>
-            
-            <SafeImage
-              src={`https://img.youtube.com/vi/${trailer.youtubeId}/maxresdefault.jpg`}
-              alt={trailer.title}
-              fill
-              className="object-cover transition-transform duration-700 group-hover:scale-105"
-            />
-            
-            <div className="absolute inset-0 flex items-center justify-center z-20">
-              <motion.button
-                onClick={() => setShowVideo(true)}
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                className={`w-16 h-16 rounded-full backdrop-blur-sm flex items-center justify-center shadow-lg transition-all duration-300 ${
-                  theme === 'light' 
-                    ? 'bg-white/20 hover:bg-white/30' 
-                    : 'bg-white/20 hover:bg-white/30'
-                }`}
-              >
-                <Play size={30} className="text-white ml-1 drop-shadow" />
-              </motion.button>
-            </div>
-          </>
-        ) : (
-          <iframe 
-            src={`https://www.youtube.com/embed/${trailer.youtubeId}?autoplay=1`}
-            title={trailer.title}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            className="absolute top-0 left-0 w-full h-full border-0"
-          ></iframe>
-        )}
-      </div>
-      
-      <div className={`p-4 backdrop-blur-sm ${
-        theme === 'light' 
-          ? 'bg-white/90 border-t border-gray-200' 
-          : 'bg-card border-t border-border'
-      }`}>
-        <h3 className={`text-lg font-semibold ${
-          theme === 'light' ? 'text-gray-900' : 'text-foreground'
-        }`}>{trailer.title}</h3>
-        <p className={`text-sm mt-1 ${
-          theme === 'light' ? 'text-gray-600' : 'text-muted-foreground'
-        }`}>{trailer.date}</p>
+        <div className={`absolute inset-0 transition-all duration-300 z-10 ${
+          theme === 'light'
+            ? 'bg-gray-900/20 group-hover:bg-gray-900/10'
+            : 'bg-black/30 group-hover:bg-black/20'
+        }`}></div>
+        
+        <SafeImage
+          src={`https://img.youtube.com/vi/${trailer.youtubeId}/maxresdefault.jpg`}
+          alt={trailer.title}
+          fill
+          className="object-cover transition-transform duration-700 group-hover:scale-105"
+        />
+        
+        <div className="absolute inset-0 flex items-center justify-center z-20">
+          <motion.div
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            className="w-16 h-16 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-sm flex items-center justify-center shadow-lg transition-all duration-300"
+          >
+            <Play size={24} className="text-white ml-1 drop-shadow" />
+          </motion.div>
+        </div>
       </div>
     </motion.div>
   );
@@ -401,6 +371,9 @@ export default function GTA6Page() {
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
   
+  // Trailer Modal State
+  const [selectedTrailer, setSelectedTrailer] = useState<any>(null);
+
   // Mock data for trailers with YouTube IDs
   const trailers = [
     {
@@ -493,7 +466,7 @@ export default function GTA6Page() {
         ? 'bg-gradient-to-br from-gray-50 to-gray-100' 
         : 'bg-background'
     }`}>
-      <div className="container mx-auto px-4 py-6 max-w-[1400px]">
+      <div className="container mx-auto px-4 py-6 max-w-[1400px] pt-23">
         {/* Fixed Navigation Menu */}
         <motion.nav 
           initial={{ opacity: 0, y: -20 }}
@@ -684,7 +657,7 @@ export default function GTA6Page() {
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {trailers.map((trailer, index) => (
-              <TrailerCard key={trailer.id} trailer={trailer} index={index} />
+              <TrailerCard key={trailer.id} trailer={trailer} index={index} onTrailerSelect={setSelectedTrailer} />
             ))}
           </div>
         </section>
@@ -710,148 +683,6 @@ export default function GTA6Page() {
             viewport={{ once: true }}
             className="mb-12"
           >
-            
-            <div className="mb-8">
-              <div className={`backdrop-blur-sm border rounded-xl p-5 ${
-                theme === 'light'
-                  ? 'bg-gray-50/60 border-gray-300 shadow-sm'
-                  : 'bg-muted/30 border-border'
-              }`}>
-                <p className={`italic text-lg ${
-                  theme === 'light' ? 'text-gray-800' : 'text-foreground'
-                }`}>
-                  "When the sun fades and the neon glows, everyone has something to gain — and more to lose."
-                </p>
-                <p className={`text-sm mt-2 ${
-                  theme === 'light' ? 'text-gray-600' : 'text-muted-foreground'
-                }`}>
-                  — Only in Leonida
-                </p>
-              </div>
-            </div>
-            
-            {/* Search and Filters */}
-            <div className="mb-8">
-              <div className="flex flex-col lg:flex-row gap-4 items-center justify-between mb-4">
-                {/* Search */}
-                <div className="relative flex-1 max-w-md">
-                  <Search size={20} className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${
-                    theme === 'light' ? 'text-gray-400' : 'text-white/40'
-                  }`} />
-                  <input
-                    type="text"
-                    placeholder="Search cities..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className={`w-full pl-10 pr-4 py-2 rounded-xl border transition-colors ${
-                      theme === 'light'
-                        ? 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-primary'
-                        : 'bg-input border-border text-foreground placeholder-muted-foreground focus:border-purple-500/60 focus:shadow-[0_0_15px_rgba(168,85,247,0.2)]'
-                    }`}
-                    aria-label="Search cities"
-                  />
-                </div>
-
-                {/* View Mode Toggle */}
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setViewMode('grid')}
-                    className={`p-2 rounded-lg transition-colors ${
-                      viewMode === 'grid'
-                        ? 'bg-primary text-white'
-                        : theme === 'light'
-                          ? 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                          : 'bg-white/10 text-white/60 hover:bg-white/20 hover:border hover:border-purple-500/30 hover:shadow-[0_0_10px_rgba(168,85,247,0.2)]'
-                    }`}
-                    aria-label="Grid view"
-                  >
-                    <Grid size={20} />
-                  </button>
-                  <button
-                    onClick={() => setViewMode('map')}
-                    className={`p-2 rounded-lg transition-colors ${
-                      viewMode === 'map'
-                        ? 'bg-primary text-white'
-                        : theme === 'light'
-                          ? 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                          : 'bg-white/10 text-white/60 hover:bg-white/20 hover:border hover:border-purple-500/30 hover:shadow-[0_0_10px_rgba(168,85,247,0.2)]'
-                    }`}
-                    aria-label="Map view"
-                  >
-                    <Map size={20} />
-                  </button>
-                </div>
-
-                {/* Filters */}
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setShowFilters(!showFilters)}
-                    className={`px-4 py-2 rounded-xl border transition-colors flex items-center gap-2 ${
-                      theme === 'light'
-                        ? 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
-                        : 'bg-black/20 border-white/20 text-white/70 hover:bg-white/10 hover:border-purple-500/40 hover:shadow-[0_0_10px_rgba(168,85,247,0.2)]'
-                    }`}
-                    aria-label="Toggle filters"
-                  >
-                    <Filter size={16} />
-                    Filters
-                  </button>
-                </div>
-              </div>
-
-              {/* Filter Options */}
-              <AnimatePresence>
-                {showFilters && (
-                <motion.div 
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="mt-4 pt-4 border-t border-gray-300/20 flex flex-col md:flex-row gap-4"
-                  >
-                    <div className="flex-1">
-                      <label className={`block text-sm font-medium mb-2 ${
-                        theme === 'light' ? 'text-gray-700' : 'text-white/70'
-                      }`}>
-                        Region
-                      </label>
-                      <select
-                        value={selectedRegion}
-                        onChange={(e) => setSelectedRegion(e.target.value)}
-                        className={`w-full p-2 rounded-lg border transition-colors ${
-                          theme === 'light'
-                            ? 'bg-white border-gray-300 text-gray-900'
-                            : 'bg-black/20 border-white/20 text-white focus:border-purple-500/60 focus:shadow-[0_0_10px_rgba(168,85,247,0.15)]'
-                        }`}
-                      >
-                        {regionFilters.map(region => (
-                          <option key={region} value={region}>{region}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="flex-1">
-                      <label className={`block text-sm font-medium mb-2 ${
-                        theme === 'light' ? 'text-gray-700' : 'text-white/70'
-                      }`}>
-                        Type
-                      </label>
-                      <select
-                        value={selectedType}
-                        onChange={(e) => setSelectedType(e.target.value)}
-                        className={`w-full p-2 rounded-lg border transition-colors ${
-                          theme === 'light'
-                            ? 'bg-white border-gray-300 text-gray-900'
-                            : 'bg-black/20 border-white/20 text-white focus:border-purple-500/60 focus:shadow-[0_0_10px_rgba(168,85,247,0.15)]'
-                        }`}
-                      >
-                        {typeFilters.map(type => (
-                          <option key={type} value={type}>{type}</option>
-                        ))}
-                      </select>
-                  </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
 
             {/* Results Count */}
             <div className={`mb-6 ${
@@ -957,10 +788,10 @@ export default function GTA6Page() {
                         Explore {city.name}
                         <ArrowLeft size={14} className="rotate-180 transform group-hover:translate-x-1 transition-transform" />
                       </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
             )}
 
             {/* Map View */}
@@ -995,61 +826,13 @@ export default function GTA6Page() {
                               ? 'bg-primary border-white shadow-lg group-hover:scale-125'
                               : 'bg-primary border-black/50 shadow-xl group-hover:scale-125 group-hover:shadow-[0_0_15px_rgba(168,85,247,0.6)]'
                           }`}></div>
-                          
-                          {/* Pulse Animation */}
-                          <div className={`absolute inset-0 w-6 h-6 rounded-full animate-ping ${
-                            theme === 'light' ? 'bg-primary/30' : 'bg-purple-500/50'
-                          }`}></div>
-                        </div>
-
-                        {/* City Label */}
-                        <div className={`absolute top-8 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap`}>
-                          <div className={`px-3 py-2 rounded-lg backdrop-blur-sm border ${
-                            theme === 'light'
-                              ? 'bg-white/90 border-gray-300 text-gray-900 shadow-lg'
-                              : 'bg-black/80 border-white/20 text-white'
-                          }`}>
-                            <div className="text-sm font-medium">{city.name}</div>
-                            <div className={`text-xs ${
-                              theme === 'light' ? 'text-gray-600' : 'text-white/60'
-                            }`}>
-                              {city.images} images
-                            </div>
-                          </div>
                         </div>
                       </motion.button>
                     ))}
                   </div>
                 </div>
-
-                <div className={`mt-6 text-center ${
-                  theme === 'light' ? 'text-gray-600' : 'text-white/60'
-                }`}>
-                  <p className="text-sm">Click on any marker to explore that city</p>
-                </div>
               </div>
             )}
-            
-            <div className={`backdrop-blur-sm border rounded-xl p-5 ${
-              theme === 'light'
-                ? 'bg-gray-50/60 border-gray-300 shadow-sm'
-                : 'bg-muted/30 border-border'
-            }`}>
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                  <h3 className={`font-bold text-xl mb-1 ${
-                    theme === 'light' ? 'text-gray-900' : 'text-foreground'
-                  }`}>Grand Theft Auto VI</h3>
-                  <p className={theme === 'light' ? 'text-gray-600' : 'text-muted-foreground'}>
-                    Experience the story across the state of Leonida
-                  </p>
-                </div>
-                <div className="bg-gradient-to-r from-red-600 to-pink-600 text-white px-4 py-2 rounded-xl shadow-lg">
-                  <div className="text-sm font-semibold">Coming</div>
-                  <div className="text-lg font-bold">May 26, 2026</div>
-                </div>
-              </div>
-            </div>
           </motion.div>
         </section>
 
@@ -1116,7 +899,7 @@ export default function GTA6Page() {
                           className={`absolute left-4 top-1/2 transform -translate-y-1/2 p-3 rounded-full backdrop-blur-sm transition-all ${
                             theme === 'light'
                               ? 'bg-white/80 hover:bg-white text-gray-800'
-                              : 'bg-black/60 hover:bg-black/80 text-white'
+                              : 'bg-black/60 hover:bg-black/80 text-white hover:shadow-[0_0_15px_rgba(168,85,247,0.4)] hover:border hover:border-purple-500/50'
                           }`}
                           aria-label="Previous image"
                         >
@@ -1128,7 +911,7 @@ export default function GTA6Page() {
                           className={`absolute right-4 top-1/2 transform -translate-y-1/2 p-3 rounded-full backdrop-blur-sm transition-all ${
                             theme === 'light'
                               ? 'bg-white/80 hover:bg-white text-gray-800'
-                              : 'bg-black/60 hover:bg-black/80 text-white'
+                              : 'bg-black/60 hover:bg-black/80 text-white hover:shadow-[0_0_15px_rgba(168,85,247,0.4)] hover:border hover:border-purple-500/50'
                           }`}
                           aria-label="Next image"
                         >
@@ -1279,6 +1062,50 @@ export default function GTA6Page() {
                   </div>
                 </div>
               </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Trailer Modal */}
+      <AnimatePresence>
+        {selectedTrailer && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            onClick={() => setSelectedTrailer(null)}
+          >
+            {/* Backdrop */}
+            <div className="absolute inset-0 bg-black/90 backdrop-blur-sm"></div>
+            
+            {/* Modal Content */}
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="relative w-full max-w-4xl aspect-video rounded-2xl overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Close Button */}
+              <button
+                onClick={() => setSelectedTrailer(null)}
+                className="absolute top-4 right-4 z-30 p-2 rounded-full bg-black/60 hover:bg-black/80 text-white transition-colors"
+                aria-label="Close modal"
+              >
+                <X size={24} />
+              </button>
+              
+              {/* Video */}
+              <iframe 
+                src={`https://www.youtube.com/embed/${selectedTrailer.youtubeId}?autoplay=1&rel=0`}
+                title={selectedTrailer.title}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                className="w-full h-full border-0"
+              />
             </motion.div>
           </motion.div>
         )}
