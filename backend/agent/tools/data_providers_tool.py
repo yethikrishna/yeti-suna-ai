@@ -157,7 +157,15 @@ Use this tool when you need to discover what endpoints are available.
                     return self.fail_response(f"Invalid JSON in payload: {str(e)}")
             elif payload is None:
                 payload = {}
-            # If payload is already a dict, use it as-is
+            elif isinstance(payload, dict):
+                # Payload is already a dict, use it as-is
+                pass
+            else:
+                # Handle other types by converting to dict
+                try:
+                    payload = dict(payload)
+                except (TypeError, ValueError):
+                    return self.fail_response(f"Invalid payload type: {type(payload)}. Expected dict or JSON string.")
 
             if not service_name:
                 return self.fail_response("service_name is required.")
@@ -170,7 +178,7 @@ Use this tool when you need to discover what endpoints are available.
             
             data_provider = self.register_data_providers[service_name]
             if route == service_name:
-                return self.fail_response(f"route '{route}' is the same as service_name '{service_name}'. YOU FUCKING IDIOT!")
+                return self.fail_response(f"route '{route}' is the same as service_name '{service_name}'. Please use a valid endpoint route.")
             
             if route not in data_provider.get_endpoints().keys():
                 return self.fail_response(f"Endpoint '{route}' not found in {service_name} data provider.")
