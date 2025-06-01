@@ -785,18 +785,20 @@ export const ThreadContent: React.FC<ThreadContentProps> = ({
                                                 <OmniLogo />
                                             </div>
                                             <div className="flex-1 space-y-2 w-full h-12">
-                                        <div className="flex flex-col gap-2">
-                                            {/* Logo positioned above the loader */}
-                                            <div className="flex items-center">
-                                                <div className="rounded-md flex items-center justify-center">
-                                                    {agentAvatar}
+                                                <div className="flex flex-col gap-2">
+                                                    {/* Logo positioned above the loader */}
+                                                    <div className="flex items-center">
+                                                        <div className="rounded-md flex items-center justify-center">
+                                                            {agentAvatar}
+                                                        </div>
+                                                        <p className='ml-2 text-sm text-muted-foreground'>{agentName}</p>
+                                                    </div>
+                                                    
+                                                    {/* Loader content */}
+                                                    <div className="space-y-2 w-full h-12">
+                                                        <AgentLoader />
+                                                    </div>
                                                 </div>
-                                                <p className='ml-2 text-sm text-muted-foreground'>{agentName}</p>
-                                            </div>
-                                            
-                                            {/* Loader content */}
-                                            <div className="space-y-2 w-full h-12">
-                                                <AgentLoader />
                                             </div>
                                         </div>
                                     </div>
