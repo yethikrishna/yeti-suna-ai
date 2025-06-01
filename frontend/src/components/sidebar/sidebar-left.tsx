@@ -133,19 +133,44 @@ export function SidebarLeft({
           </div>
         </div>
       </SidebarHeader>
-      {/* GTA 6 Button */}
-      <div className="px-2 py-2">
-        <Link href="/gta6" className="peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground h-8 text-sm">
-          <span className="text-sm font-medium">VI</span>
-        </Link>
-      </div>
       <SidebarContent className="[&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
       <SidebarGroup>
+        {/* GTA VI Section */}
+        <Link href="/gta6">
+          <SidebarMenuButton 
+            className={cn(
+              "relative overflow-hidden",
+              "before:absolute before:inset-0 before:bg-gradient-to-r before:from-purple-500/5 before:to-pink-500/5 before:rounded-md before:transition-opacity before:duration-200",
+              "hover:before:opacity-100 before:opacity-60",
+              "border border-transparent hover:border-purple-500/20",
+              {
+                'bg-purple-500/10 border-purple-500/30 before:opacity-100': pathname === '/gta6',
+              }
+            )}
+            tooltip={state === 'collapsed' ? "Fandom GTA VI" : undefined}
+            isActive={pathname === '/gta6'}
+          >
+            {/* GTA VI Icon */}
+            <div className="relative flex-shrink-0 h-4 w-4 flex items-center justify-center">
+              <div className="absolute inset-0 rounded-sm bg-gradient-to-br from-purple-600 to-pink-600 opacity-90"></div>
+              <div className="relative z-10 font-bold text-white text-xs tracking-wide">
+                VI
+              </div>
+            </div>
+            <span className="flex items-center justify-between w-full">
+              Fandom GTA VI
+              <Badge variant="new" className="bg-purple-500/20 text-purple-700 dark:text-purple-300 border-purple-500/30">
+                New
+              </Badge>
+            </span>
+          </SidebarMenuButton>
+        </Link>
+
         <Link href="/agents">
           <SidebarMenuButton className={cn({
             'bg-primary/10 font-medium': pathname === '/agents',
           })}>
-            <Bot className="h-4 w-4 mr-2" />
+            <Bot className="h-4 w-4" />
             <span className="flex items-center justify-between w-full">
               Agent Playground
               <Badge variant="new">
@@ -159,7 +184,7 @@ export function SidebarLeft({
           <SidebarMenuButton className={cn({
             'bg-primary/10 font-medium': pathname === '/marketplace',
           })}>
-            <Store className="h-4 w-4 mr-2" />
+            <Store className="h-4 w-4" />
             <span className="flex items-center justify-between w-full">
               Marketplace
               <Badge variant="new">
