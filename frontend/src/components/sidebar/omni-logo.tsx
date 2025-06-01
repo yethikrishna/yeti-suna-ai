@@ -22,6 +22,5 @@ export function OmniLogo() {
         height={24}
         className="object-contain"
       />
-    </div>
   );
 }
