@@ -28,7 +28,7 @@ const SafeImage = ({ src, alt, priority = false, ...props }: any) => {
       <Camera size={48} />
     </div>
   ) : (
-    <Image
+    <Image 
       {...props}
       src={imgSrc}
       alt={alt}
@@ -214,7 +214,7 @@ const CharacterCard = ({ character, index }: any) => {
         className={`w-full rounded-2xl overflow-hidden backdrop-blur-sm border transition-all duration-300 shadow-xl group cursor-pointer ${
           theme === 'light'
             ? 'bg-white/50 border-gray-300 hover:border-gray-400 shadow-lg hover:shadow-xl'
-            : 'bg-black/40 border-white/10 hover:border-white/20'
+            : 'bg-black/40 border-white/10 hover:border-purple-500/30 hover:shadow-[0_0_30px_rgba(168,85,247,0.15)] hover:shadow-purple-500/20'
         }`}
       >
         <div className="relative h-[450px] md:h-[600px] overflow-hidden">
@@ -275,7 +275,7 @@ const CharacterCard = ({ character, index }: any) => {
               className={`mt-6 px-4 py-2 backdrop-blur-sm border rounded-lg text-sm opacity-0 group-hover:opacity-100 transition-all duration-300 inline-block ${
                 theme === 'light'
                   ? 'bg-white/20 border-white/30 text-white shadow-lg'
-                  : 'bg-white/10 border-white/20 text-white'
+                  : 'bg-white/10 border-purple-400/40 text-white shadow-[0_0_15px_rgba(168,85,247,0.1)]'
               }`}
             >
               View Character
@@ -325,8 +325,8 @@ const TrailerCard = ({ trailer, index }: any) => {
       whileInView={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: index * 0.1 }}
       viewport={{ once: true }}
-      className={`rounded-xl overflow-hidden shadow-xl group ${
-        theme === 'light' ? 'shadow-lg' : ''
+      className={`rounded-xl overflow-hidden shadow-xl group transition-all duration-300 ${
+        theme === 'light' ? 'shadow-lg' : 'hover:shadow-[0_0_25px_rgba(168,85,247,0.2)] hover:border hover:border-purple-500/30'
       }`}
     >
       <div className="relative aspect-video overflow-hidden">
@@ -350,7 +350,11 @@ const TrailerCard = ({ trailer, index }: any) => {
                 onClick={() => setShowVideo(true)}
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                className="w-16 h-16 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-sm flex items-center justify-center shadow-lg"
+                className={`w-16 h-16 rounded-full backdrop-blur-sm flex items-center justify-center shadow-lg transition-all duration-300 ${
+                  theme === 'light' 
+                    ? 'bg-white/20 hover:bg-white/30' 
+                    : 'bg-white/20 hover:bg-white/30 hover:shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:border hover:border-purple-400/50'
+                }`}
               >
                 <Play size={30} className="text-white ml-1 drop-shadow" />
               </motion.button>
@@ -370,7 +374,7 @@ const TrailerCard = ({ trailer, index }: any) => {
       <div className={`p-4 backdrop-blur-sm ${
         theme === 'light' 
           ? 'bg-white/90 border-t border-gray-200' 
-          : 'bg-black/80'
+          : 'bg-black/80 border-t border-purple-500/20'
       }`}>
         <h3 className={`text-lg font-semibold ${
           theme === 'light' ? 'text-gray-900' : 'text-white'
@@ -500,7 +504,7 @@ export default function GTA6Page() {
           <div className={`backdrop-blur-xl shadow-2xl rounded-2xl p-3 border transition-all duration-300 ${
             theme === 'light'
               ? 'bg-white/90 border-gray-300 hover:border-gray-400 shadow-lg'
-              : 'bg-black/80 border-white/20 hover:border-white/30'
+              : 'bg-black/80 border-white/20 hover:border-purple-500/40 hover:shadow-[0_0_25px_rgba(168,85,247,0.1)]'
           }`}>
             <ul className="flex items-center space-x-3">
               <li>
@@ -511,7 +515,7 @@ export default function GTA6Page() {
                   className={`px-4 py-2 text-sm rounded-xl transition-all duration-300 flex items-center gap-2 font-medium ${
                     theme === 'light'
                       ? 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
-                      : 'text-white/70 hover:text-white hover:bg-white/10'
+                      : 'text-white/70 hover:text-white hover:bg-white/10 hover:shadow-[0_0_10px_rgba(168,85,247,0.2)] hover:border hover:border-purple-500/30'
                   }`}
                 >
                   <Play size={14} />
@@ -526,7 +530,7 @@ export default function GTA6Page() {
                   className={`px-4 py-2 text-sm rounded-xl transition-all duration-300 flex items-center gap-2 font-medium ${
                     theme === 'light'
                       ? 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
-                      : 'text-white/70 hover:text-white hover:bg-white/10'
+                      : 'text-white/70 hover:text-white hover:bg-white/10 hover:shadow-[0_0_10px_rgba(168,85,247,0.2)] hover:border hover:border-purple-500/30'
                   }`}
                 >
                   <Map size={14} />
@@ -534,18 +538,18 @@ export default function GTA6Page() {
                 </motion.a>
               </li>
               <li>
-                <motion.a
+                <motion.a 
                   href="#characters"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   className={`px-4 py-2 text-sm rounded-xl transition-all duration-300 flex items-center gap-2 font-medium ${
                     theme === 'light'
                       ? 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
-                      : 'text-white/70 hover:text-white hover:bg-white/10'
+                      : 'text-white/70 hover:text-white hover:bg-white/10 hover:shadow-[0_0_10px_rgba(168,85,247,0.2)] hover:border hover:border-purple-500/30'
                   }`}
                 >
-                  <Star size={14} />
-                  Characters
+                    <Star size={14} />
+                    Characters
                 </motion.a>
               </li>
             </ul>
@@ -573,7 +577,7 @@ export default function GTA6Page() {
                 className={`flex items-center justify-center w-12 h-12 bg-gradient-to-r from-primary/90 to-primary rounded-full shadow-2xl transition-all backdrop-blur-sm border ${
                   theme === 'light' 
                     ? 'text-white border-gray-300 shadow-lg' 
-                    : 'text-white border-white/20'
+                    : 'text-white border-purple-500/30 hover:shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:border-purple-400/50'
                 }`}
                 aria-label="Back to top"
               >
@@ -591,7 +595,7 @@ export default function GTA6Page() {
           className={`relative h-[85vh] w-full overflow-hidden rounded-3xl mb-20 border shadow-2xl ${
             theme === 'light' 
               ? 'border-gray-300 shadow-xl' 
-              : 'border-white/10'
+              : 'border-white/10 hover:border-purple-500/20 transition-all duration-500'
           }`}
         >
           {/* Enhanced gradient overlay */}
@@ -603,7 +607,7 @@ export default function GTA6Page() {
           <div className={`absolute inset-0 z-10 ${
             theme === 'light'
               ? 'bg-gradient-to-r from-gray-900/60 via-transparent to-gray-900/40'
-              : 'bg-gradient-to-r from-black/70 via-transparent to-black/50'
+              : 'bg-gradient-to-r from-black/70 via-transparent to-purple-900/30'
           }`}></div>
           
           {/* Background Image with parallax effect */}
@@ -653,7 +657,9 @@ export default function GTA6Page() {
                 href="#trailers"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="px-8 py-4 bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-full flex items-center gap-2 font-medium shadow-xl hover:shadow-red-500/20 transition-all duration-300"
+                className={`px-8 py-4 bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-full flex items-center gap-2 font-medium shadow-xl transition-all duration-300 ${
+                  theme === 'dark' ? 'hover:shadow-[0_0_30px_rgba(168,85,247,0.3)] hover:from-red-600 hover:to-purple-600' : 'hover:shadow-red-500/20'
+                }`}
               >
                 <Play size={18} />
                 Watch Trailer
@@ -702,18 +708,18 @@ export default function GTA6Page() {
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
             viewport={{ once: true }}
-            className={`backdrop-blur-sm rounded-2xl p-6 md:p-8 border mb-12 ${
+            className={`backdrop-blur-sm rounded-2xl p-6 md:p-8 border mb-12 transition-all duration-300 ${
               theme === 'light'
                 ? 'bg-white/70 border-gray-300 shadow-lg'
-                : 'bg-black/40 border-white/10'
+                : 'bg-black/40 border-white/10 hover:border-purple-500/20 hover:shadow-[0_0_20px_rgba(168,85,247,0.05)]'
             }`}
           >
             
             <div className="mb-8">
-              <div className={`backdrop-blur-sm border rounded-xl p-5 ${
+              <div className={`backdrop-blur-sm border rounded-xl p-5 transition-all duration-300 ${
                 theme === 'light'
                   ? 'bg-gray-50/60 border-gray-300 shadow-sm'
-                  : 'bg-black/30 border-white/10'
+                  : 'bg-black/30 border-white/10 hover:border-purple-500/30'
               }`}>
                 <p className={`italic text-lg ${
                   theme === 'light' ? 'text-gray-800' : 'text-white/80'
@@ -727,7 +733,7 @@ export default function GTA6Page() {
                 </p>
               </div>
             </div>
-
+            
             {/* Search and Filters */}
             <div className="mb-8">
               <div className="flex flex-col lg:flex-row gap-4 items-center justify-between mb-4">
@@ -744,7 +750,7 @@ export default function GTA6Page() {
                     className={`w-full pl-10 pr-4 py-2 rounded-xl border transition-colors ${
                       theme === 'light'
                         ? 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-primary'
-                        : 'bg-black/20 border-white/20 text-white placeholder-white/50 focus:border-primary'
+                        : 'bg-black/20 border-white/20 text-white placeholder-white/50 focus:border-purple-500/60 focus:shadow-[0_0_15px_rgba(168,85,247,0.2)]'
                     }`}
                     aria-label="Search cities"
                   />
@@ -759,7 +765,7 @@ export default function GTA6Page() {
                         ? 'bg-primary text-white'
                         : theme === 'light'
                           ? 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                          : 'bg-white/10 text-white/60 hover:bg-white/20'
+                          : 'bg-white/10 text-white/60 hover:bg-white/20 hover:border hover:border-purple-500/30 hover:shadow-[0_0_10px_rgba(168,85,247,0.2)]'
                     }`}
                     aria-label="Grid view"
                   >
@@ -772,7 +778,7 @@ export default function GTA6Page() {
                         ? 'bg-primary text-white'
                         : theme === 'light'
                           ? 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                          : 'bg-white/10 text-white/60 hover:bg-white/20'
+                          : 'bg-white/10 text-white/60 hover:bg-white/20 hover:border hover:border-purple-500/30 hover:shadow-[0_0_10px_rgba(168,85,247,0.2)]'
                     }`}
                     aria-label="Map view"
                   >
@@ -787,7 +793,7 @@ export default function GTA6Page() {
                     className={`px-4 py-2 rounded-xl border transition-colors flex items-center gap-2 ${
                       theme === 'light'
                         ? 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
-                        : 'bg-black/20 border-white/20 text-white/70 hover:bg-white/10'
+                        : 'bg-black/20 border-white/20 text-white/70 hover:bg-white/10 hover:border-purple-500/40 hover:shadow-[0_0_10px_rgba(168,85,247,0.2)]'
                     }`}
                     aria-label="Toggle filters"
                   >
@@ -800,7 +806,7 @@ export default function GTA6Page() {
               {/* Filter Options */}
               <AnimatePresence>
                 {showFilters && (
-                  <motion.div
+                <motion.div 
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
@@ -818,7 +824,7 @@ export default function GTA6Page() {
                         className={`w-full p-2 rounded-lg border transition-colors ${
                           theme === 'light'
                             ? 'bg-white border-gray-300 text-gray-900'
-                            : 'bg-black/20 border-white/20 text-white'
+                            : 'bg-black/20 border-white/20 text-white focus:border-purple-500/60 focus:shadow-[0_0_10px_rgba(168,85,247,0.15)]'
                         }`}
                       >
                         {regionFilters.map(region => (
@@ -838,14 +844,14 @@ export default function GTA6Page() {
                         className={`w-full p-2 rounded-lg border transition-colors ${
                           theme === 'light'
                             ? 'bg-white border-gray-300 text-gray-900'
-                            : 'bg-black/20 border-white/20 text-white'
+                            : 'bg-black/20 border-white/20 text-white focus:border-purple-500/60 focus:shadow-[0_0_10px_rgba(168,85,247,0.15)]'
                         }`}
                       >
                         {typeFilters.map(type => (
                           <option key={type} value={type}>{type}</option>
                         ))}
                       </select>
-                    </div>
+                  </div>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -874,7 +880,7 @@ export default function GTA6Page() {
                     className={`group cursor-pointer backdrop-blur-sm border rounded-2xl overflow-hidden transition-all duration-300 ${
                       theme === 'light'
                         ? 'bg-white/60 border-gray-300 hover:border-primary hover:shadow-xl shadow-lg'
-                        : 'bg-black/30 border-white/10 hover:border-primary/30 hover:shadow-[0_0_20px_rgba(var(--primary),0.2)]'
+                        : 'bg-black/30 border-white/10 hover:border-purple-500/40 hover:shadow-[0_0_30px_rgba(168,85,247,0.2)]'
                     }`}
                     onClick={() => openCityModal(city)}
                     role="button"
@@ -955,10 +961,10 @@ export default function GTA6Page() {
                         Explore {city.name}
                         <ArrowLeft size={14} className="rotate-180 transform group-hover:translate-x-1 transition-transform" />
                       </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
             )}
 
             {/* Map View */}
@@ -991,12 +997,12 @@ export default function GTA6Page() {
                           <div className={`w-6 h-6 rounded-full border-2 transition-all duration-300 ${
                             theme === 'light'
                               ? 'bg-primary border-white shadow-lg group-hover:scale-125'
-                              : 'bg-primary border-black/50 shadow-xl group-hover:scale-125'
+                              : 'bg-primary border-black/50 shadow-xl group-hover:scale-125 group-hover:shadow-[0_0_15px_rgba(168,85,247,0.6)]'
                           }`}></div>
                           
                           {/* Pulse Animation */}
                           <div className={`absolute inset-0 w-6 h-6 rounded-full animate-ping ${
-                            theme === 'light' ? 'bg-primary/30' : 'bg-primary/50'
+                            theme === 'light' ? 'bg-primary/30' : 'bg-purple-500/50'
                           }`}></div>
                         </div>
 
@@ -1074,10 +1080,10 @@ export default function GTA6Page() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className={`relative w-full max-w-6xl max-h-[90vh] overflow-hidden rounded-3xl backdrop-blur-xl border ${
+              className={`relative w-full max-w-6xl max-h-[90vh] overflow-hidden rounded-3xl backdrop-blur-xl border transition-all duration-300 ${
                 theme === 'light'
                   ? 'bg-white/95 border-gray-300'
-                  : 'bg-black/90 border-white/20'
+                  : 'bg-black/90 border-white/20 shadow-[0_0_50px_rgba(168,85,247,0.1)]'
               }`}
               onClick={(e) => e.stopPropagation()}
             >
@@ -1087,7 +1093,7 @@ export default function GTA6Page() {
                 className={`absolute top-6 right-6 z-30 p-2 rounded-full backdrop-blur-sm transition-colors ${
                   theme === 'light'
                     ? 'bg-white/80 hover:bg-white text-gray-800'
-                    : 'bg-black/60 hover:bg-black/80 text-white'
+                    : 'bg-black/60 hover:bg-black/80 text-white hover:shadow-[0_0_15px_rgba(168,85,247,0.3)] hover:border hover:border-purple-500/40'
                 }`}
                 aria-label="Close modal"
               >
@@ -1263,7 +1269,11 @@ export default function GTA6Page() {
                     <div className="pt-4">
                       <Link
                         href={`/gta6/cities/${selectedCity.id}`}
-                        className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary to-primary/80 text-white rounded-xl font-medium transition-all hover:shadow-lg hover:shadow-primary/20"
+                        className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all ${
+                          theme === 'light'
+                            ? 'bg-gradient-to-r from-primary to-primary/80 text-white hover:shadow-lg hover:shadow-primary/20'
+                            : 'bg-gradient-to-r from-primary to-purple-600 text-white hover:shadow-lg hover:shadow-[0_0_20px_rgba(168,85,247,0.4)]'
+                        }`}
                         onClick={closeCityModal}
                       >
                         <Eye size={18} />

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
-import { Calendar, ChevronLeft, MapPin, Heart, User, Star, Shield, Clock, Sparkles, ExternalLink, Map, Quote, Play } from "lucide-react";
+import { Calendar, ChevronLeft, MapPin, Heart, User, Star, Shield, Clock, Sparkles, ExternalLink, Map, Quote, Play, Sun, Moon } from "lucide-react";
 import Link from "next/link";
 import { useTheme } from 'next-themes';
 
@@ -17,7 +17,7 @@ const CharacterDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("background");
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const { theme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
   // Add locations data based on the information provided
