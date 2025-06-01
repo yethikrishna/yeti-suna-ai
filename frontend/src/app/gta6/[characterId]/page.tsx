@@ -1,0 +1,1148 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
+import { Calendar, ChevronLeft, MapPin, Heart, User, Star, Shield, Clock, Sparkles, ExternalLink, Map, Quote, Play } from "lucide-react";
+import Link from "next/link";
+
+import { characters } from "../data/characterData";
+
+const CharacterDetailPage = () => {
+  const params = useParams();
+  const router = useRouter();
+  const [character, setCharacter] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("background");
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
+  // Add locations data based on the information provided
+  const locations = [
+    { 
+      id: "vice-city", 
+      name: "Vice City", 
+      description: "The crown jewel of Leonida, where the sun fades and the neon glows." 
+    },
+    { 
+      id: "leonida-keys", 
+      name: "Leonida Keys", 
+      description: "A tropical paradise where smugglers and tourists mix freely." 
+    },
+    { 
+      id: "grassrivers", 
+      name: "Grassrivers", 
+      description: "Where the music scene is as vibrant as the streets are dangerous." 
+    },
+    { 
+      id: "port-gellhorn", 
+      name: "Port Gellhorn", 
+      description: "A bustling port town with opportunities for those willing to take risks." 
+    },
+    { 
+      id: "ambrosia", 
+      name: "Ambrosia", 
+      description: "A pristine coastal town with a dark underbelly." 
+    },
+    { 
+      id: "mount-kalaga", 
+      name: "Mount Kalaga", 
+      description: "Rugged wilderness that provides the perfect hideaway." 
+    }
+  ];
+
+  // Character quotes data
+  const characterQuotes = {
+    jason: [
+      "If anything happens, I'm right behind you.",
+      "Another day in paradise, right?"
+    ],
+    lucia: [
+      "The only thing that matters is who you know and what you got."
+    ],
+    boobie: [
+      "The club money pay for the studio, and the drug money pay for it all.",
+      "Top quality cuts."
+    ],
+    drequan: [
+      "Dancers are like my A&Rs. If the record's a hit, DJs gonna be spinnin' it.",
+      "You're with the label now."
+    ],
+    realdimez: [
+      "All my dimes in this club. Meet my twin, make it a dub."
+    ],
+    raul: [
+      "Life is full of surprises, my friend. I think we'd all be wise to remember that.",
+      "A professional adapts."
+    ],
+    brian: [
+      "I hauled so much grass in that plane, I could make the state of Leonida levitate."
+    ]
+  };
+
+  // Character video mapping
+  const characterVideoMap: { [key: string]: { name: string; file: string } } = {
+    lucia: { name: "Lucia Caminos", file: "Lucia_Caminos_Video_Clip.mp4" },
+    jason: { name: "Jason Duval", file: "Jason_Duval_Video_Clip.mp4" },
+    raul: { name: "Raul Bautista", file: "Raul_Bautista_Video_Clip.mp4" },
+    realdimez: { name: "Real Dimez", file: "Real_Dimez_Video_Clip.mp4" },
+    drequan: { name: "DreQuan Priest", file: "DreQuan_Priest_Video_Clip.mp4" },
+    cal: { name: "Cal Hampton", file: "Cal_Hampton_Video_Clip.mp4" },
+    brian: { name: "Brian Heder", file: "Brian_Heder_Video_Clip.mp4" },
+    boobie: { name: "Boobie Ike", file: "Boobie_Ike_Video_Clip.mp4" }
+  };
+
+  // Add character to location relationships data
+  useEffect(() => {
+    const characterId = params.characterId as string;
+    const foundCharacter = characters.find(c => c.id === characterId);
+    
+    if (foundCharacter) {
+      // Add character locations
+      const characterLocations = {
+        jason: ["Leonida Keys"],
+        lucia: ["Leonida Penitentiary", "Vice City"],
+        boobie: ["Vice City"],
+        drequan: ["Vice City", "Grassrivers"],
+        realdimez: ["Grassrivers", "Vice City"],
+        raul: ["Port Gellhorn", "Vice City"],
+        brian: ["Leonida Keys", "Ambrosia"]
+      };
+      
+      foundCharacter.locations = characterLocations[characterId] || [];
+      
+      // Add enhanced character information based on the provided data
+      if (characterId === 'jason') {
+        foundCharacter.info.expandedDescription = [
+          "Jason grew up around grifters and crooks. After a stint in the Army trying to shake off his troubled teens, he found himself in the Keys doing what he knows best, working for local drug runners. It might be time to try something new.",
+          "Meeting Lucia could be the best or worst thing to ever happen to him. Jason knows how he'd like it to turn out but right now, it's hard to tell."
+        ];
+      } 
+      else if (characterId === 'lucia') {
+        foundCharacter.info.expandedDescription = [
+          "Lucia's father taught her to fight as soon as she could walk. Life has been coming at her swinging ever since. Fighting for her family landed her in the Leonida Penitentiary. Sheer luck got her out.",
+          "More than anything, Lucia wants the good life her mom has dreamed of since their days in Liberty City — but instead of half-baked fantasies, Lucia is prepared to take matters into her own hands.",
+          "Fresh out of prison and ready to change the odds in her favor, Lucia's committed to her plan — no matter what it takes. A life with Jason could be her way out."
+        ];
+      }
+      else if (characterId === 'boobie') {
+        foundCharacter.info.expandedDescription = [
+          "Boobie is a local Vice City legend — and acts like it. One of the few to transform his time in the streets into a legitimate empire spanning real estate, a strip club, and a recording studio — Boobie's all smiles until it's time to talk business.",
+          "Boobie might seem like he's just out for himself, but it's his partnership with the young aspiring music mogul Dre'Quan for Only Raw Records that he's most invested in — now they just need a hit."
+        ];
+        foundCharacter.info.nickname = "Jack of Hearts";
+      }
+      else if (characterId === 'drequan') {
+        foundCharacter.info.expandedDescription = [
+          "Dre'Quan was always more of a hustler than a gangster. Even when he was dealing on the streets to make ends meet, breaking into music was the goal.",
+          "Now that he's signed the Real Dimez, Dre'Quan's days of booking acts into Boobie's strip club might be numbered as he sets his sights on the Vice City scene."
+        ];
+      }
+      else if (characterId === 'realdimez') {
+        foundCharacter.info.expandedDescription = [
+          "Bae-Luxe and Roxy aka Real Dimez have been friends since high school — girls with the savvy to turn their time shaking down local dealers into cold, hard cash via spicy rap tracks and a relentless social media presence.",
+          "An early hit single with local rapper DWNPLY took Real Dimez to new heights. Now, after five years and a whole lot of trouble, they're signed to Only Raw Records, hoping lightning can strike twice."
+        ];
+      }
+      else if (characterId === 'raul') {
+        foundCharacter.info.expandedDescription = [
+          "Confidence, charm, and cunning — Raul's a seasoned bank robber always on the hunt for talent ready to take the risks that bring the biggest rewards.",
+          "Raul's recklessness raises the stakes with every score. Sooner or later, his crew will have to double down or pull their chips from the table."
+        ];
+      }
+      else if (characterId === 'brian') {
+        foundCharacter.info.expandedDescription = [
+          "Brian's a classic drug runner from the golden age of smuggling in the Keys. Still moving product through his boat yard with his third wife, Lori, Brian's been around long enough to let others do his dirty work.",
+          "Looks like a Leonida beach bum — moves like a great white shark. Brian's letting Jason live rent-free at one of his properties — so long as he helps with local shakedowns, and stops by for Lori's sangria once in a while."
+        ];
+        foundCharacter.info.nickname = "Mudslide at sunset";
+      }
+      
+      // Add character-specific skills and traits
+      if (characterId === 'jason') {
+        foundCharacter.info.skills = foundCharacter.info.skills || [
+          "Military Training", 
+          "Smuggling Operations",
+          "Tactical Planning",
+          "Weapons Expertise"
+        ];
+        foundCharacter.info.personalityTraits = foundCharacter.info.personalityTraits || [
+          "Seeks an easier life",
+          "Troubled past",
+          "Adaptable",
+          "Cautious but willing to take risks"
+        ];
+      } 
+      else if (characterId === 'lucia') {
+        foundCharacter.info.skills = foundCharacter.info.skills || [
+          "Hand-to-hand Combat",
+          "Street Smarts",
+          "Strategic Planning",
+          "Leadership"
+        ];
+        foundCharacter.info.personalityTraits = foundCharacter.info.personalityTraits || [
+          "Determined",
+          "Protective of family",
+          "Pragmatic",
+          "Ambitious"
+        ];
+      }
+      else if (characterId === 'boobie') {
+        foundCharacter.info.skills = foundCharacter.info.skills || [
+          "Business Management",
+          "Networking",
+          "Deal Negotiation",
+          "Money Laundering"
+        ];
+        foundCharacter.info.personalityTraits = foundCharacter.info.personalityTraits || [
+          "Charismatic",
+          "Street-wise",
+          "Ambitious",
+          "Loyal to partners"
+        ];
+      }
+      else if (characterId === 'drequan') {
+        foundCharacter.info.skills = foundCharacter.info.skills || [
+          "Music Production",
+          "Talent Scouting",
+          "Marketing",
+          "Street Hustling"
+        ];
+        foundCharacter.info.personalityTraits = foundCharacter.info.personalityTraits || [
+          "Business-oriented",
+          "Forward-thinking",
+          "Opportunistic",
+          "Ambitious"
+        ];
+      }
+      else if (characterId === 'realdimez') {
+        foundCharacter.info.skills = foundCharacter.info.skills || [
+          "Rap Performance",
+          "Social Media Marketing",
+          "Street Hustle",
+          "Networking"
+        ];
+        foundCharacter.info.personalityTraits = foundCharacter.info.personalityTraits || [
+          "Savvy",
+          "Ambitious",
+          "Resilient",
+          "Resourceful"
+        ];
+      }
+      else if (characterId === 'raul') {
+        foundCharacter.info.skills = foundCharacter.info.skills || [
+          "Bank Robbery Planning",
+          "Recruitment",
+          "Risk Assessment",
+          "Tactical Operations"
+        ];
+        foundCharacter.info.personalityTraits = foundCharacter.info.personalityTraits || [
+          "Confident",
+          "Charming",
+          "Cunning",
+          "Reckless"
+        ];
+      }
+      else if (characterId === 'brian') {
+        foundCharacter.info.skills = foundCharacter.info.skills || [
+          "Drug Smuggling",
+          "Aviation",
+          "Boat Operation",
+          "Business Management"
+        ];
+        foundCharacter.info.personalityTraits = foundCharacter.info.personalityTraits || [
+          "Appears relaxed",
+          "Calculating",
+          "Experienced",
+          "Manipulative"
+        ];
+      }
+      
+      // Add character-specific relationships
+      if (characterId === 'jason') {
+        foundCharacter.info.relationships = foundCharacter.info.relationships || {
+          "Lucia Caminos": "Potential partner in crime and romance. Meeting her could be the best or worst thing to happen to him.",
+          "Brian Heder": "Employer and landlord. Lets Jason live rent-free in exchange for doing his dirty work.",
+          "Lori Heder": "Brian's third wife. Invites Jason over for sangria occasionally."
+        };
+      } 
+      else if (characterId === 'lucia') {
+        foundCharacter.info.relationships = foundCharacter.info.relationships || {
+          "Jason Duval": "Partner in crime and potential way out of her current situation.",
+          "Lucia's Mother": "Dreams of a better life since their days in Liberty City."
+        };
+      }
+      else if (characterId === 'boobie') {
+        foundCharacter.info.relationships = foundCharacter.info.relationships || {
+          "Dre'Quan Priest": "Business partner in Only Raw Records. Boobie's most important investment.",
+          "Real Dimez": "New talent signed to Only Raw Records."
+        };
+      }
+      else if (characterId === 'drequan') {
+        foundCharacter.info.relationships = foundCharacter.info.relationships || {
+          "Boobie Ike": "Business partner and owner of the strip club where Dre'Quan books acts.",
+          "Real Dimez": "Bae-Luxe and Roxy, his latest signings to Only Raw Records.",
+          "DWNPLY": "Local rapper who previously worked with Real Dimez."
+        };
+      }
+      else if (characterId === 'realdimez') {
+        foundCharacter.info.relationships = foundCharacter.info.relationships || {
+          "Bae-Luxe": "One half of Real Dimez, friends since high school.",
+          "Roxy": "One half of Real Dimez, friends since high school.",
+          "Dre'Quan Priest": "Their producer and label owner at Only Raw Records.",
+          "DWNPLY": "Local rapper they had an early hit with five years ago."
+        };
+      }
+      else if (characterId === 'raul') {
+        foundCharacter.info.relationships = foundCharacter.info.relationships || {
+          "His Crew": "The team Raul assembles for his heists. He's always looking for new talent."
+        };
+      }
+      else if (characterId === 'brian') {
+        foundCharacter.info.relationships = foundCharacter.info.relationships || {
+          "Lori": "Brian's third wife, who helps run the boat yard.",
+          "Jason Duval": "Young recruit who does Brian's dirty work in exchange for free housing."
+        };
+      }
+      
+      setCharacter(foundCharacter);
+    } else {
+      // Redirect to main page if character not found
+      router.push("/gta6");
+    }
+    
+    setLoading(false);
+  }, [params, router]);
+
+  const handleImageClick = (image: string) => {
+    setSelectedImage(image);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-white text-xl">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!character) {
+    return null;
+  }
+
+  const tabs = [
+    { id: "background", label: "Background", icon: <User size={16} /> },
+    { id: "skills", label: "Skills & Traits", icon: <Star size={16} /> },
+    { id: "video", label: "Video", icon: <Play size={16} /> },
+    { id: "quotes", label: "Quotes", icon: <Quote size={16} /> },
+    { id: "relationships", label: "Relationships", icon: <Heart size={16} /> },
+    { id: "world", label: "Leonida", icon: <Map size={16} /> },
+    { id: "gallery", label: "Gallery", icon: <ExternalLink size={16} /> }
+  ];
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-black to-black/95">
+      {/* Image Lightbox */}
+      <AnimatePresence>
+        {selectedImage && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
+            onClick={() => setSelectedImage(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+              className="relative max-w-4xl max-h-[80vh] rounded-2xl overflow-hidden"
+            >
+              <Image
+                src={`/gta6/characters/${selectedImage}`}
+                alt={character.info.name}
+                width={900}
+                height={600}
+                className="object-contain"
+              />
+              <button 
+                className="absolute top-4 right-4 bg-black/50 text-white p-2 rounded-full"
+                onClick={() => setSelectedImage(null)}
+              >
+                <ChevronLeft size={20} />
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="container mx-auto px-4 py-6 max-w-[1400px]">
+        {/* Back button */}
+        <div className="mb-8">
+          <Link href="/gta6#characters">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="px-4 py-2 bg-black/70 backdrop-blur-md text-white/90 rounded-full flex items-center gap-2 border border-white/20 hover:border-white/40 transition-all duration-300"
+            >
+              <ChevronLeft size={16} />
+              Back to Characters
+            </motion.button>
+          </Link>
+        </div>
+
+        {/* Hero Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="relative h-[75vh] rounded-3xl overflow-hidden mb-12 border border-white/10 shadow-2xl group"
+        >
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent z-10"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-transparent to-black/40 z-10"></div>
+          
+          <Image
+            src={`/gta6/characters/${character.heroImage || character.mainImage}`}
+            alt={character.info.name}
+            fill
+            className="object-cover object-center transition-transform duration-10000 group-hover:scale-105"
+            priority
+          />
+          
+          <div className="absolute bottom-0 left-0 w-full p-8 md:p-12 z-20">
+            <div className="container mx-auto">
+              <div className="flex flex-wrap items-center gap-4 text-white/80 mb-4">
+                {character.id === 'lucia' || character.id === 'jason' ? (
+                  <motion.div
+                    animate={{ 
+                      scale: [1, 1.1, 1],
+                      rotate: [0, 5, 0, -5, 0]
+                    }}
+                    transition={{ duration: 2, repeat: Infinity, repeatDelay: 4 }}
+                    className="bg-gradient-to-r from-yellow-500 to-amber-600 text-black font-bold px-4 py-1 rounded-full text-sm"
+                  >
+                    Main Character
+                  </motion.div>
+                ) : (
+                  <div className="bg-white/10 backdrop-blur-sm px-4 py-1 rounded-full text-sm border border-white/20">
+                    {character.info.role || "Supporting Character"}
+                  </div>
+                )}
+                
+                {character.info.location && (
+                  <span className="bg-black/50 backdrop-blur-sm px-4 py-1 rounded-full text-sm border border-white/10 flex items-center">
+                    <MapPin size={14} className="mr-1" />
+                    {character.info.location}
+                  </span>
+                )}
+
+                {character.info.age && (
+                  <span className="bg-black/50 backdrop-blur-sm px-4 py-1 rounded-full text-sm border border-white/10 flex items-center">
+                    <Clock size={14} className="mr-1" />
+                    Age: {character.info.age}
+                  </span>
+                )}
+              </div>
+              
+              <motion.h1 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                className="text-5xl md:text-7xl font-bold text-white mb-4 drop-shadow-lg"
+              >
+                {character.info.name}
+              </motion.h1>
+              
+              {character.info.nickname && (
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.5, delay: 0.3 }}
+                  className="mb-6"
+                >
+                  <span className="text-2xl text-white/60 italic">"<span className="text-primary">{character.info.nickname}</span>"</span>
+                </motion.div>
+              )}
+              
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.4 }}
+                className="text-white/90 text-lg max-w-3xl font-light"
+              >
+                {character.info.officialDescription?.[0]}
+              </motion.p>
+            </div>
+          </div>
+          
+          {/* Character Stats Quick View */}
+          <div className="absolute top-8 right-8 z-20 bg-black/40 backdrop-blur-md rounded-xl border border-white/10 p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <div className="flex flex-col gap-3 text-white">
+              {character.info.skills && (
+                <div className="flex items-center gap-2">
+                  <Shield className="w-4 h-4 text-primary" />
+                  <span className="text-sm">{character.info.skills.slice(0, 2).join(", ")}</span>
+                </div>
+              )}
+              
+              {character.info.personalityTraits && (
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-primary" />
+                  <span className="text-sm">{character.info.personalityTraits.slice(0, 2).join(", ")}</span>
+                </div>
+              )}
+              
+              {character.info.alignment && (
+                <div className="flex items-center gap-2">
+                  <Star className="w-4 h-4 text-yellow-500" />
+                  <span className="text-sm">{character.info.alignment}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Tabs Navigation */}
+        <div className="mb-8 flex overflow-x-auto no-scrollbar">
+          <div className="flex bg-black/20 backdrop-blur-sm rounded-full p-1 border border-white/10 mx-auto">
+            {tabs.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-5 py-2 rounded-full flex items-center gap-2 transition-all duration-300 ${
+                  activeTab === tab.id 
+                    ? "bg-gradient-to-r from-primary/90 to-primary text-white"
+                    : "text-white/60 hover:text-white"
+                }`}
+              >
+                {tab.icon}
+                <span>{tab.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Tab Content */}
+        <div className="mb-16">
+          {/* Background Tab */}
+          {activeTab === "background" && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="bg-black/40 backdrop-blur-sm rounded-2xl p-6 md:p-8 border border-white/10"
+            >
+              <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+                <User className="text-primary" />
+                Background & Story
+              </h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div className="md:col-span-2 space-y-4">
+                  {/* Enhanced character description */}
+                  {character.info.expandedDescription?.map((paragraph: string, index: number) => (
+                    <p key={index} className="text-white/80 leading-relaxed">
+                      {paragraph}
+                    </p>
+                  ))}
+                  
+                  {/* Fallback to original description if expanded not available */}
+                  {!character.info.expandedDescription && character.info.officialDescription?.map((paragraph: string, index: number) => (
+                    <p key={index} className="text-white/80 leading-relaxed">
+                      {paragraph}
+                    </p>
+                  ))}
+                  
+                  {character.info.background && (
+                    <div className="mt-8">
+                      <h3 className="text-xl font-semibold text-white mb-3">Early Life</h3>
+                      <p className="text-white/80 leading-relaxed">{character.info.background}</p>
+                    </div>
+                  )}
+                </div>
+                
+                <div>
+                  <div className="bg-black/60 backdrop-blur-sm rounded-xl p-5 border border-white/10">
+                    <h3 className="text-xl font-semibold text-white mb-4">Quick Facts</h3>
+                    
+                    <div className="space-y-4">
+                      {character.info.nickname && (
+                        <div>
+                          <h4 className="text-white/60 text-sm">Nickname</h4>
+                          <p className="text-white">"{character.info.nickname}"</p>
+                        </div>
+                      )}
+                      
+                      {character.info.age && (
+                        <div>
+                          <h4 className="text-white/60 text-sm">Age</h4>
+                          <p className="text-white">{character.info.age}</p>
+                        </div>
+                      )}
+                      
+                      {character.info.location && (
+                        <div>
+                          <h4 className="text-white/60 text-sm">Location</h4>
+                          <p className="text-white">{character.info.location}</p>
+                        </div>
+                      )}
+                      
+                      {character.info.alignment && (
+                        <div>
+                          <h4 className="text-white/60 text-sm">Alignment</h4>
+                          <p className="text-white">{character.info.alignment}</p>
+                        </div>
+                      )}
+                      
+                      {character.info.occupation && (
+                        <div>
+                          <h4 className="text-white/60 text-sm">Occupation</h4>
+                          <p className="text-white">{character.info.occupation}</p>
+                        </div>
+                      )}
+                      
+                      {/* Release date info */}
+                      <div className="pt-3 mt-3 border-t border-white/10">
+                        <h4 className="text-white/60 text-sm">Game Release</h4>
+                        <p className="text-white flex items-center">
+                          <Calendar size={14} className="mr-2 text-primary" />
+                          May 26, 2026
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Character Image */}
+                  {character.fgImagePath && (
+                    <div className="mt-6 relative aspect-[3/4] rounded-xl overflow-hidden border border-white/10">
+                      <Image
+                        src={`/gta6/characters/${character.fgImagePath}`}
+                        alt={character.info.name}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          )}
+          
+          {/* Skills Tab */}
+          {activeTab === "skills" && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="bg-black/40 backdrop-blur-sm rounded-2xl p-6 md:p-8 border border-white/10"
+            >
+              <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+                <Star className="text-primary" />
+                Skills & Traits
+              </h2>
+              
+              {/* Character specialty area */}
+              {(character.id === 'jason' || character.id === 'lucia') && (
+                <div className="mb-8 bg-gradient-to-r from-primary/20 to-transparent p-4 rounded-xl border border-primary/30">
+                  <h3 className="text-lg font-semibold text-white mb-2 flex items-center gap-2">
+                    <Star className="text-yellow-500" />
+                    Playable Character
+                  </h3>
+                  <p className="text-white/80 text-sm">
+                    {character.id === 'jason' ? 
+                      "Jason's military background gives him advantages in tactical situations and weapon handling. His connections in the Keys provide access to smuggling routes and operations." :
+                      "Lucia's combat skills and strategic thinking make her formidable in confrontations. Her time in prison has given her unique connections and street credibility throughout Leonida."}
+                  </p>
+                </div>
+              )}
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {character.info.skills && character.info.skills.length > 0 && (
+                  <div>
+                    <h3 className="text-xl font-semibold text-white mb-4">Skills</h3>
+                    <div className="grid grid-cols-1 gap-3">
+                      {character.info.skills.map((skill: string, index: number) => (
+                        <div 
+                          key={index} 
+                          className="bg-black/30 backdrop-blur-sm border border-white/10 rounded-lg p-3 flex items-center gap-3"
+                        >
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/80 to-primary flex items-center justify-center flex-shrink-0">
+                            <Shield size={18} className="text-white" />
+                          </div>
+                          <div>
+                            <div className="text-white font-medium">{skill}</div>
+                            {/* Skill descriptions for main characters */}
+                            {character.id === 'jason' && skill === "Military Training" && (
+                              <div className="text-white/60 text-xs mt-1">Improved accuracy and tactical awareness</div>
+                            )}
+                            {character.id === 'lucia' && skill === "Hand-to-hand Combat" && (
+                              <div className="text-white/60 text-xs mt-1">Enhanced melee combat abilities</div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {character.info.personalityTraits && character.info.personalityTraits.length > 0 && (
+                  <div>
+                    <h3 className="text-xl font-semibold text-white mb-4">Personality Traits</h3>
+                    <div className="space-y-3">
+                      {character.info.personalityTraits.map((trait: string, index: number) => (
+                        <div 
+                          key={index} 
+                          className="bg-black/30 backdrop-blur-sm border border-white/10 rounded-lg p-3 flex items-center gap-3"
+                        >
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-500/80 to-yellow-600 flex items-center justify-center flex-shrink-0">
+                            <Sparkles size={18} className="text-white" />
+                          </div>
+                          <div>
+                            <div className="text-white font-medium">{trait}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              {/* Game release info for playable characters */}
+              {(character.id === 'jason' || character.id === 'lucia') && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.4 }}
+                  className="mt-8 bg-black/30 backdrop-blur-sm border border-white/10 rounded-xl p-4"
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <Calendar className="text-primary" size={18} />
+                    <h3 className="text-white font-semibold">Coming May 26, 2026</h3>
+                  </div>
+                  <p className="text-white/70 text-sm">
+                    Play as {character.id === 'jason' ? 'Jason and Lucia' : 'Lucia and Jason'} in Grand Theft Auto VI, 
+                    available for PlayStation 5 and Xbox Series X|S.
+                  </p>
+                </motion.div>
+              )}
+            </motion.div>
+          )}
+          
+          {/* Video Tab */}
+          {activeTab === "video" && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="bg-black/40 backdrop-blur-sm rounded-2xl p-6 md:p-8 border border-white/10"
+            >
+              <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+                <Play className="text-primary" />
+                Video
+              </h2>
+              
+              {characterVideoMap[character.id] && (
+                <div className="mt-8">
+                  <div className="rounded-xl overflow-hidden shadow-xl group bg-black/40 backdrop-blur-sm border border-white/10">
+                    <div className="relative aspect-video overflow-hidden">
+                      <video 
+                        controls
+                        preload="metadata"
+                        className="w-full h-full object-cover"
+                        poster={`/vi/people/${characterVideoMap[character.id].name.replace(' ', '%20')}/${characterVideoMap[character.id].name.replace(' ', '_')}_01.jpg`}
+                      >
+                        <source src={`/vi/video_clip/${characterVideoMap[character.id].file}`} type="video/mp4" />
+                        Your browser does not support the video tag.
+                      </video>
+                    </div>
+                    
+                    <div className="p-4">
+                      <h3 className="text-lg font-semibold text-white">{characterVideoMap[character.id].name}</h3>
+                      <p className="text-white/70 text-sm mt-1">Character Spotlight</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          )}
+          
+          {/* Quotes Tab */}
+          {activeTab === "quotes" && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="bg-black/40 backdrop-blur-sm rounded-2xl p-6 md:p-8 border border-white/10"
+            >
+              <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+                <Quote className="text-primary" />
+                Memorable Quotes
+              </h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="col-span-full">
+                  {characterQuotes[character.id]?.length > 0 ? (
+                    <div className="space-y-6">
+                      {characterQuotes[character.id]?.map((quote, index) => (
+                        <motion.div
+                          key={index}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.5, delay: 0.1 * index }}
+                          className="bg-gradient-to-r from-black/40 to-black/20 backdrop-blur-sm border border-white/10 rounded-xl p-6"
+                        >
+                          <div className="flex gap-4 items-start">
+                            <Quote size={24} className="text-primary mt-1 flex-shrink-0" />
+                            <blockquote className="text-white/90 text-xl font-light italic">
+                              "{quote}"
+                              <footer className="mt-2 text-white/60 text-sm non-italic">
+                                — {character.info.name}
+                              </footer>
+                            </blockquote>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-white/60 text-center py-8">
+                      No quotes available for this character.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          )}
+          
+          {/* Relationships Tab */}
+          {activeTab === "relationships" && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="bg-black/40 backdrop-blur-sm rounded-2xl p-6 md:p-8 border border-white/10"
+            >
+              <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+                <Heart className="text-primary" />
+                Relationships
+              </h2>
+              
+              {/* Key relationship highlight for main characters */}
+              {(character.id === 'jason' || character.id === 'lucia') && (
+                <div className="mb-8 bg-gradient-to-r from-red-500/20 to-transparent p-4 rounded-xl border border-red-500/30">
+                  <h3 className="text-lg font-semibold text-white mb-2 flex items-center gap-2">
+                    <Heart className="text-red-500" />
+                    Key Relationship
+                  </h3>
+                  <p className="text-white/80 text-sm">
+                    {character.id === 'jason' ? 
+                      "Meeting Lucia could be the best or worst thing to happen to Jason. Their partnership could lead to a new life or deeper trouble." :
+                      "A life with Jason could be Lucia's way out. Together they might achieve what neither could alone."}
+                  </p>
+                </div>
+              )}
+              
+              {character.info.relationships && Object.keys(character.info.relationships).length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {Object.entries(character.info.relationships).map(([person, relation]: [string, any], index) => {
+                    // Find the related character in the characters array
+                    const relatedCharacter = characters.find(c => 
+                      c.info.name.toLowerCase().includes(person.toLowerCase())
+                    );
+                    
+                    // Determine relationship type
+                    let relationshipType = "Associate";
+                    let relationshipColor = "bg-blue-500/80";
+                    
+                    if (person.includes("Jason") || person.includes("Lucia")) {
+                      relationshipType = "Partner";
+                      relationshipColor = "bg-red-500/80";
+                    } else if (relation.toLowerCase().includes("friend")) {
+                      relationshipType = "Friend";
+                      relationshipColor = "bg-green-500/80";
+                    } else if (relation.toLowerCase().includes("business") || relation.toLowerCase().includes("employer")) {
+                      relationshipType = "Business";
+                      relationshipColor = "bg-amber-500/80";
+                    } else if (relation.toLowerCase().includes("family") || relation.toLowerCase().includes("wife") || relation.toLowerCase().includes("mother")) {
+                      relationshipType = "Family";
+                      relationshipColor = "bg-purple-500/80";
+                    }
+                    
+                    return (
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: 0.1 * index }}
+                        key={person}
+                        className="bg-black/30 backdrop-blur-sm border border-white/10 rounded-xl p-4 flex gap-4"
+                      >
+                        <div className="w-16 h-16 rounded-full overflow-hidden bg-black/50 flex-shrink-0 border-2 border-white/20">
+                          {relatedCharacter ? (
+                            <Image 
+                              src={`/gta6/characters/${relatedCharacter.mainImage}`} 
+                              alt={person} 
+                              width={64} 
+                              height={64} 
+                              className="object-cover w-full h-full"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-white/50">
+                              <User size={24} />
+                            </div>
+                          )}
+                          
+                          {/* Relationship type badge */}
+                          <div className={`absolute -right-1 -bottom-1 text-xs text-white px-2 py-0.5 rounded-full ${relationshipColor}`}>
+                            {relationshipType}
+                          </div>
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-lg font-semibold text-white mb-1">{person}</h3>
+                          <p className="text-white/80 text-sm">{relation}</p>
+                          
+                          {/* Story implications for main character relationships */}
+                          {(character.id === 'jason' && person === "Lucia Caminos") && (
+                            <div className="mt-2 p-2 bg-black/40 rounded-lg border border-red-500/20">
+                              <p className="text-white/70 text-xs">
+                                Their partnership will be at the center of the GTA VI story.
+                              </p>
+                            </div>
+                          )}
+                          
+                          {(character.id === 'lucia' && person === "Jason Duval") && (
+                            <div className="mt-2 p-2 bg-black/40 rounded-lg border border-red-500/20">
+                              <p className="text-white/70 text-xs">
+                                Together they'll navigate the criminal underworld of Leonida.
+                              </p>
+                            </div>
+                          )}
+                          
+                          {relatedCharacter && (
+                            <Link href={`/gta6/${relatedCharacter.id}`}>
+                              <span className="inline-flex items-center gap-1 text-primary text-xs mt-2 hover:underline cursor-pointer">
+                                <ExternalLink size={12} />
+                                View Character
+                              </span>
+                            </Link>
+                          )}
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-white/60 text-center py-8">
+                  No known relationships for this character.
+                </div>
+              )}
+              
+              {/* Game premise for context */}
+              <div className="mt-8 p-4 bg-black/20 backdrop-blur-sm rounded-xl border border-white/10">
+                <h3 className="text-lg font-semibold text-white mb-2">About GTA VI</h3>
+                <p className="text-white/70 text-sm">
+                  Grand Theft Auto VI explores the intertwined lives of characters across the state of Leonida, 
+                  where ambition, crime, and opportunity collide. When the sun fades and the neon glows, 
+                  everyone has something to gain — and more to lose.
+                </p>
+              </div>
+            </motion.div>
+          )}
+          
+          {/* World Tab */}
+          {activeTab === "world" && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="bg-black/40 backdrop-blur-sm rounded-2xl p-6 md:p-8 border border-white/10"
+            >
+              <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+                <Map className="text-primary" />
+                Explore Leonida
+              </h2>
+              
+              <div className="mb-8">
+                <div className="bg-black/30 backdrop-blur-sm border border-white/10 rounded-xl p-5">
+                  <p className="text-white/80 italic text-lg">
+                    "When the sun fades and the neon glows, everyone has something to gain — and more to lose."
+                  </p>
+                  <p className="text-white/60 text-sm mt-2">
+                    — Only in Leonida
+                  </p>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {locations.map((location, index) => {
+                  // Check if this location is associated with the character
+                  const isCharacterLocation = character.locations?.includes(location.name);
+                  
+                  return (
+                    <motion.div 
+                      key={location.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5, delay: 0.1 * index }}
+                      className={`bg-black/30 backdrop-blur-sm border rounded-xl overflow-hidden group ${
+                        isCharacterLocation 
+                          ? "border-primary/30 shadow-[0_0_15px_rgba(var(--primary),0.15)]" 
+                          : "border-white/10"
+                      }`}
+                    >
+                      <div className={`h-32 relative ${
+                        isCharacterLocation 
+                          ? "bg-gradient-to-r from-primary/20 to-primary/40" 
+                          : "bg-gradient-to-r from-white/5 to-white/10"
+                      }`}>
+                        <div className="absolute inset-0 bg-black/30"></div>
+                        <div className="absolute bottom-0 left-0 w-full p-4">
+                          <h3 className="text-white font-bold text-xl">{location.name}</h3>
+                          {isCharacterLocation && (
+                            <div className="flex items-center mt-1">
+                              <div className="w-3 h-3 rounded-full bg-primary animate-pulse mr-2"></div>
+                              <span className="text-white/80 text-xs">Character Connection</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="p-4">
+                        <p className="text-white/80 text-sm">{location.description}</p>
+                        
+                        {/* Character-specific location description */}
+                        {isCharacterLocation && (
+                          <div className="mt-3 p-2 bg-black/40 rounded-lg border border-primary/20">
+                            <p className="text-white/90 text-xs">
+                              {character.id === 'jason' && location.name === 'Leonida Keys' && 
+                                "Jason works for local drug runners in the Keys after his Army stint."}
+                                
+                              {character.id === 'lucia' && location.name === 'Leonida Penitentiary' && 
+                                "Lucia was imprisoned here before a stroke of luck got her out."}
+                                
+                              {character.id === 'lucia' && location.name === 'Vice City' && 
+                                "Lucia is planning to make her fortune in Vice City with Jason."}
+                                
+                              {character.id === 'boobie' && location.name === 'Vice City' && 
+                                "Boobie runs a legitimate empire including real estate, a strip club, and a recording studio."}
+                                
+                              {character.id === 'drequan' && location.name === 'Grassrivers' && 
+                                "Dre'Quan started as a street hustler here before moving into the music business."}
+                                
+                              {character.id === 'drequan' && location.name === 'Vice City' && 
+                                "Dre'Quan books acts into Boobie's strip club while building Only Raw Records."}
+                                
+                              {character.id === 'realdimez' && location.name === 'Grassrivers' && 
+                                "Bae-Luxe and Roxy grew up shaking down local dealers here before their rap career."}
+                                
+                              {character.id === 'raul' && location.name === 'Port Gellhorn' && 
+                                "Raul uses Port Gellhorn as a base for planning his heists."}
+                                
+                              {character.id === 'brian' && location.name === 'Leonida Keys' && 
+                                "Brian runs smuggling operations through his boat yard in the Keys."}
+                                
+                              {character.id === 'brian' && location.name === 'Ambrosia' && 
+                                "Brian owns property here where Jason stays rent-free in exchange for helping with local shakedowns."}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+              
+              <div className="mt-8 bg-black/30 backdrop-blur-sm border border-white/10 rounded-xl p-5">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                  <div>
+                    <h3 className="text-white font-bold text-xl mb-1">Grand Theft Auto VI</h3>
+                    <p className="text-white/60">Experience the story across the state of Leonida</p>
+                  </div>
+                  <div className="bg-gradient-to-r from-red-600 to-pink-600 text-white px-4 py-2 rounded-xl">
+                    <div className="text-sm font-semibold">Coming</div>
+                    <div className="text-lg font-bold">May 26, 2026</div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+          
+          {/* Gallery Tab */}
+          {activeTab === "gallery" && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="bg-black/40 backdrop-blur-sm rounded-2xl p-6 md:p-8 border border-white/10"
+            >
+              <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+                <ExternalLink className="text-primary" />
+                Gallery
+              </h2>
+              
+              {character.additionalImages && character.additionalImages.length > 0 ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {/* Main Image */}
+                  <div 
+                    className="relative aspect-square rounded-xl overflow-hidden border border-white/20 cursor-pointer group"
+                    onClick={() => handleImageClick(character.mainImage)}
+                  >
+                    <Image
+                      src={`/gta6/characters/${character.mainImage}`}
+                      alt={`${character.info.name} main`}
+                      fill
+                      className="object-cover transition-transform duration-500 group-hover:scale-110"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <div className="absolute bottom-3 left-3 text-white text-sm font-medium">Main Image</div>
+                    </div>
+                  </div>
+                  
+                  {/* Hero Image */}
+                  {character.heroImage && (
+                    <div 
+                      className="relative aspect-square rounded-xl overflow-hidden border border-white/20 cursor-pointer group"
+                      onClick={() => handleImageClick(character.heroImage)}
+                    >
+                      <Image
+                        src={`/gta6/characters/${character.heroImage}`}
+                        alt={`${character.info.name} hero`}
+                        fill
+                        className="object-cover transition-transform duration-500 group-hover:scale-110"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <div className="absolute bottom-3 left-3 text-white text-sm font-medium">Hero Image</div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Additional Images */}
+                  {character.additionalImages.map((image: string, index: number) => (
+                    <div 
+                      key={index}
+                      className="relative aspect-square rounded-xl overflow-hidden border border-white/20 cursor-pointer group"
+                      onClick={() => handleImageClick(image)}
+                    >
+                      <Image
+                        src={`/gta6/characters/${image}`}
+                        alt={`${character.info.name} ${index + 1}`}
+                        fill
+                        className="object-cover transition-transform duration-500 group-hover:scale-110"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <div className="absolute bottom-3 left-3 text-white text-sm font-medium">Click to Expand</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-white/60 text-center py-8">
+                  No additional images available for this character.
+                </div>
+              )}
+            </motion.div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default CharacterDetailPage; 

@@ -1,6 +1,11 @@
 export interface CharacterInfo {
   name: string;
   officialDescription: string[];
+  expandedDescription?: string[];
+  nickname?: string;
+  skills?: string[];
+  personalityTraits?: string[];
+  relationships?: Record<string, string>;
 }
 
 export interface Character {
@@ -11,6 +16,7 @@ export interface Character {
   fgImagePath: string;
   additionalImages: string[];
   info: CharacterInfo;
+  locations?: string[];
 }
 
 export const characters: Character[] = [

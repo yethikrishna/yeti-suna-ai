@@ -105,6 +105,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@stagewise/toolbar-next": "^0.1.2",
     "@tailwindcss/postcss": "^4.1.4",
     "@types/diff": "^7.0.2",
     "@types/jju": "^1.4.5",
