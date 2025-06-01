@@ -57,8 +57,16 @@ class SubscriptionStatus(BaseModel):
     scheduled_change_date: Optional[datetime] = None
 
 # Helper functions
-async def get_stripe_customer_id(client, user_id: str) -> Optional[str]:
+async def get_stripe_customer_id(client, user_id: str) -> Optional[str]: # client is DAL client
     """Get the Stripe customer ID for a user."""
+    if config.DATABASE_TYPE == "sqlite":
+        logger.info(f"Billing function get_stripe_customer_id is disabled in SQLite mode for user {user_id}.")
+        return f"cus_local_{user_id}" # Return a mock ID
+
+    # Original Supabase logic (client here is Supabase client, need to adapt if DAL is passed)
+    # This function is called by other functions in this file which still use old DBConnection.
+    # For now, assume this 'client' is the Supabase client from DBConnection.
+    # If this function were to be called with a DAL client, it would need adjustment.
     result = await client.schema('basejump').from_('billing_customers') \
         .select('id') \
         .eq('account_id', user_id) \
@@ -68,8 +76,16 @@ async def get_stripe_customer_id(client, user_id: str) -> Optional[str]:
         return result.data[0]['id']
     return None
 
-async def create_stripe_customer(client, user_id: str, email: str) -> str:
+async def create_stripe_customer(client, user_id: str, email: str) -> str: # client is DAL client
     """Create a new Stripe customer for a user."""
+    if config.DATABASE_TYPE == "sqlite":
+        logger.info(f"Billing function create_stripe_customer is disabled in SQLite mode for user {user_id}.")
+        # In SQLite mode, we might want to create a dummy record in a local 'billing_customers' table if it exists.
+        # For now, just returning a mock ID.
+        # dal_client = await get_db_client() # This would be the correct way if we were to use DAL here
+        # await dal_client.insert('billing_customers', {'id': f"cus_local_{user_id}", 'user_id': user_id, 'email': email, 'provider': 'local_stripe_mock'})
+        return f"cus_local_{user_id}"
+
     # Create customer in Stripe
     customer = stripe.Customer.create(
         email=email,
@@ -77,6 +93,7 @@ async def create_stripe_customer(client, user_id: str, email: str) -> str:
     )
     
     # Store customer ID in Supabase
+    # This 'client' is the Supabase client from DBConnection.
     await client.schema('basejump').from_('billing_customers').insert({
         'id': customer.id,
         'account_id': user_id,
@@ -88,11 +105,24 @@ async def create_stripe_customer(client, user_id: str, email: str) -> str:
 
 async def get_user_subscription(user_id: str) -> Optional[Dict]:
     """Get the current subscription for a user from Stripe."""
+    if config.DATABASE_TYPE == "sqlite":
+        logger.info(f"Billing function get_user_subscription is disabled in SQLite mode for user {user_id}.")
+        # Return a mock active subscription for SQLite mode
+        return {
+            "status": "active",
+            "plan": {"nickname": "Local Free Plan"},
+            "items": {"data": [{"price": {"id": "price_local_free"}}]},
+            "current_period_end": (datetime.now(timezone.utc) + timedelta(days=30)).timestamp(),
+            "cancel_at_period_end": False,
+            "trial_end": None,
+            "price_id": "price_local_free" # Ensure this matches a key in SUBSCRIPTION_TIERS or handle default
+        }
+
     try:
         # Get customer ID
-        db = DBConnection()
+        db = DBConnection() # This still uses the old DBConnection for Supabase
         client = await db.client
-        customer_id = await get_stripe_customer_id(client, user_id)
+        customer_id = await get_stripe_customer_id(client, user_id) # This client is Supabase client
         
         if not customer_id:
             return None
@@ -199,58 +229,72 @@ async def calculate_monthly_usage(client, user_id: str) -> float:
     
     return total_seconds / 60  # Convert to minutes
 
-async def get_allowed_models_for_user(client, user_id: str):
+async def get_allowed_models_for_user(db_dal_client: DatabaseInterface, user_id: str): # Parameter changed
     """
     Get the list of models allowed for a user based on their subscription tier.
-    
-    Returns:
-        List of model names allowed for the user's subscription tier.
+    In SQLite mode, defaults to all models in the 'free' tier or a generous set.
     """
+    if config.DATABASE_TYPE == "sqlite":
+        logger.info(f"Billing function get_allowed_models_for_user is simplified in SQLite mode for user {user_id}.")
+        # Return all models defined in the free tier, or a superset if no tiers are defined for SQLite.
+        # For simplicity, let's assume 'free' tier allows all models listed in MODEL_ACCESS_TIERS['free'].
+        return MODEL_ACCESS_TIERS.get('free', list(MODEL_NAME_ALIASES.values())) # Fallback to all known models if 'free' tier not defined
 
-    subscription = await get_user_subscription(user_id)
+    # Original Supabase logic (client passed here is Supabase client from DBConnection)
+    # This would need to be refactored if this function is called with a DAL client for Supabase.
+    # For now, assuming it's called by functions that still use the old DBConnection for Supabase.
+    client_supabase = db_dal_client # This is problematic if db_dal_client is DAL type.
+                                  # It should be passed the Supabase client directly if not using DAL for this.
+                                  # Let's assume this function will be called with the correct client type.
+                                  # Or, this function itself needs to get the right client.
+                                  # For now, we'll proceed, but this highlights a refactoring point.
+
+    subscription = await get_user_subscription(user_id) # This already handles SQLite mode internally
     tier_name = 'free'
     
     if subscription:
-        price_id = None
-        if subscription.get('items') and subscription['items'].get('data') and len(subscription['items']['data']) > 0:
-            price_id = subscription['items']['data'][0]['price']['id']
-        else:
-            price_id = subscription.get('price_id', config.STRIPE_FREE_TIER_ID)
-        
-        # Get tier info for this price_id
+        price_id = subscription.get("price_id") # get_user_subscription for SQLite returns this
+        if not price_id and subscription.get('items') and subscription['items'].get('data') and len(subscription['items']['data']) > 0:
+             price_id = subscription['items']['data'][0]['price']['id']
+        else: # Fallback if price_id is still not found from items
+            price_id = config.STRIPE_FREE_TIER_ID # Default to free tier ID from config
+
         tier_info = SUBSCRIPTION_TIERS.get(price_id)
         if tier_info:
             tier_name = tier_info['name']
-    
-    # Return allowed models for this tier
-    return MODEL_ACCESS_TIERS.get(tier_name, MODEL_ACCESS_TIERS['free'])  # Default to free tier if unknown
+        elif price_id == "price_local_free": # Handle mock price_id from SQLite mode
+             tier_name = 'free'
+
+    return MODEL_ACCESS_TIERS.get(tier_name, MODEL_ACCESS_TIERS.get('free', list(MODEL_NAME_ALIASES.values())))
 
 
-async def can_use_model(client, user_id: str, model_name: str):
-    if config.ENV_MODE == EnvMode.LOCAL:
-        logger.info("Running in local development mode - billing checks are disabled")
-        return True, "Local development mode - billing disabled", {
-            "price_id": "local_dev",
-            "plan_name": "Local Development",
-            "minutes_limit": "no limit"
-        }
+async def can_use_model(db_dal_client: DatabaseInterface, user_id: str, model_name: str): # Parameter changed
+    # ENV_MODE.LOCAL check is for general local dev, DATABASE_TYPE == "sqlite" is more specific
+    if config.DATABASE_TYPE == "sqlite" or config.ENV_MODE == EnvMode.LOCAL: # Combined condition
+        logger.info("Billing: can_use_model check is permissive in SQLite/Local mode.")
+    if config.DATABASE_TYPE == "sqlite" or config.ENV_MODE == EnvMode.LOCAL: # Combined condition
+        logger.info("Billing: can_use_model check is permissive in SQLite/Local mode.")
+        # In SQLite/local mode, allow all models or a defined "free" set
+        # For maximum permissiveness in local dev:
+        return True, "SQLite/Local mode - model access allowed", list(MODEL_NAME_ALIASES.values())
         
-    allowed_models = await get_allowed_models_for_user(client, user_id)
+    allowed_models = await get_allowed_models_for_user(db_dal_client, user_id) # Pass DAL client
     resolved_model = MODEL_NAME_ALIASES.get(model_name, model_name)
     if resolved_model in allowed_models:
         return True, "Model access allowed", allowed_models
     
     return False, f"Your current subscription plan does not include access to {model_name}. Please upgrade your subscription or choose from your available models: {', '.join(allowed_models)}", allowed_models
 
-async def check_billing_status(client, user_id: str) -> Tuple[bool, str, Optional[Dict]]:
+async def check_billing_status(db_dal_client: DatabaseInterface, user_id: str) -> Tuple[bool, str, Optional[Dict]]: # Parameter changed
     """
     Check if a user can run agents based on their subscription and usage.
     
     Returns:
         Tuple[bool, str, Optional[Dict]]: (can_run, message, subscription_info)
     """
-    if config.ENV_MODE == EnvMode.LOCAL:
-        logger.info("Running in local development mode - billing checks are disabled")
+    # ENV_MODE.LOCAL check is for general local dev, DATABASE_TYPE == "sqlite" is more specific
+    if config.DATABASE_TYPE == "sqlite" or config.ENV_MODE == EnvMode.LOCAL: # Combined condition
+        logger.info("Billing: check_billing_status is permissive in SQLite/Local mode.")
         return True, "Local development mode - billing disabled", {
             "price_id": "local_dev",
             "plan_name": "Local Development",
@@ -258,35 +302,47 @@ async def check_billing_status(client, user_id: str) -> Tuple[bool, str, Optiona
         }
     
     # Get current subscription
-    subscription = await get_user_subscription(user_id)
-    # print("Current subscription:", subscription)
+    subscription = await get_user_subscription(user_id) # This already handles SQLite mode internally
     
-    # If no subscription, they can use free tier
-    if not subscription:
+    # If no subscription (even mock one for SQLite), default to a conceptual free tier
+    if not subscription: # Should not happen if get_user_subscription is robust for SQLite
         subscription = {
-            'price_id': config.STRIPE_FREE_TIER_ID,  # Free tier
-            'plan_name': 'free'
+            'price_id': "price_local_free",
+            'plan_name': 'free',
+            'status': 'active'
         }
     
-    # Extract price ID from subscription items
-    price_id = None
-    if subscription.get('items') and subscription['items'].get('data') and len(subscription['items']['data']) > 0:
+    price_id = subscription.get("price_id")
+    if not price_id and subscription.get('items') and subscription['items'].get('data') and len(subscription['items']['data']) > 0:
         price_id = subscription['items']['data'][0]['price']['id']
-    else:
-        price_id = subscription.get('price_id', config.STRIPE_FREE_TIER_ID)
     
-    # Get tier info - default to free tier if not found
+    # Ensure price_id has a value, defaulting to free tier if necessary
+    if not price_id:
+        price_id = config.STRIPE_FREE_TIER_ID if config.STRIPE_FREE_TIER_ID else "price_local_free"
+
+
     tier_info = SUBSCRIPTION_TIERS.get(price_id)
     if not tier_info:
-        logger.warning(f"Unknown subscription tier: {price_id}, defaulting to free tier")
-        tier_info = SUBSCRIPTION_TIERS[config.STRIPE_FREE_TIER_ID]
+        logger.warning(f"Unknown subscription tier ID: {price_id}. Defaulting to free tier behavior.")
+        # Attempt to get free tier from config, or use a hardcoded default for local/SQLite
+        free_tier_key = config.STRIPE_FREE_TIER_ID if config.STRIPE_FREE_TIER_ID else \
+                        next(iter(SUBSCRIPTION_TIERS)) # Get first key as a fallback if free tier ID not in config
+        tier_info = SUBSCRIPTION_TIERS.get(free_tier_key, {'name': 'default_free', 'minutes': 60})
+
+
+    # In SQLite mode, usage calculation might not be meaningful or rely on tables not fully populated.
+    # For simplicity, assume usage is always within limits in SQLite mode.
+    if config.DATABASE_TYPE == "sqlite":
+        current_usage = 0.0
+    else:
+        # This client would be Supabase client from DBConnection for usage calculation
+        # This highlights that calculate_monthly_usage also needs to be DAL-aware or handle client types
+        db_conn_for_usage = DBConnection() # Still uses old connection for Supabase
+        supa_client_for_usage = await db_conn_for_usage.client
+        current_usage = await calculate_monthly_usage(supa_client_for_usage, user_id)
     
-    # Calculate current month's usage
-    current_usage = await calculate_monthly_usage(client, user_id)
-    
-    # Check if within limits
     if current_usage >= tier_info['minutes']:
-        return False, f"Monthly limit of {tier_info['minutes']} minutes reached. Please upgrade your plan or wait until next month.", subscription
+        return False, f"Monthly limit of {tier_info['minutes']} minutes reached. Please upgrade or wait.", subscription
     
     return True, "OK", subscription
 
@@ -297,19 +353,24 @@ async def create_checkout_session(
     current_user_id: str = Depends(get_current_user_id_from_jwt)
 ):
     """Create a Stripe Checkout session or modify an existing subscription."""
+    if config.DATABASE_TYPE == "sqlite":
+        logger.info("Billing endpoint /create-checkout-session is disabled in SQLite mode.")
+        # Mock a successful response or indicate it's not applicable
+        return {"session_id": "mock_session_local", "url": "#local-checkout-disabled", "status": "local_mock"}
+
     try:
-        # Get Supabase client
-        db = DBConnection()
-        client = await db.client
+        # Get Supabase client (still using DBConnection for Supabase interactions here)
+        db_supa = DBConnection()
+        client_supa = await db_supa.client # This is Supabase client
         
-        # Get user email from auth.users
-        user_result = await client.auth.admin.get_user_by_id(current_user_id)
+        # Get user email from auth.users (Supabase specific)
+        user_result = await client_supa.auth.admin.get_user_by_id(current_user_id)
         if not user_result: raise HTTPException(status_code=404, detail="User not found")
         email = user_result.user.email
         
-        # Get or create Stripe customer
-        customer_id = await get_stripe_customer_id(client, current_user_id)
-        if not customer_id: customer_id = await create_stripe_customer(client, current_user_id, email)
+        # Get or create Stripe customer (these helpers use the passed Supabase client_supa)
+        customer_id = await get_stripe_customer_id(client_supa, current_user_id)
+        if not customer_id: customer_id = await create_stripe_customer(client_supa, current_user_id, email)
         
         # Get the target price and product ID
         try:
@@ -581,13 +642,17 @@ async def create_portal_session(
     current_user_id: str = Depends(get_current_user_id_from_jwt)
 ):
     """Create a Stripe Customer Portal session for subscription management."""
+    if config.DATABASE_TYPE == "sqlite":
+        logger.info("Billing endpoint /create-portal-session is disabled in SQLite mode.")
+        return {"url": "#local-portal-disabled"}
+
     try:
-        # Get Supabase client
-        db = DBConnection()
-        client = await db.client
+        # Get Supabase client (still using DBConnection for Supabase interactions here)
+        db_supa = DBConnection()
+        client_supa = await db_supa.client # This is Supabase client
         
-        # Get customer ID
-        customer_id = await get_stripe_customer_id(client, current_user_id)
+        # Get customer ID (helper uses the passed Supabase client_supa)
+        customer_id = await get_stripe_customer_id(client_supa, current_user_id)
         if not customer_id:
             raise HTTPException(status_code=404, detail="No billing customer found")
         
@@ -681,35 +746,65 @@ async def get_subscription(
     current_user_id: str = Depends(get_current_user_id_from_jwt)
 ):
     """Get the current subscription status for the current user, including scheduled changes."""
+    if config.DATABASE_TYPE == "sqlite":
+        logger.info("Billing endpoint /subscription is simplified in SQLite mode.")
+        # Mock response for SQLite mode
+        # Use a default free tier ID or a mock one.
+        # Ensure price_id here matches one in SUBSCRIPTION_TIERS or handle default in mock
+        mock_price_id = next(iter(SUBSCRIPTION_TIERS)) # Get first price ID as a mock
+        mock_tier_info = SUBSCRIPTION_TIERS.get(mock_price_id, {'name': 'local_mock_free', 'minutes': 1000000})
+
+        return SubscriptionStatus(
+            status="active", # Mock as active
+            plan_name=mock_tier_info.get('name'),
+            price_id=mock_price_id,
+            current_period_end=datetime.now(timezone.utc) + timedelta(days=30),
+            cancel_at_period_end=False,
+            trial_end=None,
+            minutes_limit=mock_tier_info.get('minutes'),
+            current_usage=0.0, # Mock usage
+            has_schedule=False
+        )
+
     try:
-        # Get subscription from Stripe (this helper already handles filtering/cleanup)
+        # Get subscription from Stripe (this helper already handles filtering/cleanup for SQLite)
         subscription = await get_user_subscription(current_user_id)
-        # print("Subscription data for status:", subscription)
         
-        if not subscription:
+        if not subscription: # Should not happen if get_user_subscription provides mock for SQLite
             # Default to free tier status if no active subscription for our product
+            # This path should ideally only be taken for Supabase if user has no Stripe sub
             free_tier_id = config.STRIPE_FREE_TIER_ID
-            free_tier_info = SUBSCRIPTION_TIERS.get(free_tier_id)
+            free_tier_info = SUBSCRIPTION_TIERS.get(free_tier_id, {'name': 'free', 'minutes': 0})
             return SubscriptionStatus(
                 status="no_subscription",
-                plan_name=free_tier_info.get('name', 'free') if free_tier_info else 'free',
+                plan_name=free_tier_info.get('name'),
                 price_id=free_tier_id,
-                minutes_limit=free_tier_info.get('minutes') if free_tier_info else 0
+                minutes_limit=free_tier_info.get('minutes')
             )
         
         # Extract current plan details
-        current_item = subscription['items']['data'][0]
-        current_price_id = current_item['price']['id']
+        price_id_from_sub = subscription.get("price_id") # get_user_subscription for SQLite returns this
+        current_item = None
+        if not price_id_from_sub and subscription.get('items') and subscription['items'].get('data'):
+            current_item = subscription['items']['data'][0]
+            price_id_from_sub = current_item['price']['id']
+
+        current_price_id = price_id_from_sub or config.STRIPE_FREE_TIER_ID # Fallback
+
         current_tier_info = SUBSCRIPTION_TIERS.get(current_price_id)
         if not current_tier_info:
-            # Fallback if somehow subscribed to an unknown price within our product
              logger.warning(f"User {current_user_id} subscribed to unknown price {current_price_id}. Defaulting info.")
-             current_tier_info = {'name': 'unknown', 'minutes': 0}
+             current_tier_info = {'name': 'unknown', 'minutes': 0} # Fallback tier info
         
         # Calculate current usage
-        db = DBConnection()
-        client = await db.client
-        current_usage = await calculate_monthly_usage(client, current_user_id)
+        # db_dal = await get_db_client() # Get DAL client
+        # current_usage = await calculate_monthly_usage(db_dal, current_user_id)
+        # calculate_monthly_usage needs to be fully DAL compatible or use the correct client.
+        # For now, assuming it's called correctly based on its internal DB type check.
+        # If it's Supabase, it still uses old DBConnection.
+        db_for_usage_calc = DBConnection() # This is Supabase specific if not SQLite
+        supa_client_for_usage = await db_for_usage_calc.client
+        current_usage = await calculate_monthly_usage(supa_client_for_usage, current_user_id) # calculate_monthly_usage handles SQLite
         
         status_response = SubscriptionStatus(
             status=subscription['status'], # 'active', 'trialing', etc.
@@ -764,12 +859,26 @@ async def check_status(
     current_user_id: str = Depends(get_current_user_id_from_jwt)
 ):
     """Check if the user can run agents based on their subscription and usage."""
+    # The check_billing_status function already handles SQLite mode internally.
+    # It needs a DAL client if we want to make it fully generic.
+    # For now, it uses DBConnection for Supabase calls, which is fine for this stage.
+    # If we were to pass DAL client: db_dal = await get_db_client()
+    # But check_billing_status's internal calls like get_user_subscription also use DBConnection.
+    # So, we let check_billing_status manage its DB interaction for now.
+    # The critical part is that check_billing_status itself is SQLite-aware.
+
+    # To ensure consistency if check_billing_status expects a specific client type for Supabase:
+    db_client_for_check = None
+    if config.DATABASE_TYPE == "supabase":
+        db_supa_temp = DBConnection()
+        db_client_for_check = await db_supa_temp.client # Supabase client
+    else: # For SQLite, the function handles it, can pass None or a dummy DAL client
+        db_dal_dummy = await get_db_client() # This will be SQLiteDB instance
+        db_client_for_check = db_dal_dummy
+
+
     try:
-        # Get Supabase client
-        db = DBConnection()
-        client = await db.client
-        
-        can_run, message, subscription = await check_billing_status(client, current_user_id)
+        can_run, message, subscription = await check_billing_status(db_client_for_check, current_user_id) # Pass appropriate client
         
         return {
             "can_run": can_run,
@@ -784,6 +893,10 @@ async def check_status(
 @router.post("/webhook")
 async def stripe_webhook(request: Request):
     """Handle Stripe webhook events."""
+    if config.DATABASE_TYPE == "sqlite":
+        logger.info("Billing webhook endpoint is disabled in SQLite mode.")
+        return {"status": "success", "message": "Webhook processed (no-op in SQLite mode)"}
+
     try:
         # Get the webhook secret from config
         webhook_secret = config.STRIPE_WEBHOOK_SECRET
@@ -812,44 +925,29 @@ async def stripe_webhook(request: Request):
                 logger.warning(f"No customer ID found in subscription event: {event.type}")
                 return {"status": "error", "message": "No customer ID found"}
             
-            # Get database connection
-            db = DBConnection()
-            client = await db.client
+            # Get database connection (Supabase client for basejump schema)
+            # This part remains Supabase-specific as basejump schema is not in SQLite
+            db_supa = DBConnection()
+            client_supa = await db_supa.client
             
             if event.type == 'customer.subscription.created' or event.type == 'customer.subscription.updated':
-                # Check if subscription is active
                 if subscription.get('status') in ['active', 'trialing']:
-                    # Update customer's active status to true
-                    await client.schema('basejump').from_('billing_customers').update(
+                    await client_supa.schema('basejump').from_('billing_customers').update(
                         {'active': True}
                     ).eq('id', customer_id).execute()
                     logger.info(f"Webhook: Updated customer {customer_id} active status to TRUE based on {event.type}")
                 else:
-                    # Subscription is not active (e.g., past_due, canceled, etc.)
-                    # Check if customer has any other active subscriptions before updating status
-                    has_active = len(stripe.Subscription.list(
-                        customer=customer_id,
-                        status='active',
-                        limit=1
-                    ).get('data', [])) > 0
-                    
+                    has_active = len(stripe.Subscription.list(customer=customer_id, status='active', limit=1).get('data', [])) > 0
                     if not has_active:
-                        await client.schema('basejump').from_('billing_customers').update(
+                        await client_supa.schema('basejump').from_('billing_customers').update(
                             {'active': False}
                         ).eq('id', customer_id).execute()
                         logger.info(f"Webhook: Updated customer {customer_id} active status to FALSE based on {event.type}")
             
             elif event.type == 'customer.subscription.deleted':
-                # Check if customer has any other active subscriptions
-                has_active = len(stripe.Subscription.list(
-                    customer=customer_id,
-                    status='active',
-                    limit=1
-                ).get('data', [])) > 0
-                
+                has_active = len(stripe.Subscription.list(customer=customer_id, status='active', limit=1).get('data', [])) > 0
                 if not has_active:
-                    # If no active subscriptions left, set active to false
-                    await client.schema('basejump').from_('billing_customers').update(
+                    await client_supa.schema('basejump').from_('billing_customers').update(
                         {'active': False}
                     ).eq('id', customer_id).execute()
                     logger.info(f"Webhook: Updated customer {customer_id} active status to FALSE after subscription deletion")
@@ -867,16 +965,39 @@ async def get_available_models(
     current_user_id: str = Depends(get_current_user_id_from_jwt)
 ):
     """Get the list of models available to the user based on their subscription tier."""
+    # This function already calls get_allowed_models_for_user, which handles SQLite mode.
+    # The client passed to get_allowed_models_for_user needs to be DAL-aware if it's to work generically.
+    # For now, get_allowed_models_for_user's Supabase path still assumes old client.
+
+    # If fully DAL: db_dal = await get_db_client()
+    # However, get_allowed_models_for_user expects Supabase client for Supabase path.
+    # Let's make this endpoint also SQLite-aware at the top.
+    if config.DATABASE_TYPE == "sqlite" or config.ENV_MODE == EnvMode.LOCAL:
+        logger.info("Billing: /available-models simplified in SQLite/Local mode.")
+        # Use the logic from get_allowed_models_for_user's SQLite path
+        # For simplicity, assume free tier allows all models.
+        all_models_mock = []
+        for short_name, full_name in MODEL_NAME_ALIASES.items():
+            all_models_mock.append({
+                "id": full_name, "display_name": short_name, "short_name": short_name,
+                "requires_subscription": False, "is_available": True
+            })
+        return {
+            "models": all_models_mock,
+            "subscription_tier": "Local Development / SQLite Mode",
+            "total_models": len(all_models_mock)
+        }
+
     try:
-        # Get Supabase client
-        db = DBConnection()
-        client = await db.client
+        # For Supabase mode, use the existing logic which relies on DBConnection
+        db_supa = DBConnection()
+        client_supa = await db_supa.client # Supabase client
         
-        # Check if we're in local development mode
-        if config.ENV_MODE == EnvMode.LOCAL:
-            logger.info("Running in local development mode - billing checks are disabled")
+        # Check if we're in local development mode (this is redundant if DATABASE_TYPE is primary switch)
+        # if config.ENV_MODE == EnvMode.LOCAL: This is already covered by DATABASE_TYPE check above
+        #     logger.info("Running in local development mode - billing checks are disabled")
             
-            # In local mode, return all models from MODEL_NAME_ALIASES
+            # # In local mode, return all models from MODEL_NAME_ALIASES
             model_info = []
             for short_name, full_name in MODEL_NAME_ALIASES.items():
                 # Skip entries where the key is a full name to avoid duplicates

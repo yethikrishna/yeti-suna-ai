@@ -10,7 +10,8 @@ from utils.logger import logger
 import dramatiq
 import uuid
 from agentpress.thread_manager import ThreadManager
-from services.supabase import DBConnection
+# from services.supabase import DBConnection # Replaced by DAL
+from backend.database.dal import get_db_client, DatabaseInterface # Import DAL
 from services import redis
 from dramatiq.brokers.rabbitmq import RabbitmqBroker
 import os
@@ -67,7 +68,8 @@ async def run_agent_background(
     if agent_config:
         logger.info(f"Using custom agent: {agent_config.get('name', 'Unknown')}")
 
-    client = await db.client
+    # client = await db.client # Old way: db is DBConnection, client is SupabaseAsyncClient
+    db_dal = await get_db_client() # New DAL way
     start_time = datetime.now(timezone.utc)
     total_responses = 0
     pubsub = None
@@ -170,7 +172,7 @@ async def run_agent_background(
         all_responses = [json.loads(r) for r in all_responses_json]
 
         # Update DB status
-        await update_agent_run_status(client, agent_run_id, final_status, error=error_message, responses=all_responses)
+        await update_agent_run_status(db_dal, agent_run_id, final_status, error=error_message, responses=all_responses) # Pass DAL client
 
         # Publish final control signal (END_STREAM or ERROR)
         control_signal = "END_STREAM" if final_status == "completed" else "ERROR" if final_status == "failed" else "STOP"
@@ -207,7 +209,7 @@ async def run_agent_background(
              all_responses = [error_response] # Use the error message we tried to push
 
         # Update DB status
-        await update_agent_run_status(client, agent_run_id, "failed", error=f"{error_message}\n{traceback_str}", responses=all_responses)
+        await update_agent_run_status(db_dal, agent_run_id, "failed", error=f"{error_message}\n{traceback_str}", responses=all_responses) # Pass DAL client
 
         # Publish ERROR signal
         try:
@@ -267,14 +269,14 @@ async def _cleanup_redis_response_list(agent_run_id: str):
         logger.warning(f"Failed to set TTL on response list {response_list_key}: {str(e)}")
 
 async def update_agent_run_status(
-    client,
+    db_dal_client: DatabaseInterface, # Changed parameter name
     agent_run_id: str,
     status: str,
     error: Optional[str] = None,
     responses: Optional[list[any]] = None # Expects parsed list of dicts
 ) -> bool:
     """
-    Centralized function to update agent run status.
+    Centralized function to update agent run status using DAL.
     Returns True if update was successful.
     """
     try:
@@ -284,41 +286,40 @@ async def update_agent_run_status(
         }
 
         if error:
-            update_data["error"] = error
+            update_data["error_message"] = error # Schema uses error_message
 
         if responses:
-            # Ensure responses are stored correctly as JSONB
-            update_data["responses"] = responses
+            # Ensure responses are stored correctly as JSON string for SQLite
+            # The 'outputs' field in agent_runs schema is for this.
+            update_data["outputs"] = json.dumps(responses)
 
         # Retry up to 3 times
-        for retry in range(3):
+        for retry_attempt in range(3):
             try:
-                update_result = await client.table('agent_runs').update(update_data).eq("id", agent_run_id).execute()
+                await db_dal_client.update(
+                    table_name='agent_runs',
+                    data=update_data,
+                    filters=[('id', '=', agent_run_id)]
+                )
+                logger.info(f"DAL: Successfully updated agent run {agent_run_id} status to '{status}' (attempt {retry_attempt+1})")
 
-                if hasattr(update_result, 'data') and update_result.data:
-                    logger.info(f"Successfully updated agent run {agent_run_id} status to '{status}' (retry {retry})")
+                # Optional: Verification step (can be removed if DAL update is trusted)
+                # verify_data = await db_dal_client.select('agent_runs', columns='status, completed_at', filters=[('id', '=', agent_run_id)], single=True)
+                # if verify_data:
+                #     logger.info(f"DAL: Verified update for {agent_run_id}: status={verify_data.get('status')}, completed_at={verify_data.get('completed_at')}")
+                # else:
+                #     logger.warning(f"DAL: Verification select for {agent_run_id} returned no data after update.")
 
-                    # Verify the update
-                    verify_result = await client.table('agent_runs').select('status', 'completed_at').eq("id", agent_run_id).execute()
-                    if verify_result.data:
-                        actual_status = verify_result.data[0].get('status')
-                        completed_at = verify_result.data[0].get('completed_at')
-                        logger.info(f"Verified agent run update: status={actual_status}, completed_at={completed_at}")
-                    return True
-                else:
-                    logger.warning(f"Database update returned no data for agent run {agent_run_id} on retry {retry}: {update_result}")
-                    if retry == 2:  # Last retry
-                        logger.error(f"Failed to update agent run status after all retries: {agent_run_id}")
-                        return False
+                return True # Assume success if no exception from DAL update
+
             except Exception as db_error:
-                logger.error(f"Database error on retry {retry} updating status for {agent_run_id}: {str(db_error)}")
-                if retry < 2:  # Not the last retry yet
-                    await asyncio.sleep(0.5 * (2 ** retry))  # Exponential backoff
+                logger.error(f"DAL: Database error on attempt {retry_attempt+1} updating status for {agent_run_id}: {str(db_error)}")
+                if retry_attempt < 2:
+                    await asyncio.sleep(0.5 * (2 ** retry_attempt))
                 else:
-                    logger.error(f"Failed to update agent run status after all retries: {agent_run_id}", exc_info=True)
+                    logger.error(f"DAL: Failed to update agent run status after all retries for {agent_run_id}", exc_info=True)
                     return False
     except Exception as e:
-        logger.error(f"Unexpected error updating agent run status for {agent_run_id}: {str(e)}", exc_info=True)
+        logger.error(f"DAL: Unexpected error updating agent run status for {agent_run_id}: {str(e)}", exc_info=True)
         return False
-
-    return False
+    return False # Should ideally not be reached

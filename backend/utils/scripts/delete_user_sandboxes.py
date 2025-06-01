@@ -15,6 +15,7 @@ from dotenv import load_dotenv
 # Load script-specific environment variables
 load_dotenv(".env")
 
+from backend.utils.config import config # Added
 from services.supabase import DBConnection
 from sandbox.sandbox import daytona
 from utils.logger import logger
@@ -93,12 +94,17 @@ async def delete_sandboxes(projects: List[Dict[str, Any]]) -> None:
 
 async def main():
     """Main function to run the script."""
+    if config.DATABASE_TYPE == "sqlite":
+        logger.info(f"Script {__file__} is disabled in SQLite mode. Local sandbox management might be handled differently.")
+        print(f"Script {__file__} is disabled in SQLite mode.")
+        return
+
     if len(sys.argv) != 2:
         print(f"Usage: python {sys.argv[0]} <account_id>")
         sys.exit(1)
     
     account_id = sys.argv[1]
-    logger.info(f"Starting sandbox cleanup for account ID: {account_id}")
+    logger.info(f"Starting sandbox cleanup for account ID: {account_id} (Supabase mode)")
     
     # Print environment info
     print(f"Environment Mode: {os.getenv('ENV_MODE', 'Not set')}")

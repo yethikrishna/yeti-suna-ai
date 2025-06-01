@@ -20,7 +20,8 @@ from agentpress.response_processor import (
     ResponseProcessor,
     ProcessorConfig
 )
-from services.supabase import DBConnection
+# from services.supabase import DBConnection # Replaced by DAL
+from backend.database.dal import get_db_client, DatabaseInterface, get_or_create_default_user # Import DAL & default user fn
 from utils.logger import logger
 from langfuse.client import StatefulGenerationClient, StatefulTraceClient
 from services.langfuse import langfuse
@@ -45,7 +46,8 @@ class ThreadManager:
             is_agent_builder: Whether this is an agent builder session
             target_agent_id: ID of the agent being built (if in agent builder mode)
         """
-        self.db = DBConnection()
+        # self.db = DBConnection() # Old direct Supabase connection
+        self.db_client: Optional[DatabaseInterface] = None # To be initialized in async methods
         self.tool_registry = ToolRegistry()
         self.trace = trace
         self.is_agent_builder = is_agent_builder
@@ -82,36 +84,57 @@ class ThreadManager:
                      It will be stored as JSONB in the database.
             is_llm_message: Flag indicating if the message originated from the LLM.
                             Defaults to False (user message).
+            is_llm_message: Flag indicating if the message originated from the LLM.
+                            Defaults to False (user message).
             metadata: Optional dictionary for additional message metadata.
                       Defaults to None, stored as an empty JSONB object if None.
         """
         logger.debug(f"Adding message of type '{type}' to thread {thread_id}")
-        client = await self.db.client
+        if not self.db_client:
+            self.db_client = await get_db_client()
 
-        # Prepare data for insertion
+        # Ensure content and metadata are JSON strings for SQLite
+        content_for_db = json.dumps(content) if isinstance(content, (dict, list)) else content
+        metadata_for_db = json.dumps(metadata or {}) # Ensure metadata is always a JSON string
+
+        message_id = str(uuid.uuid4())
+
         data_to_insert = {
+            'id': message_id,
             'thread_id': thread_id,
-            'type': type,
-            'content': content,
-            'is_llm_message': is_llm_message,
-            'metadata': metadata or {},
+            # 'type': type, # Schema has 'type'
+            'role': content.get('role') if isinstance(content, dict) and 'role' in content else type, # Infer role
+            'content': content_for_db,
+            'type': type, # Storing original 'type' passed, could be 'user', 'assistant', 'tool_call', 'tool_result', 'status'
+            'run_id': metadata.get('run_id') if metadata and isinstance(metadata, dict) else None,
+            'metadata': metadata_for_db,
+            # created_at is handled by DB default
         }
 
-        try:
-            # Add returning='representation' to get the inserted row data including the id
-            result = await client.table('messages').insert(data_to_insert, returning='representation').execute()
-            logger.info(f"Successfully added message to thread {thread_id}")
+        # 'is_llm_message' is not in the new 'messages' schema. Role and type should cover this.
+        # The 'role' field in data_to_insert is based on OpenAI's typical roles.
+        # The 'type' field stores the original type passed to this function.
 
-            if result.data and len(result.data) > 0 and isinstance(result.data[0], dict) and 'message_id' in result.data[0]:
-                return result.data[0]
-            else:
-                logger.error(f"Insert operation failed or did not return expected data structure for thread {thread_id}. Result data: {result.data}")
-                return None
+        try:
+            # The DAL's insert method returns a dict like {'id': new_id} for SQLite.
+            # Supabase used to return a list containing a dict of the inserted row.
+            await self.db_client.insert('messages', data=data_to_insert, returning='id')
+            logger.info(f"Successfully added message to thread {thread_id} with ID {message_id}")
+
+            # Construct a representation similar to what Supabase might have returned, if needed by caller.
+            # For now, returning the input data with the generated ID.
+            # Callers might expect a dict containing the inserted data.
+            return_data = data_to_insert.copy()
+            return_data['content'] = content # original content, not json string
+            return_data['metadata'] = metadata or {} # original metadata
+            return_data['created_at'] = datetime.datetime.now(datetime.timezone.utc).isoformat() # Approximate
+            return return_data
+
         except Exception as e:
             logger.error(f"Failed to add message to thread {thread_id}: {str(e)}", exc_info=True)
             raise
 
-    async def get_llm_messages(self, thread_id: str) -> List[Dict[str, Any]]:
+    async def get_llm_messages(self, thread_id: str) -> List[Dict[str, Any]]: # Renamed from get_messages_for_llm for clarity
         """Get all messages for a thread.
 
         This method uses the SQL function which handles context truncation
@@ -121,39 +144,151 @@ class ThreadManager:
             thread_id: The ID of the thread to get messages for.
 
         Returns:
-            List of message objects.
+            List of message objects, where each message has 'role' and 'content'.
         """
-        logger.debug(f"Getting messages for thread {thread_id}")
-        client = await self.db.client
+        logger.debug(f"Getting LLM-formatted messages for thread {thread_id}")
+        if not self.db_client:
+            self.db_client = await get_db_client()
 
         try:
-            # result = await client.rpc('get_llm_formatted_messages', {'p_thread_id': thread_id}).execute()
-            result = await client.table('messages').select('message_id, content').eq('thread_id', thread_id).eq('is_llm_message', True).order('created_at').execute()
+            # Filters: list of tuples (column, operator, value)
+            filters = [('thread_id', '=', thread_id)]
+            # The old query selected 'message_id, content' and had an 'is_llm_message' filter.
+            # Our new schema has 'role' and 'content' (which is JSON string).
+            # We need to reconstruct the messages in the format expected by the LLM (typically list of {'role': ..., 'content': ...}).
 
-            # Parse the returned data which might be stringified JSON
-            if not result.data:
+            message_rows = await self.db_client.select(
+                table_name='messages',
+                columns="id, role, content, type, created_at", # Select relevant columns
+                filters=filters,
+                order_by="created_at ASC" # Ensure messages are in chronological order
+            )
+
+            if not message_rows:
                 return []
 
-            # Return properly parsed JSON objects
-            messages = []
-            for item in result.data:
-                if isinstance(item['content'], str):
-                    try:
-                        parsed_item = json.loads(item['content'])
-                        parsed_item['message_id'] = item['message_id']
-                        messages.append(parsed_item)
-                    except json.JSONDecodeError:
-                        logger.error(f"Failed to parse message: {item['content']}")
-                else:
-                    content = item['content']
-                    content['message_id'] = item['message_id']
-                    messages.append(content)
+            llm_messages = []
+            for row in message_rows:
+                db_content_str = row.get('content')
+                # The 'role' in the 'messages' table should directly map to LLM role.
+                llm_role = row.get('role')
 
-            return messages
+                if not llm_role: # Skip if role is missing from DB record
+                    logger.warning(f"Skipping message with ID {row.get('id')} due to missing role.")
+                    continue
+
+                parsed_llm_content_value = None
+                try:
+                    # Stored content could be a JSON string representing the LLM content field
+                    # (which can be text, or a list of parts for vision models)
+                    parsed_llm_content_value = json.loads(db_content_str)
+                except (json.JSONDecodeError, TypeError):
+                    # If not a valid JSON string, treat it as plain text content
+                    parsed_llm_content_value = db_content_str
+
+                llm_message = {"role": llm_role, "content": parsed_llm_content_value}
+
+                # LiteLLM/OpenAI expect 'name' for tool role, not 'tool_call_id' at the top level of the message.
+                # If the original message 'type' was 'tool' (meaning tool result),
+                # and the content needs a 'tool_call_id', that ID should be part of the content itself
+                # or handled by the response processor.
+                # For now, we are just reconstructing based on 'role' and 'content'.
+                # The 'id' of the message (row.get('id')) could be used by agent to link tool calls if needed.
+
+                llm_messages.append(llm_message)
+
+            return llm_messages
 
         except Exception as e:
-            logger.error(f"Failed to get messages for thread {thread_id}: {str(e)}", exc_info=True)
+            logger.error(f"Failed to get LLM messages for thread {thread_id}: {str(e)}", exc_info=True)
             return []
+
+    async def get_thread_by_id(self, thread_id: str) -> Optional[Dict[str, Any]]:
+        """Retrieve a thread by its ID."""
+        logger.debug(f"Getting thread by ID: {thread_id}")
+        if not self.db_client:
+            self.db_client = await get_db_client()
+
+        try:
+            thread_data = await self.db_client.select('threads', columns="id, user_id, agent_id, title, created_at, updated_at, metadata", filters=[('id', '=', thread_id)], single=True)
+            if thread_data:
+                if isinstance(thread_data.get('metadata'), str):
+                    try:
+                        thread_data['metadata'] = json.loads(thread_data['metadata'])
+                    except json.JSONDecodeError:
+                        logger.warning(f"Failed to parse metadata for thread {thread_id} (ID: {thread_data.get('id')})")
+                        thread_data['metadata'] = {} # Default to empty dict if parsing fails
+                else:
+                    # Ensure metadata is a dict if it's None or not a string (though TEXT column should yield string or None)
+                    thread_data['metadata'] = thread_data.get('metadata') or {}
+
+            return thread_data
+        except Exception as e:
+            logger.error(f"Error getting thread {thread_id}: {e}", exc_info=True)
+            return None
+
+    async def create_thread(self, user_id: Optional[str] = None, agent_id: Optional[str] = None, title: Optional[str] = None, metadata: Optional[dict] = None) -> Optional[Dict[str, Any]]:
+        """Create a new thread. user_id is required."""
+        logger.debug(f"Creating new thread for user '{user_id}' with agent '{agent_id}'")
+        if not self.db_client:
+            self.db_client = await get_db_client()
+
+        actual_user_id = user_id
+        # In SQLite mode, if no user_id is provided, use a default one.
+        # This is primarily for local development or scenarios where user context might be missing.
+        if not actual_user_id and hasattr(self.db_client, 'db_path'): # Heuristic for SQLiteDB
+            actual_user_id = await get_or_create_default_user(self.db_client)
+            logger.info(f"No user_id provided for create_thread with SQLite backend. Using default user: {actual_user_id}")
+        elif not actual_user_id:
+            logger.error("User ID is required to create a thread for non-SQLite backends or when default user creation is not applicable.")
+            raise ValueError("User ID is required to create a thread.")
+
+        thread_id = str(uuid.uuid4())
+        current_time = datetime.datetime.now(datetime.timezone.utc).isoformat()
+
+        thread_data_to_insert = {
+            'id': thread_id,
+            'user_id': actual_user_id,
+            'agent_id': agent_id,
+            'title': title,
+            'metadata': json.dumps(metadata or {}), # Ensure metadata is stored as JSON string
+            'created_at': current_time,
+            'updated_at': current_time
+        }
+
+        try:
+            inserted_info = await self.db_client.insert('threads', data=thread_data_to_insert, returning='id')
+            if inserted_info and inserted_info.get('id'):
+                logger.info(f"Successfully created thread with ID {thread_id} for user {actual_user_id}")
+                # Fetch the created thread to return the full object as stored in DB, ensuring correct types
+                return await self.get_thread_by_id(thread_id)
+            else:
+                logger.error(f"Thread insertion failed or did not return ID for thread {thread_id}")
+                return None
+        except Exception as e:
+            logger.error(f"Failed to create thread for user {actual_user_id}: {str(e)}", exc_info=True)
+            raise
+
+    async def update_thread_metadata(self, thread_id: str, metadata: dict) -> bool:
+        """Update the metadata of a thread."""
+        logger.debug(f"Updating metadata for thread {thread_id}")
+        if not self.db_client:
+            self.db_client = await get_db_client()
+
+        current_time = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        update_data = {
+            'metadata': json.dumps(metadata or {}), # Ensure metadata is stored as JSON string
+            'updated_at': current_time
+        }
+
+        try:
+            # The filters argument for db.update expects a list of tuples: [(column, operator, value)]
+            await self.db_client.update('threads', data=update_data, filters=[('id', '=', thread_id)])
+            logger.info(f"Successfully updated metadata for thread {thread_id}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to update metadata for thread {thread_id}: {e}", exc_info=True)
+            return False
 
     async def run_thread(
         self,

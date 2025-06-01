@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 
 load_dotenv(".env")
 
+from backend.utils.config import config # Added
 from services.supabase import DBConnection
 from utils.logger import logger
 
@@ -114,7 +115,12 @@ def save_links_to_file(share_links: List[str], filename: str = None) -> str:
 
 
 async def main():
-    logger.info("Starting share link generation process")
+    if config.DATABASE_TYPE == "sqlite":
+        logger.info(f"Script {__file__} is disabled in SQLite mode. Share link functionality may differ for local setups.")
+        print(f"Script {__file__} is disabled in SQLite mode.")
+        return
+
+    logger.info("Starting share link generation process (Supabase mode)")
     
     try:
         global db_connection

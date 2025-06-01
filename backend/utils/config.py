@@ -19,6 +19,7 @@ from enum import Enum
 from typing import Dict, Any, Optional, get_type_hints, Union
 from dotenv import load_dotenv
 import logging
+from pathlib import Path # Ensure Path is imported
 
 logger = logging.getLogger(__name__)
 
@@ -112,6 +113,7 @@ class Configuration:
     ANTHROPIC_API_KEY: str = None
     OPENAI_API_KEY: Optional[str] = None
     GROQ_API_KEY: Optional[str] = None
+    DEEPSEEK_API_KEY: Optional[str] = None
     OPENROUTER_API_KEY: Optional[str] = None
     OPENROUTER_API_BASE: Optional[str] = "https://openrouter.ai/api/v1"
     OR_SITE_URL: Optional[str] = "https://kortix.ai"
@@ -124,11 +126,18 @@ class Configuration:
     
     # Model configuration
     MODEL_TO_USE: Optional[str] = "anthropic/claude-3-7-sonnet-latest"
+
+    # General Data Directory
+    DATA_DIR: str = "data_files" # Base directory for local data like SQLite DB, file uploads
+
+    # Database Configuration
+    DATABASE_TYPE: str = "sqlite" # Default to sqlite
+    SQLITE_DB_PATH: str = "suna_local.db" # Will be relative to DATA_DIR if not absolute
     
-    # Supabase configuration
-    SUPABASE_URL: str
-    SUPABASE_ANON_KEY: str
-    SUPABASE_SERVICE_ROLE_KEY: str
+    # Supabase configuration (only if DATABASE_TYPE is 'supabase')
+    SUPABASE_URL: Optional[str] = None
+    SUPABASE_ANON_KEY: Optional[str] = None
+    SUPABASE_SERVICE_ROLE_KEY: Optional[str] = None
     
     # Redis configuration
     REDIS_HOST: str
@@ -190,6 +199,20 @@ class Configuration:
         
         # Load configuration from environment variables
         self._load_from_env()
+
+        # Create DATA_DIR if it doesn't exist, using the (potentially overridden) value
+        data_dir_path = Path(self.DATA_DIR)
+        try:
+            data_dir_path.mkdir(parents=True, exist_ok=True)
+            logger.info(f"Data directory ensured at: {data_dir_path.resolve()}")
+        except Exception as e:
+            logger.error(f"Failed to create data directory {data_dir_path.resolve()}: {e}", exc_info=True)
+            # Depending on severity, could raise error here.
+
+        # If SQLITE_DB_PATH is relative, make it relative to DATA_DIR
+        if self.DATABASE_TYPE == "sqlite" and self.SQLITE_DB_PATH and not os.path.isabs(self.SQLITE_DB_PATH):
+            self.SQLITE_DB_PATH = str(data_dir_path / self.SQLITE_DB_PATH)
+            logger.info(f"Resolved SQLITE_DB_PATH to: {self.SQLITE_DB_PATH}")
         
         # Perform validation
         self._validate()
@@ -224,13 +247,19 @@ class Configuration:
         
         # Find missing required fields
         missing_fields = []
-        for field, field_type in type_hints.items():
-            # Check if the field is Optional
+        for field_name, field_type in type_hints.items():
             is_optional = hasattr(field_type, "__origin__") and field_type.__origin__ is Union and type(None) in field_type.__args__
             
-            # If not optional and value is None, add to missing fields
-            if not is_optional and getattr(self, field) is None:
-                missing_fields.append(field)
+            # Special handling for Supabase fields based on DATABASE_TYPE
+            if field_name in ["SUPABASE_URL", "SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY"]:
+                if self.DATABASE_TYPE == "supabase" and getattr(self, field_name) is None:
+                    # These become required if DATABASE_TYPE is supabase
+                    missing_fields.append(field_name)
+                # If not supabase, they are effectively optional, so don't add to missing_fields
+                continue
+
+            if not is_optional and getattr(self, field_name) is None:
+                missing_fields.append(field_name)
         
         if missing_fields:
             error_msg = f"Missing required configuration fields: {', '.join(missing_fields)}"
