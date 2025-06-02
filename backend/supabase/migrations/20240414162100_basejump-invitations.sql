@@ -35,6 +35,7 @@ create table if not exists basejump.invitations
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE basejump.invitations TO authenticated, service_role;
 
 -- manage timestamps
+DROP TRIGGER IF EXISTS basejump_set_invitations_timestamp ON basejump.invitations;
 CREATE TRIGGER basejump_set_invitations_timestamp
     BEFORE INSERT OR UPDATE
     ON basejump.invitations
@@ -56,6 +57,7 @@ BEGIN
 END
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS basejump_trigger_set_invitation_details ON basejump.invitations;
 CREATE TRIGGER basejump_trigger_set_invitation_details
     BEFORE INSERT
     ON basejump.invitations
@@ -73,7 +75,8 @@ alter table basejump.invitations
   * This is where we define access to tables in the basejump schema
  */
 
- create policy "Invitations viewable by account owners" on basejump.invitations
+DROP POLICY IF EXISTS "Invitations viewable by account owners" ON basejump.invitations;
+create policy "Invitations viewable by account owners" on basejump.invitations
     for select
     to authenticated
     using (
@@ -82,7 +85,7 @@ alter table basejump.invitations
             basejump.has_role_on_account(account_id, 'owner') = true
     );
 
-
+DROP POLICY IF EXISTS "Invitations can be created by account owners" ON basejump.invitations;
 create policy "Invitations can be created by account owners" on basejump.invitations
     for insert
     to authenticated
@@ -98,14 +101,13 @@ create policy "Invitations can be created by account owners" on basejump.invitat
             (basejump.has_role_on_account(account_id, 'owner') = true)
     );
 
+DROP POLICY IF EXISTS "Invitations can be deleted by account owners" ON basejump.invitations;
 create policy "Invitations can be deleted by account owners" on basejump.invitations
     for delete
     to authenticated
     using (
     basejump.has_role_on_account(account_id, 'owner') = true
     );
-
-
 
 /**
   * -------------------------------------------------------
@@ -114,7 +116,6 @@ create policy "Invitations can be deleted by account owners" on basejump.invitat
   * Each of these functions exists in the public name space because they are accessible
   * via the API.  it is the primary way developers can interact with Basejump accounts
  */
-
 
 /**
   Returns a list of currently active invitations for a given account
@@ -148,7 +149,6 @@ END;
 $$;
 
 grant execute on function public.get_account_invitations(uuid, integer, integer) to authenticated;
-
 
 /**
   * Allows a user to accept an existing invitation and join a account
@@ -194,7 +194,6 @@ $$;
 
 grant execute on function public.accept_invitation(text) to authenticated;
 
-
 /**
   * Allows a user to lookup an existing invitation and join a account
   * This one exists in the public schema because we want it to be called
@@ -222,7 +221,6 @@ end;
 $$;
 
 grant execute on function public.lookup_invitation(text) to authenticated;
-
 
 /**
   Allows a user to create a new invitation if they are an owner of an account

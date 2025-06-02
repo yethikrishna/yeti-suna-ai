@@ -65,6 +65,7 @@ CREATE TABLE IF NOT EXISTS basejump.accounts
 
 -- constraint that conditionally allows nulls on the slug ONLY if personal_account is true
 -- remove this if you want to ignore accounts slugs entirely
+ALTER TABLE basejump.accounts DROP CONSTRAINT IF EXISTS basejump_accounts_slug_null_if_personal_account_true;
 ALTER TABLE basejump.accounts
     ADD CONSTRAINT basejump_accounts_slug_null_if_personal_account_true CHECK (
             (personal_account = true AND slug is null)
@@ -99,6 +100,7 @@ END
 $$ LANGUAGE plpgsql;
 
 -- trigger to protect account fields
+DROP TRIGGER IF EXISTS basejump_protect_account_fields ON basejump.accounts;
 CREATE TRIGGER basejump_protect_account_fields
     BEFORE UPDATE
     ON basejump.accounts
@@ -119,6 +121,7 @@ END
 $$ LANGUAGE plpgsql;
 
 -- trigger to slugify the account slug
+DROP TRIGGER IF EXISTS basejump_slugify_account_slug ON basejump.accounts;
 CREATE TRIGGER basejump_slugify_account_slug
     BEFORE INSERT OR UPDATE
     ON basejump.accounts
@@ -130,6 +133,7 @@ alter table basejump.accounts
     enable row level security;
 
 -- protect the timestamps
+DROP TRIGGER IF EXISTS basejump_set_accounts_timestamp ON basejump.accounts;
 CREATE TRIGGER basejump_set_accounts_timestamp
     BEFORE INSERT OR UPDATE
     ON basejump.accounts
@@ -137,6 +141,7 @@ CREATE TRIGGER basejump_set_accounts_timestamp
 EXECUTE PROCEDURE basejump.trigger_set_timestamps();
 
 -- set the user tracking
+DROP TRIGGER IF EXISTS basejump_set_accounts_user_tracking ON basejump.accounts;
 CREATE TRIGGER basejump_set_accounts_user_tracking
     BEFORE INSERT OR UPDATE
     ON basejump.accounts
@@ -188,6 +193,7 @@ end;
 $$;
 
 -- trigger the function whenever a new account is created
+DROP TRIGGER IF EXISTS basejump_add_current_user_to_new_account ON basejump.accounts;
 CREATE TRIGGER basejump_add_current_user_to_new_account
     AFTER INSERT
     ON basejump.accounts
@@ -229,6 +235,7 @@ end;
 $$;
 
 -- trigger the function every time a user is created
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 create trigger on_auth_user_created
     after insert
     on auth.users
@@ -300,6 +307,7 @@ grant execute on function basejump.get_accounts_with_role(basejump.account_role)
   * This is where we define access to tables in the basejump schema
  */
 
+DROP POLICY IF EXISTS "users can view their own account_users" ON basejump.account_user;
 create policy "users can view their own account_users" on basejump.account_user
     for select
     to authenticated
@@ -307,6 +315,7 @@ create policy "users can view their own account_users" on basejump.account_user
     user_id = auth.uid()
     );
 
+DROP POLICY IF EXISTS "users can view their teammates" ON basejump.account_user;
 create policy "users can view their teammates" on basejump.account_user
     for select
     to authenticated
@@ -314,6 +323,7 @@ create policy "users can view their teammates" on basejump.account_user
     basejump.has_role_on_account(account_id) = true
     );
 
+DROP POLICY IF EXISTS "Account users can be deleted by owners except primary account owner" ON basejump.account_user;
 create policy "Account users can be deleted by owners except primary account owner" on basejump.account_user
     for delete
     to authenticated
@@ -325,6 +335,7 @@ create policy "Account users can be deleted by owners except primary account own
                     where account_id = accounts.id)
     );
 
+DROP POLICY IF EXISTS "Accounts are viewable by members" ON basejump.accounts;
 create policy "Accounts are viewable by members" on basejump.accounts
     for select
     to authenticated
@@ -333,6 +344,7 @@ create policy "Accounts are viewable by members" on basejump.accounts
     );
 
 -- Primary owner should always have access to the account
+DROP POLICY IF EXISTS "Accounts are viewable by primary owner" ON basejump.accounts;
 create policy "Accounts are viewable by primary owner" on basejump.accounts
     for select
     to authenticated
@@ -340,6 +352,7 @@ create policy "Accounts are viewable by primary owner" on basejump.accounts
     primary_owner_user_id = auth.uid()
     );
 
+DROP POLICY IF EXISTS "Team accounts can be created by any user" ON basejump.accounts;
 create policy "Team accounts can be created by any user" on basejump.accounts
     for insert
     to authenticated
@@ -348,7 +361,7 @@ create policy "Team accounts can be created by any user" on basejump.accounts
         and personal_account = false
     );
 
-
+DROP POLICY IF EXISTS "Accounts can be edited by owners" ON basejump.accounts;
 create policy "Accounts can be edited by owners" on basejump.accounts
     for update
     to authenticated
