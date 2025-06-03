@@ -196,8 +196,17 @@ def validate_api_key(api_key, allow_empty=False):
     # Basic check: not empty and at least 10 chars
     return bool(api_key)
 
-def collect_supabase_info():
+def collect_supabase_info(existing_data=None):
     """Collect Supabase information"""
+    if existing_data and \
+       'SUPABASE_URL' in existing_data and \
+       'SUPABASE_ANON_KEY' in existing_data and \
+       'SUPABASE_SERVICE_ROLE_KEY' in existing_data:
+        prompt = f"Found existing Supabase URL: {existing_data['SUPABASE_URL']}. Use this configuration? (Y/n): "
+        choice = input(prompt).strip().lower()
+        if choice == 'y' or choice == '':
+            return existing_data
+
     print_info("You'll need to create a Supabase project before continuing")
     print_info("Visit https://supabase.com/dashboard/projects to create one")
     print_info("After creating your project, visit the project settings -> Data API and you'll need to get the following information:")
@@ -230,8 +239,14 @@ def collect_supabase_info():
         'SUPABASE_SERVICE_ROLE_KEY': supabase_service_role_key,
     }
 
-def collect_daytona_info():
+def collect_daytona_info(existing_data=None):
     """Collect Daytona API key"""
+    if existing_data and 'DAYTONA_API_KEY' in existing_data:
+        prompt = "Found existing Daytona configuration. Use this configuration? (Y/n): "
+        choice = input(prompt).strip().lower()
+        if choice == 'y' or choice == '':
+            return existing_data
+
     print_info("You'll need to create a Daytona account before continuing")
     print_info("Visit https://app.daytona.io/ to create one")
     print_info("Then, generate an API key from 'Keys' menu")
@@ -254,8 +269,18 @@ def collect_daytona_info():
         'DAYTONA_TARGET': "us",
     }
 
-def collect_llm_api_keys():
+def collect_llm_api_keys(existing_data=None):
     """Collect LLM API keys for various providers"""
+    if existing_data and any(key in existing_data for key in ['OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'OPENROUTER_API_KEY', 'MODEL_TO_USE']):
+        print_info("Found existing LLM configuration:")
+        for key, value in existing_data.items():
+            if value and key != 'OR_SITE_URL' and key != 'OR_APP_NAME': # Don't print empty keys or non-key details
+                print_info(f"  {key}: {value}")
+        prompt = "Use this existing LLM configuration? (Y/n): "
+        choice = input(prompt).strip().lower()
+        if choice == 'y' or choice == '':
+            return existing_data
+
     print_info("You need at least one LLM provider API key to use Suna")
     print_info("Available LLM providers: OpenAI, Anthropic, OpenRouter")
     
@@ -386,8 +411,21 @@ def collect_llm_api_keys():
     
     return api_keys
 
-def collect_search_api_keys():
+def collect_search_api_keys(existing_data=None):
     """Collect search API keys (now required, not optional)"""
+    if existing_data and any(key in existing_data for key in ['TAVILY_API_KEY', 'FIRECRAWL_API_KEY']):
+        print_info("Found existing search API key configuration:")
+        if existing_data.get('TAVILY_API_KEY'):
+            print_info(f"  TAVILY_API_KEY: {existing_data['TAVILY_API_KEY']}")
+        if existing_data.get('FIRECRAWL_API_KEY'):
+            print_info(f"  FIRECRAWL_API_KEY: {existing_data['FIRECRAWL_API_KEY']}")
+        if existing_data.get('FIRECRAWL_URL'):
+            print_info(f"  FIRECRAWL_URL: {existing_data['FIRECRAWL_URL']}")
+        prompt = "Use this existing search API configuration? (Y/n): "
+        choice = input(prompt).strip().lower()
+        if choice == 'y' or choice == '':
+            return existing_data
+
     print_info("You'll need to obtain API keys for search and web scraping")
     print_info("Visit https://tavily.com/ to get a Tavily API key")
     print_info("Visit https://firecrawl.dev/ to get a Firecrawl API key")
@@ -422,8 +460,18 @@ def collect_search_api_keys():
         'FIRECRAWL_URL': firecrawl_url,
     }
 
-def collect_rapidapi_keys():
+def collect_rapidapi_keys(existing_data=None):
     """Collect RapidAPI key (optional)"""
+    if existing_data and existing_data.get('RAPID_API_KEY'):
+        print_info(f"Found existing RapidAPI key: {existing_data['RAPID_API_KEY']}")
+        prompt = "Use this existing RapidAPI key? (Y/n/skip): "
+        choice = input(prompt).strip().lower()
+        if choice == 'y' or choice == '':
+            return existing_data
+        elif choice == 's' or choice == 'skip':
+            print_info("Skipping RapidAPI key setup.")
+            return {'RAPID_API_KEY': ''}
+
     print_info("To enable API services like LinkedIn, and others, you'll need a RapidAPI key")
     print_info("Each service requires individual activation in your RapidAPI account:")
     print_info("1. Locate the service's `base_url` in its corresponding file (e.g., https://linkedin-data-scraper.p.rapidapi.com in backend/agent/tools/data_providers/LinkedinProvider.py)")
@@ -869,7 +917,7 @@ def main():
 
     if current_step <= 2:
         print_step(current_step, total_steps, "Collecting Supabase information")
-        env_vars['supabase'] = collect_supabase_info()
+        env_vars['supabase'] = collect_supabase_info(env_vars.get('supabase', {}))
         os.environ['SUPABASE_URL'] = env_vars['supabase']['SUPABASE_URL']
         save_env_data(env_vars)
         save_progress(current_step)
@@ -877,28 +925,28 @@ def main():
 
     if current_step <= 3:
         print_step(current_step, total_steps, "Collecting Daytona information")
-        env_vars['daytona'] = collect_daytona_info()
+        env_vars['daytona'] = collect_daytona_info(env_vars.get('daytona', {}))
         save_env_data(env_vars)
         save_progress(current_step)
         current_step += 1
 
     if current_step <= 4:
         print_step(current_step, total_steps, "Collecting LLM API keys")
-        env_vars['llm'] = collect_llm_api_keys()
+        env_vars['llm'] = collect_llm_api_keys(env_vars.get('llm', {}))
         save_env_data(env_vars)
         save_progress(current_step)
         current_step += 1
 
     if current_step <= 5:
         print_step(current_step, total_steps, "Collecting search and web scraping API keys")
-        env_vars['search'] = collect_search_api_keys()
+        env_vars['search'] = collect_search_api_keys(env_vars.get('search', {}))
         save_env_data(env_vars)
         save_progress(current_step)
         current_step += 1
 
     if current_step <= 6:
         print_step(current_step, total_steps, "Collecting RapidAPI key")
-        env_vars['rapidapi'] = collect_rapidapi_keys()
+        env_vars['rapidapi'] = collect_rapidapi_keys(env_vars.get('rapidapi', {}))
         save_env_data(env_vars)
         save_progress(current_step)
         current_step += 1
