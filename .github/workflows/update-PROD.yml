@@ -1,4 +1,5 @@
-name: Update PRODUCTION Branch
+name: Update Upstream Branch
+
 on:
   workflow_dispatch:
 
@@ -6,20 +7,33 @@ permissions:
   contents: write
 
 jobs:
-  update-production:
-    name: Rebase PRODUCTION to main
+  rebase-to-upstream:
     runs-on: ubuntu-latest
+
+    concurrency:
+      group: update-upstream
+      cancel-in-progress: true
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout all branches
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Configure Git
+
+      - name: Configure Git user
         run: |
-          git config user.name "GitHub Actions"
+          git config user.name  "GitHub Actions"
           git config user.email "actions@github.com"
-      - name: Rebase PRODUCTION
-        run: |
-          git checkout PRODUCTION
-          git rebase origin/main
-          git push origin PRODUCTION --force
+
+      - name: Fetch latest main
+        run: git fetch origin main
+
+      - name: Switch to upstream
+        run: git checkout upstream
+
+      - name: Rebase upstream onto main
+        run: git rebase origin/main
+
+      - name: Push upstream branch
+        run: git push origin upstream --force-with-lease

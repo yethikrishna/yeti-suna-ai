@@ -1,40 +1,57 @@
 name: Build, push and deploy
 
+# 1) Run on pushes to main (staging) or upstream (production), 
+#    or manually via "Run workflow"
 on:
   push:
     branches:
       - main
-      - PRODUCTION
+      - upstream
   workflow_dispatch:
 
 permissions:
-  contents: read
-  packages: write
+  contents: read        # only need to read code
+  packages: write       # to push to GHCR
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+
+    # Prevent overlapping runs on the same branch
+    concurrency:
+      group: build-push-${{ github.ref_name }}
+      cancel-in-progress: true
+
     steps:
-      - uses: actions/checkout@v4
+      # ───────────── Step 1: Checkout ─────────────
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Get tag name
-        shell: bash
+      # ───────── Step 2: Determine branch & env ─────────
+      - name: Determine image tag & environment
+        id: tag_info
         run: |
-          if [[ "${GITHUB_REF#refs/heads/}" == "main" ]]; then
-            echo "branch=latest" >> $GITHUB_OUTPUT
-            echo "environment=staging" >> $GITHUB_OUTPUT
-          elif [[ "${GITHUB_REF#refs/heads/}" == "PRODUCTION" ]]; then
-            echo "branch=prod" >> $GITHUB_OUTPUT
-            echo "environment=prod" >> $GITHUB_OUTPUT
+          # Strip "refs/heads/" prefix
+          BRANCH="${GITHUB_REF#refs/heads/}"
+          if [[ "$BRANCH" == "main" ]]; then
+            echo "image_tag=latest"      >> $GITHUB_OUTPUT
+            echo "environment=staging"   >> $GITHUB_OUTPUT
+          elif [[ "$BRANCH" == "upstream" ]]; then
+            echo "image_tag=prod"        >> $GITHUB_OUTPUT
+            echo "environment=production" >> $GITHUB_OUTPUT
           else
-            echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
-            echo "environment=staging" >> $GITHUB_OUTPUT
+            echo "image_tag=${BRANCH}"   >> $GITHUB_OUTPUT
+            echo "environment=staging"   >> $GITHUB_OUTPUT
           fi
-        id: get_tag_name
 
+      # ───────────── Step 3: Setup Buildx ─────────────
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      # ──────────── Step 4: Log in to GHCR ────────────
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -42,37 +59,52 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push Backend image
+      # ──────────── Step 5: Build & Push Image ────────────
+      - name: Build & push backend image
         uses: docker/build-push-action@v5
         with:
-          context: ./backend
+          context: ./backend            # adjust if your Dockerfile is elsewhere
           file: ./backend/Dockerfile
+          platforms: linux/amd64,linux/arm64
           push: true
-          platforms: linux/arm64, linux/amd64
-          tags: ghcr.io/${{ github.repository }}/suna-backend:${{ steps.get_tag_name.outputs.branch }}
+          tags: ghcr.io/${{ github.repository }}/operator-backend:${{ steps.tag_info.outputs.image_tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      # ────────────── Step 6: Deploy to Staging ─────────────
       - name: Deploy to staging
-        if: steps.get_tag_name.outputs.environment == 'staging'
+        if: steps.tag_info.outputs.environment == 'staging'
         uses: appleboy/ssh-action@v1
         with:
-          host: ${{ secrets.STAGING_HOST }}
+          host: ${{ secrets.STAGING_HOST }}         # e.g. your staging server IP
           username: ${{ secrets.STAGING_USERNAME }}
           key: ${{ secrets.STAGING_KEY }}
           script: |
-            cd /home/suna/backend
-            git pull
+            cd /home/operator/backend
+            git pull --ff-only
             docker compose up -d --build
 
-      - name: Deploy to prod
-        if: steps.get_tag_name.outputs.environment == 'prod'
+      # ────────────── Step 7: Deploy to Prod ─────────────
+      - name: Deploy to production
+        if: steps.tag_info.outputs.environment == 'production'
         uses: appleboy/ssh-action@v1
         with:
-          host: ${{ secrets.PROD_HOST }}
+          host: ${{ secrets.PROD_HOST }}            # your prod server IP
           username: ${{ secrets.PROD_USERNAME }}
           key: ${{ secrets.PROD_KEY }}
           script: |
-            cd /home/suna/backend
-            git pull
+            cd /home/operator/backend
+            git pull --ff-only
             docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+
+      # ────────── (Optional) Notify on Failure ──────────
+      - name: Notify Slack on failure
+        if: ${{ failure() }}
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": ":x: Build/deploy failed on branch `${{ github.ref_name }}`. <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Logs>."
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
