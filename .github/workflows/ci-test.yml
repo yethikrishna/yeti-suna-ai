@@ -1,0 +1,25 @@
+name: “Initial CI Smoke Test”
+
+on:
+  push:
+    branches:
+      - main
+      - upstream
+      - 'feat/*'
+      - 'fix/*'
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  simple-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: “Checkout code”
+        uses: actions/checkout@v4
+
+      - name: “Print Node.js version”
+        run: node --version
+
+      - name: “Print a hello message”
+        run: echo "✔️ CI works on branch ${{ github.ref_name }}"
