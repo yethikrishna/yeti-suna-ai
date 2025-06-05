@@ -144,6 +144,11 @@ class ResponseProcessor:
                             self.client = client
                             self.name = name
                             
+                        def update(self, **kwargs):
+                            """Update generation metadata"""
+                            # No-op for mock generations
+                            pass
+                            
                         def end(self, output=None, status_message=None, level=None, **kwargs):
                             """End the generation with optional parameters"""
                             try:

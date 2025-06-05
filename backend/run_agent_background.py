@@ -174,6 +174,11 @@ async def run_agent_background(
                         self.client = client
                         self.name = name
                         
+                    def update(self, **kwargs):
+                        """Update generation metadata"""
+                        # No-op for mock generations
+                        pass
+
                     def end(self, output=None, status_message=None, level=None, **kwargs):
                         """End the generation with optional parameters"""
                         try:
@@ -221,6 +226,9 @@ async def run_agent_background(
             def generation(self, name):
                 """No-op generation method for compatibility"""
                 class NoOpGeneration:
+                    def update(self, **kwargs):
+                        """No-op update method"""
+                        pass
                     def end(self, **kwargs):
                         """No-op end method"""
                         pass
