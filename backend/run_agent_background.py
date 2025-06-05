@@ -128,17 +128,22 @@ async def run_agent_background(
                 self.session_id = session_id
                 self.metadata = metadata or {}
                 
-            def span(self, name):
+            def span(self, name, input=None):
                 # Create a mock span that's compatible with the existing usage
                 class MockSpan:
-                    def __init__(self, client, name):
+                    def __init__(self, client, name, input_data=None):
                         self.client = client
                         self.name = name
+                        self.input_data = input_data
                         
-                    def end(self, status_message=None, level=None):
+                    def end(self, status_message=None, level=None, output=None, **kwargs):
                         # In v3, we can create a simple span for logging
                         try:
                             with self.client.start_as_current_span(name=self.name) as span:
+                                if self.input_data:
+                                    span.update(input=self.input_data)
+                                if output:
+                                    span.update(output=output)
                                 if status_message:
                                     span.update(status_message=status_message)
                                 if level:
@@ -147,17 +152,91 @@ async def run_agent_background(
                             # Silently fail if tracing fails
                             pass
                             
-                return MockSpan(self.client, name)
+                    def update(self, **kwargs):
+                        """Update span metadata"""
+                        # No-op for mock spans
+                        pass
+                            
+                return MockSpan(self.client, name, input)
+                
+            def update(self, **kwargs):
+                """Update trace metadata - compatible with v3 API"""
+                try:
+                    self.client.update_current_trace(**kwargs)
+                except Exception:
+                    # Silently fail if tracing fails
+                    pass
+                    
+            def generation(self, name):
+                """Create a generation object - compatible with v3 API"""
+                class MockGeneration:
+                    def __init__(self, client, name):
+                        self.client = client
+                        self.name = name
+                        
+                    def update(self, **kwargs):
+                        """Update generation metadata"""
+                        # No-op for mock generations
+                        pass
+
+                    def end(self, output=None, status_message=None, level=None, **kwargs):
+                        """End the generation with optional parameters"""
+                        try:
+                            with self.client.start_as_current_span(name=self.name) as span:
+                                if output:
+                                    span.update(output=output)
+                                if status_message:
+                                    span.update(status_message=status_message)
+                                if level:
+                                    span.update(level=level)
+                        except Exception:
+                            # Silently fail if tracing fails
+                            pass
+                            
+                return MockGeneration(self.client, name)
+                
+            def event(self, name, level="DEFAULT", status_message="", metadata=None):
+                """Create an event - compatible with v3 API"""
+                try:
+                    with self.client.start_as_current_span(name=name) as span:
+                        span.update(
+                            level=level,
+                            status_message=status_message,
+                            metadata=metadata or {}
+                        )
+                except Exception:
+                    # Silently fail if tracing fails
+                    pass
                 
         trace = MockTraceV3(langfuse_client, agent_run_id, "agent_run", thread_id, {"project_id": project_id, "instance_id": instance_id})
     except Exception as e:
         # Fallback if langfuse fails - create a no-op trace
         logger.warning(f"Failed to initialize langfuse trace: {e}")
         class NoOpTrace:
-            def span(self, name):
+            def span(self, name, input=None):
                 class NoOpSpan:
                     def end(self, **kwargs): pass
+                    def update(self, **kwargs): pass
                 return NoOpSpan()
+                
+            def update(self, **kwargs):
+                """No-op update method for compatibility"""
+                pass
+                
+            def generation(self, name):
+                """No-op generation method for compatibility"""
+                class NoOpGeneration:
+                    def update(self, **kwargs):
+                        """No-op update method"""
+                        pass
+                    def end(self, **kwargs):
+                        """No-op end method"""
+                        pass
+                return NoOpGeneration()
+                
+            def event(self, name, level="DEFAULT", status_message="", metadata=None):
+                """No-op event method for compatibility"""
+                pass
         trace = NoOpTrace()
     try:
         # Setup Pub/Sub listener for control signals
