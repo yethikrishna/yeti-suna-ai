@@ -49,9 +49,23 @@ export const extractFromNewFormat = (content: any): ExtractedData => {
       }
     }
     
+    // Try parameter extraction first (handles incomplete streaming)  
+    const filePathMatch = trimmed.match(/<parameter\s+name=["']file_path["']>(.*?)(?:<\/parameter>|$)/i);
+    const oldStrMatch = trimmed.match(/<parameter\s+name=["']old_str["']>([\s\S]*?)(?:<\/parameter>|$)/i);
+    const newStrMatch = trimmed.match(/<parameter\s+name=["']new_str["']>([\s\S]*?)(?:<\/parameter>|$)/i);
+    
+    if (filePathMatch || oldStrMatch || newStrMatch) {
+      console.debug('StrReplaceToolView: Found parameter patterns in streaming content');
+      return {
+        filePath: filePathMatch ? filePathMatch[1].trim() : null,
+        oldStr: oldStrMatch ? oldStrMatch[1] : null,
+        newStr: newStrMatch ? newStrMatch[1] : null
+      };
+    }
+
     // Try direct string extraction for XML-like content
     const directExtraction = extractDirectFromString(trimmed);
-    if (directExtraction.oldStr && directExtraction.newStr) {
+    if (directExtraction.filePath || directExtraction.oldStr || directExtraction.newStr) {
       console.debug('StrReplaceToolView: Successfully extracted from string content:', directExtraction);
       return directExtraction;
     }
