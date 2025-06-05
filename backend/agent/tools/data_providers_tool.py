@@ -7,6 +7,7 @@ from agent.tools.data_providers.YahooFinanceProvider import YahooFinanceProvider
 from agent.tools.data_providers.AmazonProvider import AmazonProvider
 from agent.tools.data_providers.ZillowProvider import ZillowProvider
 from agent.tools.data_providers.TwitterProvider import TwitterProvider
+from agent.tools.data_providers.ApolloProvider import ApolloProvider
 
 class DataProvidersTool(Tool):
     """Tool for making requests to various data providers."""
@@ -19,7 +20,8 @@ class DataProvidersTool(Tool):
             "yahoo_finance": YahooFinanceProvider(),
             "amazon": AmazonProvider(),
             "zillow": ZillowProvider(),
-            "twitter": TwitterProvider()
+            "twitter": TwitterProvider(),
+            "apollo": ApolloProvider()
         }
 
     @openapi_schema({
@@ -32,7 +34,7 @@ class DataProvidersTool(Tool):
                 "properties": {
                     "service_name": {
                         "type": "string",
-                        "description": "The name of the data provider (e.g., 'linkedin', 'twitter', 'zillow', 'amazon', 'yahoo_finance')"
+                        "description": "The name of the data provider (e.g., 'linkedin', 'twitter', 'zillow', 'amazon', 'yahoo_finance', 'apollo')"
                     }
                 },
                 "required": ["service_name"]
@@ -54,6 +56,13 @@ Use this tool when you need to discover what endpoints are available.
 <function_calls>
 <invoke name="get_data_provider_endpoints">
 <parameter name="service_name">linkedin</parameter>
+</invoke>
+</function_calls>
+
+<!-- Example to get Apollo lead search endpoints -->
+<function_calls>
+<invoke name="get_data_provider_endpoints">
+<parameter name="service_name">apollo</parameter>
 </invoke>
 </function_calls>
         '''
@@ -124,12 +133,30 @@ Use this tool when you need to discover what endpoints are available.
         The route must be a valid endpoint key obtained from get-data-provider-endpoints tool!!
         -->
         
-        <!-- Example to call linkedIn service with the specific route person -->
+        <!-- Example to call LinkedIn service with the specific route person -->
         <function_calls>
         <invoke name="execute_data_provider_call">
         <parameter name="service_name">linkedin</parameter>
         <parameter name="route">person</parameter>
         <parameter name="payload">{"link": "https://www.linkedin.com/in/johndoe/"}</parameter>
+        </invoke>
+        </function_calls>
+        
+        <!-- Example to search for people using Apollo -->
+        <function_calls>
+        <invoke name="execute_data_provider_call">
+        <parameter name="service_name">apollo</parameter>
+        <parameter name="route">people_search</parameter>
+        <parameter name="payload">{"person_titles[]": ["software engineer", "developer"], "organization_locations[]": ["san francisco"], "per_page": 25}</parameter>
+        </invoke>
+        </function_calls>
+        
+        <!-- Example to search for organizations using Apollo -->
+        <function_calls>
+        <invoke name="execute_data_provider_call">
+        <parameter name="service_name">apollo</parameter>
+        <parameter name="route">organization_search</parameter>
+        <parameter name="payload">{"organization_locations[]": ["new york"], "organization_num_employees_ranges[]": ["51,200", "201,500"], "per_page": 25}</parameter>
         </invoke>
         </function_calls>
         '''
