@@ -19,7 +19,10 @@ export function FooterSection() {
     setMounted(true);
   }, []);
 
-  const logoSrc = "/ChatGPT Image May 9, 2025, 06_36_00 PM.png";
+  // Theme-aware logo selection
+  const logoSrc = mounted && resolvedTheme === 'dark' 
+    ? '/OMNI-Logo-Dark.png' 
+    : '/OMNI-Logo-light.png';
 
   return (
     <footer id="footer" className="w-full pb-0">

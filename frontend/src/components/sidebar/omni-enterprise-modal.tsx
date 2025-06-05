@@ -43,7 +43,7 @@ export function OmniProcessModal() {
             <div className="relative z-10 flex flex-col h-full">
               <div className="mb-8 mt-0 flex-shrink-0">
                 <Image
-                  src="/ChatGPT Image May 9, 2025, 06_36_00 PM.png"
+                  src={isDarkMode ? '/OMNI-Logo-Dark.png' : '/OMNI-Logo-light.png'}
                   alt="OMNI Logo"
                   width={60}
                   height={21}

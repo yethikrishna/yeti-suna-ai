@@ -8,14 +8,14 @@ export function HeroVideoSection() {
           className="block dark:hidden"
           animationStyle="from-center"
           videoSrc="https://www.youtube.com/embed/dQw4w9WgXcQ"
-          thumbnailSrc="/ChatGPT Image May 9, 2025, 06_36_00 PM.png"
+          thumbnailSrc="/OMNI-Logo-light.png"
           thumbnailAlt="OMNI Hero Video"
         />
         <HeroVideoDialog
           className="hidden dark:block"
           animationStyle="from-center"
           videoSrc="https://www.youtube.com/embed/dQw4w9WgXcQ"
-          thumbnailSrc="/ChatGPT Image May 9, 2025, 06_36_00 PM.png"
+          thumbnailSrc="/OMNI-Logo-Dark.png"
           thumbnailAlt="OMNI Hero Video"
         />
       </div>

@@ -5,7 +5,7 @@ import { useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';
 
 export function OmniLogo() {
-  const { theme } = useTheme();
+  const { theme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
   // After mount, we can access the theme
@@ -13,10 +13,18 @@ export function OmniLogo() {
     setMounted(true);
   }, []);
 
+  // Don't render anything until mounted to avoid hydration mismatch
+  if (!mounted) {
+    return <div className="h-6 w-6" />;
+  }
+
+  const isDark = resolvedTheme === 'dark';
+  const logoSrc = isDark ? '/OMNI-Ball-Dark.png' : '/OMNI-Ball Light.png';
+
   return (
     <div className="flex h-6 w-6 items-center justify-center flex-shrink-0">
       <Image
-        src="/ChatGPT Image May 9, 2025, 06_36_00 PM.png"
+        src={logoSrc}
         alt="OMNI"
         width={24}
         height={24}
