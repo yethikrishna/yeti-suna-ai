@@ -184,10 +184,10 @@ export function StrReplaceToolView({
   // Trigger delayed extraction when streaming completes
   useEffect(() => {
     if (!isStreaming && !extractionAttempted) {
-      // Small delay to ensure content is fully received, then mark as attempted
+      // Longer delay to ensure content is fully received and settled
       const timer = setTimeout(() => {
         setExtractionAttempted(true);
-      }, 150);
+      }, 600);
       
       return () => clearTimeout(timer);
     } else if (isStreaming) {
@@ -212,8 +212,19 @@ export function StrReplaceToolView({
   if (shouldExtract) {
     // Wrap the main logic in a try-catch to prevent crashes
     try {
+      // Add detailed debugging for response format
+      console.group('StrReplaceToolView: Detailed Response Analysis');
+      console.log('assistantContent (raw):', assistantContent);
+      console.log('toolContent (raw):', toolContent);
+      console.log('assistantContent type:', typeof assistantContent);
+      console.log('toolContent type:', typeof toolContent);
+      
       assistantNewFormat = extractFromNewFormat(assistantContent);
       toolNewFormat = extractFromNewFormat(toolContent);
+
+      console.log('assistantNewFormat result:', assistantNewFormat);
+      console.log('toolNewFormat result:', toolNewFormat);
+      console.groupEnd();
 
       // New format extraction
       filePath = assistantNewFormat.filePath || toolNewFormat.filePath;
