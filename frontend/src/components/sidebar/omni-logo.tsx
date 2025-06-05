@@ -19,7 +19,7 @@ export function OmniLogo() {
   }
 
   const isDark = resolvedTheme === 'dark';
-  const logoSrc = isDark ? '/OMNI-Ball-Dark.png' : '/OMNI-Ball Light.png';
+  const logoSrc = isDark ? '/OMNI-Ball Light.png' : '/OMNI-Ball-Dark.png';
 
   return (
     <div className="flex h-6 w-6 items-center justify-center flex-shrink-0">

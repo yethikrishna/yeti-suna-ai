@@ -70,8 +70,8 @@ export const metadata: Metadata = {
     site: '@omni_ai',
   },
   icons: {
-    icon: [{ url: '/favicon.png', sizes: 'any' }],
-    shortcut: '/favicon.png',
+    icon: [{ url: '/OMNI-Ball-rounded.png', sizes: 'any' }],
+    shortcut: '/OMNI-Ball-rounded.png',
   },
   // manifest: "/manifest.json",
   alternates: {
