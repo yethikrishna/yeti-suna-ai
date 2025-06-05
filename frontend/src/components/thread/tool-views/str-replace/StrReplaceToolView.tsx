@@ -163,42 +163,38 @@ export function StrReplaceToolView({
   const assistantNewFormat = extractFromNewFormat(assistantContent);
   const toolNewFormat = extractFromNewFormat(toolContent);
 
-  if (assistantNewFormat.filePath || assistantNewFormat.oldStr || assistantNewFormat.newStr) {
-    filePath = assistantNewFormat.filePath;
-    oldStr = assistantNewFormat.oldStr;
-    newStr = assistantNewFormat.newStr;
-    if (assistantNewFormat.success !== undefined) {
-      actualIsSuccess = assistantNewFormat.success;
-    }
-    if (assistantNewFormat.timestamp) {
-      actualAssistantTimestamp = assistantNewFormat.timestamp;
-    }
-  } else if (toolNewFormat.filePath || toolNewFormat.oldStr || toolNewFormat.newStr) {
-    filePath = toolNewFormat.filePath;
-    oldStr = toolNewFormat.oldStr;
-    newStr = toolNewFormat.newStr;
-    if (toolNewFormat.success !== undefined) {
-      actualIsSuccess = toolNewFormat.success;
-    }
-    if (toolNewFormat.timestamp) {
-      actualToolTimestamp = toolNewFormat.timestamp;
-    }
-  } else {
-    // Fall back to legacy format extraction
+  // New format extraction
+  filePath = assistantNewFormat.filePath || toolNewFormat.filePath;
+  oldStr = assistantNewFormat.oldStr || toolNewFormat.oldStr;
+  newStr = assistantNewFormat.newStr || toolNewFormat.newStr;
+
+  if (toolNewFormat.success !== undefined) {
+    actualIsSuccess = toolNewFormat.success;
+  } else if (assistantNewFormat.success !== undefined) {
+    actualIsSuccess = assistantNewFormat.success;
+  }
+  
+  if (assistantNewFormat.timestamp) {
+    actualAssistantTimestamp = assistantNewFormat.timestamp;
+  }
+  if (toolNewFormat.timestamp) {
+    actualToolTimestamp = toolNewFormat.timestamp;
+  }
+
+  // Fallback to legacy format extraction if needed
+  if (!filePath || !oldStr || !newStr) {
     const assistantLegacy = extractFromLegacyFormat(assistantContent, extractToolData, extractFilePath, extractStrReplaceContent);
     const toolLegacy = extractFromLegacyFormat(toolContent, extractToolData, extractFilePath, extractStrReplaceContent);
 
-    // Use assistant content first, then tool content as fallback
-    filePath = assistantLegacy.filePath || toolLegacy.filePath;
-    oldStr = assistantLegacy.oldStr || toolLegacy.oldStr;
-    newStr = assistantLegacy.newStr || toolLegacy.newStr;
+    filePath = filePath || assistantLegacy.filePath || toolLegacy.filePath;
+    oldStr = oldStr || assistantLegacy.oldStr || toolLegacy.oldStr;
+    newStr = newStr || assistantLegacy.newStr || toolLegacy.newStr;
   }
 
-  // Additional legacy extraction for edge cases
+  // Final fallback for edge cases
   if (!filePath) {
     filePath = extractFilePath(assistantContent) || extractFilePath(toolContent);
   }
-
   if (!oldStr || !newStr) {
     const assistantStrReplace = extractStrReplaceContent(assistantContent);
     const toolStrReplace = extractStrReplaceContent(toolContent);
