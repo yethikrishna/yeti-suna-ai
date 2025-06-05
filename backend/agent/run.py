@@ -26,8 +26,7 @@ from utils.auth_utils import get_account_id_from_thread
 from services.billing import check_billing_status
 from agent.tools.sb_vision_tool import SandboxVisionTool
 from services.langfuse import langfuse
-from langfuse import StatefulTraceClient
-from services.langfuse import langfuse
+from langfuse import get_client
 from agent.gemini_prompt import get_gemini_system_prompt
 from agent.tools.mcp_tool_wrapper import MCPToolWrapper
 from agentpress.tool import SchemaType
@@ -46,7 +45,7 @@ async def run_agent(
     reasoning_effort: Optional[str] = 'low',
     enable_context_manager: bool = True,
     agent_config: Optional[dict] = None,    
-    trace: Optional[StatefulTraceClient] = None,
+    trace: Optional[object] = None,
     is_agent_builder: Optional[bool] = False,
     target_agent_id: Optional[str] = None
 ):
