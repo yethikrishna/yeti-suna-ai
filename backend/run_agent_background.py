@@ -149,6 +149,14 @@ async def run_agent_background(
                             
                 return MockSpan(self.client, name)
                 
+            def update(self, **kwargs):
+                """Update trace metadata - compatible with v3 API"""
+                try:
+                    self.client.update_current_trace(**kwargs)
+                except Exception:
+                    # Silently fail if tracing fails
+                    pass
+                
         trace = MockTraceV3(langfuse_client, agent_run_id, "agent_run", thread_id, {"project_id": project_id, "instance_id": instance_id})
     except Exception as e:
         # Fallback if langfuse fails - create a no-op trace
@@ -158,6 +166,10 @@ async def run_agent_background(
                 class NoOpSpan:
                     def end(self, **kwargs): pass
                 return NoOpSpan()
+                
+            def update(self, **kwargs):
+                """No-op update method for compatibility"""
+                pass
         trace = NoOpTrace()
     try:
         # Setup Pub/Sub listener for control signals
