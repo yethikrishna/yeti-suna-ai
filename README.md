@@ -4,7 +4,7 @@
 
 (that acts on your behalf)
 
-![Operator Screenshot](frontend/public/ChatGPT Image May 9, 2025, 06_36_00 PM.png)
+![Operator Screenshot](frontend/public/OMNI-Logo-Dark.png)
 
 Operator is a fully open source AI assistant that helps you accomplish real-world tasks with ease. Through natural conversation, Operator becomes your digital companion for research, data analysis, and everyday challenges—combining powerful capabilities with an intuitive interface that understands what you need and delivers results.
 

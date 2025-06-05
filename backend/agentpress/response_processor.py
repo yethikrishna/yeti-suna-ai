@@ -21,7 +21,7 @@ from agentpress.tool import ToolResult
 from agentpress.tool_registry import ToolRegistry
 from agentpress.xml_tool_parser import XMLToolParser
 from litellm import completion_cost
-from langfuse.client import StatefulTraceClient
+from langfuse import get_client
 from services.langfuse import langfuse
 from agentpress.utils.json_helpers import (
     ensure_dict, ensure_list, safe_json_parse, 
@@ -87,7 +87,7 @@ class ProcessorConfig:
 class ResponseProcessor:
     """Processes LLM responses, extracting and executing tool calls."""
     
-    def __init__(self, tool_registry: ToolRegistry, add_message_callback: Callable, trace: Optional[StatefulTraceClient] = None, is_agent_builder: bool = False, target_agent_id: Optional[str] = None):
+    def __init__(self, tool_registry: ToolRegistry, add_message_callback: Callable, trace: Optional[object] = None, is_agent_builder: bool = False, target_agent_id: Optional[str] = None):
         """Initialize the ResponseProcessor.
         
         Args:
@@ -99,7 +99,45 @@ class ResponseProcessor:
         self.add_message = add_message_callback
         self.trace = trace
         if not self.trace:
-            self.trace = langfuse.trace(name="anonymous:response_processor")
+            # Use the global langfuse client for v3 API
+            langfuse_client = get_client()
+            # Create a mock trace object with the methods we need for compatibility
+            class MockTrace:
+                def __init__(self, client):
+                    self.client = client
+                    
+                def event(self, name, level="DEFAULT", status_message="", metadata=None):
+                    # In v3, events are logged differently - we'll use a simple span for now
+                    try:
+                        with self.client.start_as_current_span(name=name) as span:
+                            span.update(
+                                level=level,
+                                status_message=status_message,
+                                metadata=metadata or {}
+                            )
+                    except Exception:
+                        # Silently fail if tracing fails
+                        pass
+                        
+                def span(self, name, input=None):
+                    try:
+                        return self.client.start_span(name=name)
+                    except Exception:
+                        # Return a mock span that does nothing if tracing fails
+                        class MockSpan:
+                            def update(self, **kwargs): pass
+                            def end(self): pass
+                        return MockSpan()
+                        
+                def update(self, **kwargs):
+                    # In v3, trace updates need to be done differently
+                    try:
+                        self.client.update_current_trace(**kwargs)
+                    except Exception:
+                        # Silently fail if tracing fails
+                        pass
+                        
+            self.trace = MockTrace(langfuse_client)
         # Initialize the XML parser with backwards compatibility
         self.xml_parser = XMLToolParser(strict_mode=False)
         self.is_agent_builder = is_agent_builder

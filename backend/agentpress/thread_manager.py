@@ -22,7 +22,7 @@ from agentpress.response_processor import (
 )
 from services.supabase import DBConnection
 from utils.logger import logger
-from langfuse.client import StatefulGenerationClient, StatefulTraceClient
+from langfuse import get_client
 from services.langfuse import langfuse
 import datetime
 
@@ -37,7 +37,7 @@ class ThreadManager:
     XML-based tool execution patterns.
     """
 
-    def __init__(self, trace: Optional[StatefulTraceClient] = None, is_agent_builder: bool = False, target_agent_id: Optional[str] = None):
+    def __init__(self, trace: Optional[object] = None, is_agent_builder: bool = False, target_agent_id: Optional[str] = None):
         """Initialize ThreadManager.
 
         Args:
@@ -51,7 +51,40 @@ class ThreadManager:
         self.is_agent_builder = is_agent_builder
         self.target_agent_id = target_agent_id
         if not self.trace:
-            self.trace = langfuse.trace(name="anonymous:thread_manager")
+            # Use the global langfuse client for v3 API compatibility
+            langfuse_client = get_client()
+            # Create a mock trace object with the methods we need for compatibility
+            class MockTrace:
+                def __init__(self, client):
+                    self.client = client
+                    
+                def event(self, name, level="DEFAULT", status_message="", metadata=None):
+                    try:
+                        with self.client.start_as_current_span(name=name) as span:
+                            span.update(
+                                level=level,
+                                status_message=status_message,
+                                metadata=metadata or {}
+                            )
+                    except Exception:
+                        pass
+                        
+                def span(self, name, input=None):
+                    try:
+                        return self.client.start_span(name=name)
+                    except Exception:
+                        class MockSpan:
+                            def update(self, **kwargs): pass
+                            def end(self): pass
+                        return MockSpan()
+                        
+                def update(self, **kwargs):
+                    try:
+                        self.client.update_current_trace(**kwargs)
+                    except Exception:
+                        pass
+                        
+            self.trace = MockTrace(langfuse_client)
         self.response_processor = ResponseProcessor(
             tool_registry=self.tool_registry,
             add_message_callback=self.add_message,
@@ -172,7 +205,7 @@ class ThreadManager:
         enable_thinking: Optional[bool] = False,
         reasoning_effort: Optional[str] = 'low',
         enable_context_manager: bool = True,
-        generation: Optional[StatefulGenerationClient] = None,
+        generation: Optional[object] = None,
     ) -> Union[Dict[str, Any], AsyncGenerator]:
         """Run a conversation thread with LLM integration and tool execution.
 

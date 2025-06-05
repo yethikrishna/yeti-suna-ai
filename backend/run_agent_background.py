@@ -114,7 +114,51 @@ async def run_agent_background(
             logger.error(f"Error in stop signal checker for {agent_run_id}: {e}", exc_info=True)
             stop_signal_received = True # Stop the run if the checker fails
 
-    trace = langfuse.trace(name="agent_run", id=agent_run_id, session_id=thread_id, metadata={"project_id": project_id, "instance_id": instance_id})
+    # Create a v3-compatible trace using get_client
+    try:
+        from langfuse import get_client
+        langfuse_client = get_client()
+        
+        # Create a mock trace object that's compatible with v3 API
+        class MockTraceV3:
+            def __init__(self, client, trace_id, name, session_id, metadata):
+                self.client = client
+                self.trace_id = trace_id
+                self.name = name
+                self.session_id = session_id
+                self.metadata = metadata or {}
+                
+            def span(self, name):
+                # Create a mock span that's compatible with the existing usage
+                class MockSpan:
+                    def __init__(self, client, name):
+                        self.client = client
+                        self.name = name
+                        
+                    def end(self, status_message=None, level=None):
+                        # In v3, we can create a simple span for logging
+                        try:
+                            with self.client.start_as_current_span(name=self.name) as span:
+                                if status_message:
+                                    span.update(status_message=status_message)
+                                if level:
+                                    span.update(level=level)
+                        except Exception:
+                            # Silently fail if tracing fails
+                            pass
+                            
+                return MockSpan(self.client, name)
+                
+        trace = MockTraceV3(langfuse_client, agent_run_id, "agent_run", thread_id, {"project_id": project_id, "instance_id": instance_id})
+    except Exception as e:
+        # Fallback if langfuse fails - create a no-op trace
+        logger.warning(f"Failed to initialize langfuse trace: {e}")
+        class NoOpTrace:
+            def span(self, name):
+                class NoOpSpan:
+                    def end(self, **kwargs): pass
+                return NoOpSpan()
+        trace = NoOpTrace()
     try:
         # Setup Pub/Sub listener for control signals
         pubsub = await redis.create_pubsub()
