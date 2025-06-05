@@ -126,7 +126,7 @@ class ResponseProcessor:
                         # Return a mock span that does nothing if tracing fails
                         class MockSpan:
                             def update(self, **kwargs): pass
-                            def end(self): pass
+                            def end(self, output=None, status_message=None, level=None, **kwargs): pass
                         return MockSpan()
                         
                 def update(self, **kwargs):
@@ -136,6 +136,29 @@ class ResponseProcessor:
                     except Exception:
                         # Silently fail if tracing fails
                         pass
+                        
+                def generation(self, name):
+                    """Create a generation object - compatible with v3 API"""
+                    class MockGeneration:
+                        def __init__(self, client, name):
+                            self.client = client
+                            self.name = name
+                            
+                        def end(self, output=None, status_message=None, level=None, **kwargs):
+                            """End the generation with optional parameters"""
+                            try:
+                                with self.client.start_as_current_span(name=self.name) as span:
+                                    if output:
+                                        span.update(output=output)
+                                    if status_message:
+                                        span.update(status_message=status_message)
+                                    if level:
+                                        span.update(level=level)
+                            except Exception:
+                                # Silently fail if tracing fails
+                                pass
+                                
+                    return MockGeneration(self.client, name)
                         
             self.trace = MockTrace(langfuse_client)
         # Initialize the XML parser with backwards compatibility
