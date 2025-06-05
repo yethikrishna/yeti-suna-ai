@@ -70,6 +70,14 @@ const PROVIDER_CONFIG = {
     bgColor: 'bg-indigo-50 dark:bg-indigo-900/20',
     textColor: 'text-indigo-700 dark:text-indigo-300',
     borderColor: 'border-indigo-200 dark:border-indigo-800'
+  },
+  'apollo': {
+    name: 'Apollo Data Provider',
+    icon: Globe,
+    color: 'from-cyan-500 to-cyan-600',
+    bgColor: 'bg-cyan-50 dark:bg-cyan-900/20',
+    textColor: 'text-cyan-700 dark:text-cyan-300',
+    borderColor: 'border-cyan-200 dark:border-cyan-800'
   }
 };
 
@@ -112,7 +120,7 @@ export function ExecuteDataProviderCallToolView({
         <div className="flex flex-row items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="relative p-2 rounded-lg bg-gradient-to-br from-blue-500/20 to-blue-600/10 border border-blue-500/20">
-              <Globe className="w-5 h-5 text-blue-500 dark:text-blue-400" />
+              <Database className="w-5 h-5 text-blue-500 dark:text-blue-400" />
             </div>
             <div>
               <CardTitle className="text-base font-medium text-zinc-900 dark:text-zinc-100">
@@ -260,7 +268,7 @@ export function ExecuteDataProviderCallToolView({
         <div className="h-full flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
           {!isStreaming && serviceName && (
             <Badge variant="outline" className="h-6 py-0.5 text-xs">
-              <IconComponent className="h-3 w-3 mr-1" />
+              {providerConfig.icon && <providerConfig.icon className="h-3 w-3 mr-1" />}
               {serviceName}
             </Badge>
           )}
