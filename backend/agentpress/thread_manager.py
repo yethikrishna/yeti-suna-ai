@@ -22,7 +22,7 @@ from agentpress.response_processor import (
 )
 from services.supabase import DBConnection
 from utils.logger import logger
-from langfuse.client import StatefulGenerationClient, StatefulTraceClient
+from langfuse import StatefulGenerationClient, StatefulTraceClient
 from services.langfuse import langfuse
 import datetime
 

@@ -21,7 +21,7 @@ from agentpress.tool import ToolResult
 from agentpress.tool_registry import ToolRegistry
 from agentpress.xml_tool_parser import XMLToolParser
 from litellm import completion_cost
-from langfuse.client import StatefulTraceClient
+from langfuse import StatefulTraceClient
 from services.langfuse import langfuse
 from agentpress.utils.json_helpers import (
     ensure_dict, ensure_list, safe_json_parse, 
