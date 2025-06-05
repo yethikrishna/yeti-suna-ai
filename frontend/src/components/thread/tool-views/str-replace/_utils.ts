@@ -149,11 +149,15 @@ const extractDirectFromString = (content: string): ExtractedData => {
 
   // Extract old_str with more flexible patterns
   const oldStrMatches = [
+    // Complete patterns
+    content.match(/<parameter\s+name=["']old_str["']>([\s\S]*?)<\/parameter>/i),
     content.match(/<old_str>([\s\S]*?)<\/old_str>/i),
     content.match(/<old-str>([\s\S]*?)<\/old-str>/i),
     content.match(/old_str:\s*["']([\s\S]*?)["']/i),
     content.match(/old_str=["']([\s\S]*?)["']/i),
-    content.match(/"old_str":\s*"([\s\S]*?)"/i)
+    content.match(/"old_str":\s*"([\s\S]*?)"/i),
+    // Incomplete streaming (parameter without closing tag)
+    content.match(/<parameter\s+name=["']old_str["']>([\s\S]*?)(?=\s*$)/i)
   ];
   
   for (const match of oldStrMatches) {
