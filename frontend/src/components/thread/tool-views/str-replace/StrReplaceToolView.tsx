@@ -127,16 +127,38 @@ const SplitDiffView: React.FC<{ lineDiff: LineDiff[] }> = ({ lineDiff }) => (
   </div>
 );
 
-const ErrorState: React.FC = () => (
+const ErrorState: React.FC<{ filePath?: string | null; hasPartialData?: boolean }> = ({ 
+  filePath, 
+  hasPartialData = false 
+}) => (
   <div className="flex flex-col items-center justify-center h-full py-12 px-6 bg-gradient-to-b from-white to-zinc-50 dark:from-zinc-950 dark:to-zinc-900">
-    <div className="text-center w-full max-w-xs">
+    <div className="text-center w-full max-w-md">
       <AlertTriangle className="h-16 w-16 mx-auto mb-6 text-amber-500" />
       <h3 className="text-lg font-medium text-zinc-900 dark:text-zinc-100 mb-2">
-        Invalid String Replacement
+        {hasPartialData ? 'Incomplete String Replacement Data' : 'Invalid String Replacement'}
       </h3>
-      <p className="text-sm text-zinc-500 dark:text-zinc-400">
-        Could not extract the old string and new string from the request.
+      <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
+        {hasPartialData 
+          ? 'Some replacement data was found but old or new string is missing.'
+          : 'Could not extract the old string and new string from the request.'
+        }
       </p>
+      {filePath && (
+        <div className="bg-zinc-100 dark:bg-zinc-800 rounded-lg p-3 mb-4">
+          <p className="text-xs text-zinc-600 dark:text-zinc-400 mb-1">File:</p>
+          <code className="text-xs font-mono text-zinc-800 dark:text-zinc-200">{filePath}</code>
+        </div>
+      )}
+      <details className="text-left">
+        <summary className="text-xs text-zinc-500 dark:text-zinc-400 cursor-pointer hover:text-zinc-700 dark:hover:text-zinc-300">
+          Show debugging information
+        </summary>
+        <div className="mt-2 text-xs text-zinc-400 dark:text-zinc-500">
+          <p>• Check console for detailed extraction logs</p>
+          <p>• Verify the tool response format is correct</p>
+          <p>• Ensure old_str and new_str are properly formatted</p>
+        </div>
+      </details>
     </div>
   </div>
 );
@@ -150,6 +172,7 @@ export function StrReplaceToolView({
   isSuccess = true,
   isStreaming = false,
 }: ToolViewProps): JSX.Element {
+  
   const [expanded, setExpanded] = useState<boolean>(true);
   const [viewMode, setViewMode] = useState<'unified' | 'split'>('unified');
 
@@ -159,217 +182,300 @@ export function StrReplaceToolView({
   let actualIsSuccess = isSuccess;
   let actualToolTimestamp = toolTimestamp;
   let actualAssistantTimestamp = assistantTimestamp;
-
-  const assistantNewFormat = extractFromNewFormat(assistantContent);
-  const toolNewFormat = extractFromNewFormat(toolContent);
-
-  // New format extraction
-  filePath = assistantNewFormat.filePath || toolNewFormat.filePath;
-  oldStr = assistantNewFormat.oldStr || toolNewFormat.oldStr;
-  newStr = assistantNewFormat.newStr || toolNewFormat.newStr;
-
-  if (toolNewFormat.success !== undefined) {
-    actualIsSuccess = toolNewFormat.success;
-  } else if (assistantNewFormat.success !== undefined) {
-    actualIsSuccess = assistantNewFormat.success;
-  }
   
-  if (assistantNewFormat.timestamp) {
-    actualAssistantTimestamp = assistantNewFormat.timestamp;
-  }
-  if (toolNewFormat.timestamp) {
-    actualToolTimestamp = toolNewFormat.timestamp;
-  }
+  // Wrap the main logic in a try-catch to prevent crashes
+  try {
+    const assistantNewFormat = extractFromNewFormat(assistantContent);
+    const toolNewFormat = extractFromNewFormat(toolContent);
 
-  // Fallback to legacy format extraction if needed
-  if (!filePath || !oldStr || !newStr) {
-    const assistantLegacy = extractFromLegacyFormat(assistantContent, extractToolData, extractFilePath, extractStrReplaceContent);
-    const toolLegacy = extractFromLegacyFormat(toolContent, extractToolData, extractFilePath, extractStrReplaceContent);
+    // New format extraction
+    filePath = assistantNewFormat.filePath || toolNewFormat.filePath;
+    oldStr = assistantNewFormat.oldStr || toolNewFormat.oldStr;
+    newStr = assistantNewFormat.newStr || toolNewFormat.newStr;
 
-    filePath = filePath || assistantLegacy.filePath || toolLegacy.filePath;
-    oldStr = oldStr || assistantLegacy.oldStr || toolLegacy.oldStr;
-    newStr = newStr || assistantLegacy.newStr || toolLegacy.newStr;
-  }
+    if (toolNewFormat.success !== undefined) {
+      actualIsSuccess = toolNewFormat.success;
+    } else if (assistantNewFormat.success !== undefined) {
+      actualIsSuccess = assistantNewFormat.success;
+    }
+    
+    if (assistantNewFormat.timestamp) {
+      actualAssistantTimestamp = assistantNewFormat.timestamp;
+    }
+    if (toolNewFormat.timestamp) {
+      actualToolTimestamp = toolNewFormat.timestamp;
+    }
 
-  // Final fallback for edge cases
-  if (!filePath) {
-    filePath = extractFilePath(assistantContent) || extractFilePath(toolContent);
-  }
-  if (!oldStr || !newStr) {
-    const assistantStrReplace = extractStrReplaceContent(assistantContent);
-    const toolStrReplace = extractStrReplaceContent(toolContent);
-    oldStr = oldStr || assistantStrReplace.oldStr || toolStrReplace.oldStr;
-    newStr = newStr || assistantStrReplace.newStr || toolStrReplace.newStr;
-  }
+    // Fallback to legacy format extraction if needed
+    if (!filePath || !oldStr || !newStr) {
+      const assistantLegacy = extractFromLegacyFormat(assistantContent, extractToolData, extractFilePath, extractStrReplaceContent);
+      const toolLegacy = extractFromLegacyFormat(toolContent, extractToolData, extractFilePath, extractStrReplaceContent);
 
-  const toolTitle = getToolTitle(name);
+      filePath = filePath || assistantLegacy.filePath || toolLegacy.filePath;
+      oldStr = oldStr || assistantLegacy.oldStr || toolLegacy.oldStr;
+      newStr = newStr || assistantLegacy.newStr || toolLegacy.newStr;
+    }
 
-  // Generate diff data (only if we have both strings)
-  const lineDiff = oldStr && newStr ? generateLineDiff(oldStr, newStr) : [];
-  const charDiff = oldStr && newStr ? generateCharDiff(oldStr, newStr) : [];
+    // Final fallback for edge cases
+    if (!filePath) {
+      filePath = extractFilePath(assistantContent) || extractFilePath(toolContent);
+    }
+    if (!oldStr || !newStr) {
+      const assistantStrReplace = extractStrReplaceContent(assistantContent);
+      const toolStrReplace = extractStrReplaceContent(toolContent);
+      oldStr = oldStr || assistantStrReplace.oldStr || toolStrReplace.oldStr;
+      newStr = newStr || assistantStrReplace.newStr || toolStrReplace.newStr;
+    }
 
-  // Calculate stats on changes
-  const stats: DiffStats = calculateDiffStats(lineDiff);
+    const toolTitle = getToolTitle(name);
 
-  // Check if we should show error state (only when not streaming and we have content but can't extract strings)
-  const shouldShowError = !isStreaming && (!oldStr || !newStr) && (assistantContent || toolContent);
+    // Generate diff data (only if we have both strings)
+    const lineDiff = oldStr && newStr ? generateLineDiff(oldStr, newStr) : [];
+    const charDiff = oldStr && newStr ? generateCharDiff(oldStr, newStr) : [];
 
-  return (
-    <Card className="gap-0 flex border shadow-none border-t border-b-0 border-x-0 p-0 rounded-none flex-col h-full overflow-hidden bg-white dark:bg-zinc-950">
-      <CardHeader className="h-14 bg-zinc-50/80 dark:bg-zinc-900/80 backdrop-blur-sm border-b p-2 px-4 space-y-2">
-        <div className="flex flex-row items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="relative p-2 rounded-lg bg-gradient-to-br from-purple-500/20 to-purple-600/10 border border-purple-500/20">
-              <FileDiff className="w-5 h-5 text-purple-500 dark:text-purple-400" />
+    // Calculate stats on changes
+    const stats: DiffStats = calculateDiffStats(lineDiff);
+
+    // Check if we should show error state (only when not streaming and we have content but can't extract strings)
+    const shouldShowError = !isStreaming && (!oldStr || !newStr) && (assistantContent || toolContent);
+    
+    // Enhanced logging for debugging
+    if (shouldShowError) {
+      console.group('StrReplaceToolView: Error state triggered');
+      console.log('assistantContent:', assistantContent);
+      console.log('toolContent:', toolContent);
+      console.log('Extracted values:', { filePath, oldStr, newStr });
+      console.log('assistantNewFormat:', assistantNewFormat);
+      console.log('toolNewFormat:', toolNewFormat);
+      console.groupEnd();
+    }
+
+    // More lenient error condition - only show error if we have content but no data at all
+    const hasAnyContent = assistantContent || toolContent;
+    const hasAnyExtractedData = filePath || oldStr || newStr;
+    const shouldShowErrorState = !isStreaming && hasAnyContent && !hasAnyExtractedData;
+
+    // Determine the overall state for consistent UI
+    const hasPartialData = hasAnyExtractedData && (!oldStr || !newStr);
+    const showMainContent = hasAnyExtractedData && oldStr && newStr;
+    const showLoadingState = isStreaming;
+    
+    // Override success state if we have backend success but parsing failed
+    const displaySuccess = actualIsSuccess && (showMainContent || hasPartialData);
+    const displayMessage = hasPartialData 
+      ? 'Replacement completed (partial data)' 
+      : actualIsSuccess 
+        ? 'Replacement completed' 
+        : 'Replacement failed';
+
+    return (
+      <Card className="gap-0 flex border shadow-none border-t border-b-0 border-x-0 p-0 rounded-none flex-col h-full overflow-hidden bg-white dark:bg-zinc-950">
+        <CardHeader className="h-14 bg-zinc-50/80 dark:bg-zinc-900/80 backdrop-blur-sm border-b p-2 px-4 space-y-2">
+          <div className="flex flex-row items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="relative p-2 rounded-lg bg-gradient-to-br from-purple-500/20 to-purple-600/10 border border-purple-500/20">
+                <FileDiff className="w-5 h-5 text-purple-500 dark:text-purple-400" />
+              </div>
+              <CardTitle className="text-base font-medium text-zinc-900 dark:text-zinc-100">
+                {toolTitle}
+              </CardTitle>
             </div>
-            <CardTitle className="text-base font-medium text-zinc-900 dark:text-zinc-100">
-              {toolTitle}
-            </CardTitle>
+
+            {!isStreaming && (
+              <Badge
+                variant="secondary"
+                className={
+                  displaySuccess
+                    ? "bg-gradient-to-b from-emerald-200 to-emerald-100 text-emerald-700 dark:from-emerald-800/50 dark:to-emerald-900/60 dark:text-emerald-300"
+                    : "bg-gradient-to-b from-rose-200 to-rose-100 text-rose-700 dark:from-rose-800/50 dark:to-rose-900/60 dark:text-rose-300"
+                }
+              >
+                {displaySuccess ? (
+                  <CheckCircle className="h-3.5 w-3.5 mr-1" />
+                ) : (
+                  <AlertTriangle className="h-3.5 w-3.5 mr-1" />
+                )}
+                {displayMessage}
+              </Badge>
+            )}
+
+            {isStreaming && (
+              <Badge className="bg-gradient-to-b from-blue-200 to-blue-100 text-blue-700 dark:from-blue-800/50 dark:to-blue-900/60 dark:text-blue-300">
+                <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                Processing replacement
+              </Badge>
+            )}
           </div>
+        </CardHeader>
 
-          {!isStreaming && (
-            <Badge
-              variant="secondary"
-              className={
-                actualIsSuccess
-                  ? "bg-gradient-to-b from-emerald-200 to-emerald-100 text-emerald-700 dark:from-emerald-800/50 dark:to-emerald-900/60 dark:text-emerald-300"
-                  : "bg-gradient-to-b from-rose-200 to-rose-100 text-rose-700 dark:from-rose-800/50 dark:to-rose-900/60 dark:text-rose-300"
-              }
-            >
-              {actualIsSuccess ? (
-                <CheckCircle className="h-3.5 w-3.5 mr-1" />
-              ) : (
-                <AlertTriangle className="h-3.5 w-3.5 mr-1" />
-              )}
-              {actualIsSuccess ? 'Replacement completed' : 'Replacement failed'}
-            </Badge>
-          )}
-
-          {isStreaming && (
-            <Badge className="bg-gradient-to-b from-blue-200 to-blue-100 text-blue-700 dark:from-blue-800/50 dark:to-blue-900/60 dark:text-blue-300">
-              <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
-              Processing replacement
-            </Badge>
-          )}
-        </div>
-      </CardHeader>
-
-      <CardContent className="p-0 h-full flex-1 overflow-hidden relative">
-        {isStreaming ? (
-          <LoadingState
-            icon={FileDiff}
-            iconColor="text-purple-500 dark:text-purple-400"
-            bgColor="bg-gradient-to-b from-purple-100 to-purple-50 shadow-inner dark:from-purple-800/40 dark:to-purple-900/60 dark:shadow-purple-950/20"
-            title="Processing String Replacement"
-            filePath={filePath || 'Processing file...'}
-            progressText="Analyzing text patterns"
-            subtitle="Please wait while the replacement is being processed"
-          />
-        ) : shouldShowError ? (
-          <ErrorState />
-        ) : (
-          <ScrollArea className="h-full w-full">
-            <div className="p-4">
-              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden mb-4">
-                <div className="p-3 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 flex items-center justify-between">
-                  <div className="flex items-center">
-                    <File className="h-4 w-4 mr-2 text-zinc-500 dark:text-zinc-400" />
-                    <code className="text-xs font-mono text-zinc-700 dark:text-zinc-300">
-                      {filePath || 'Unknown file'}
-                    </code>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center text-xs text-zinc-500 dark:text-zinc-400 gap-3">
-                      <div className="flex items-center">
-                        <Plus className="h-3.5 w-3.5 text-emerald-500 mr-1" />
-                        <span>{stats.additions}</span>
-                      </div>
-                      <div className="flex items-center">
-                        <Minus className="h-3.5 w-3.5 text-red-500 mr-1" />
-                        <span>{stats.deletions}</span>
-                      </div>
+        <CardContent className="p-0 h-full flex-1 overflow-hidden relative">
+          {showLoadingState ? (
+            <LoadingState
+              icon={FileDiff}
+              iconColor="text-purple-500 dark:text-purple-400"
+              bgColor="bg-gradient-to-b from-purple-100 to-purple-50 shadow-inner dark:from-purple-800/40 dark:to-purple-900/60 dark:shadow-purple-950/20"
+              title="Processing String Replacement"
+              filePath={filePath || 'Processing file...'}
+              progressText="Analyzing text patterns"
+              subtitle="Please wait while the replacement is being processed"
+            />
+          ) : shouldShowErrorState ? (
+            <ErrorState filePath={filePath} hasPartialData={hasPartialData} />
+          ) : showMainContent ? (
+            <ScrollArea className="h-full w-full">
+              <div className="p-4">
+                <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden mb-4">
+                  <div className="p-3 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 flex items-center justify-between">
+                    <div className="flex items-center">
+                      <File className="h-4 w-4 mr-2 text-zinc-500 dark:text-zinc-400" />
+                      <code className="text-xs font-mono text-zinc-700 dark:text-zinc-300">
+                        {filePath || 'Unknown file'}
+                      </code>
                     </div>
 
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 w-7 p-0"
-                            onClick={() => setExpanded(!expanded)}
-                          >
-                            {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>{expanded ? 'Collapse' : 'Expand'}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                </div>
-
-                {expanded && (
-                  <div>
-                    <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'unified' | 'split')} className="w-auto">
-                      <div className="border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 p-2 flex justify-end">
-                        <TabsList className="h-7 p-0.5">
-                          <TabsTrigger value="unified" className="text-xs h-6 px-2">Unified</TabsTrigger>
-                          <TabsTrigger value="split" className="text-xs h-6 px-2">Split</TabsTrigger>
-                        </TabsList>
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center text-xs text-zinc-500 dark:text-zinc-400 gap-3">
+                        <div className="flex items-center">
+                          <Plus className="h-3.5 w-3.5 text-emerald-500 mr-1" />
+                          <span>{stats.additions}</span>
+                        </div>
+                        <div className="flex items-center">
+                          <Minus className="h-3.5 w-3.5 text-red-500 mr-1" />
+                          <span>{stats.deletions}</span>
+                        </div>
                       </div>
 
-                      <TabsContent value="unified" className="m-0 pb-4">
-                        <UnifiedDiffView lineDiff={lineDiff} />
-                      </TabsContent>
-
-                      <TabsContent value="split" className="m-0">
-                        <SplitDiffView lineDiff={lineDiff} />
-                      </TabsContent>
-                    </Tabs>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0"
+                              onClick={() => setExpanded(!expanded)}
+                            >
+                              {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{expanded ? 'Collapse' : 'Expand'}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                   </div>
-                )}
+
+                  {expanded && (
+                    <div>
+                      <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'unified' | 'split')} className="w-auto">
+                        <div className="border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 p-2 flex justify-end">
+                          <TabsList className="h-7 p-0.5">
+                            <TabsTrigger value="unified" className="text-xs h-6 px-2">Unified</TabsTrigger>
+                            <TabsTrigger value="split" className="text-xs h-6 px-2">Split</TabsTrigger>
+                          </TabsList>
+                        </div>
+
+                        <TabsContent value="unified" className="m-0 pb-4">
+                          <UnifiedDiffView lineDiff={lineDiff} />
+                        </TabsContent>
+
+                        <TabsContent value="split" className="m-0">
+                          <SplitDiffView lineDiff={lineDiff} />
+                        </TabsContent>
+                      </Tabs>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          </ScrollArea>
-        )}
-      </CardContent>
-
-      <div className="px-4 py-2 h-10 bg-gradient-to-r from-zinc-50/90 to-zinc-100/90 dark:from-zinc-900/90 dark:to-zinc-800/90 backdrop-blur-sm border-t border-zinc-200 dark:border-zinc-800 flex justify-between items-center">
-        <div className="h-full flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
-          {!isStreaming && (
-            <div className="flex items-center gap-1">
-              {actualIsSuccess ? (
-                <CheckCircle className="h-3.5 w-3.5 text-emerald-500 mr-1" />
-              ) : (
-                <AlertTriangle className="h-3.5 w-3.5 text-red-500 mr-1" />
+            </ScrollArea>
+          ) : hasPartialData ? (
+            <div className="p-4 h-full flex flex-col">
+              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mb-4">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h3 className="text-sm font-medium text-amber-800 dark:text-amber-200 mb-1">
+                      Partial Replacement Data
+                    </h3>
+                    <p className="text-xs text-amber-700 dark:text-amber-300">
+                      The operation completed successfully, but some display data could not be extracted.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              {filePath && (
+                <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4">
+                  <div className="flex items-center mb-2">
+                    <File className="h-4 w-4 mr-2 text-zinc-500 dark:text-zinc-400" />
+                    <code className="text-xs font-mono text-zinc-700 dark:text-zinc-300">
+                      {filePath}
+                    </code>
+                  </div>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                    String replacement was {displaySuccess ? 'completed successfully' : 'attempted'} in this file.
+                  </p>
+                </div>
               )}
-              <span>
-                {actualIsSuccess
-                  ? 'String replacement successful'
-                  : 'String replacement failed'}
-              </span>
             </div>
+          ) : (
+            <ErrorState filePath={filePath} hasPartialData={hasPartialData} />
           )}
+        </CardContent>
 
-          {isStreaming && (
-            <div className="flex items-center gap-1">
-              <CircleDashed className="h-3.5 w-3.5 text-blue-500 animate-spin mr-1" />
-              <span>Processing replacement...</span>
+        <div className="px-4 py-2 h-10 bg-gradient-to-r from-zinc-50/90 to-zinc-100/90 dark:from-zinc-900/90 dark:to-zinc-800/90 backdrop-blur-sm border-t border-zinc-200 dark:border-zinc-800 flex justify-between items-center">
+          <div className="h-full flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+            {!isStreaming && (
+              <div className="flex items-center gap-1">
+                {displaySuccess ? (
+                  <CheckCircle className="h-3.5 w-3.5 text-emerald-500 mr-1" />
+                ) : (
+                  <AlertTriangle className="h-3.5 w-3.5 text-red-500 mr-1" />
+                )}
+                <span>
+                  {displayMessage}
+                </span>
+              </div>
+            )}
+
+            {isStreaming && (
+              <div className="flex items-center gap-1">
+                <CircleDashed className="h-3.5 w-3.5 text-blue-500 animate-spin mr-1" />
+                <span>Processing replacement...</span>
+              </div>
+            )}
+          </div>
+
+          <div className="text-xs text-zinc-500 dark:text-zinc-400">
+            {actualToolTimestamp && !isStreaming
+              ? formatTimestamp(actualToolTimestamp)
+              : actualAssistantTimestamp
+                ? formatTimestamp(actualAssistantTimestamp)
+                : ''}
+          </div>
+        </div>
+      </Card>
+    );
+  } catch (error) {
+    console.error('Error in StrReplaceToolView:', error);
+    return (
+      <Card className="gap-0 flex border shadow-none border-t border-b-0 border-x-0 p-0 rounded-none flex-col h-full overflow-hidden bg-white dark:bg-zinc-950">
+        <CardHeader className="h-14 bg-zinc-50/80 dark:bg-zinc-900/80 backdrop-blur-sm border-b p-2 px-4 space-y-2">
+          <div className="flex flex-row items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="relative p-2 rounded-lg bg-gradient-to-br from-purple-500/20 to-purple-600/10 border border-purple-500/20">
+                <FileDiff className="w-5 h-5 text-purple-500 dark:text-purple-400" />
+              </div>
+              <CardTitle className="text-base font-medium text-zinc-900 dark:text-zinc-100">
+                String Replace
+              </CardTitle>
             </div>
-          )}
-        </div>
-
-        <div className="text-xs text-zinc-500 dark:text-zinc-400">
-          {actualToolTimestamp && !isStreaming
-            ? formatTimestamp(actualToolTimestamp)
-            : actualAssistantTimestamp
-              ? formatTimestamp(actualAssistantTimestamp)
-              : ''}
-        </div>
-      </div>
-    </Card>
-  );
+          </div>
+        </CardHeader>
+        <CardContent className="p-0 h-full flex-1 overflow-hidden relative">
+          <ErrorState filePath={null} hasPartialData={false} />
+        </CardContent>
+      </Card>
+    );
+  }
 }
