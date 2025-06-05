@@ -178,24 +178,22 @@ export function StrReplaceToolView({
   const [expanded, setExpanded] = useState<boolean>(true);
   const [viewMode, setViewMode] = useState<'unified' | 'split'>('unified');
   
-  // Smart delayed extraction - waits for streaming completion
-  const [retryCount, setRetryCount] = useState<number>(0);
-  const [isExtractionReady, setIsExtractionReady] = useState<boolean>(!isStreaming);
+  // Simple delayed extraction state
+  const [extractionAttempted, setExtractionAttempted] = useState<boolean>(false);
   
   // Trigger delayed extraction when streaming completes
   useEffect(() => {
-    if (!isStreaming && !isExtractionReady) {
-      // Small delay to ensure content is fully received
+    if (!isStreaming && !extractionAttempted) {
+      // Small delay to ensure content is fully received, then mark as attempted
       const timer = setTimeout(() => {
-        setIsExtractionReady(true);
-        setRetryCount(prev => prev + 1);
-      }, 100);
+        setExtractionAttempted(true);
+      }, 150);
       
       return () => clearTimeout(timer);
     } else if (isStreaming) {
-      setIsExtractionReady(false);
+      setExtractionAttempted(false);
     }
-  }, [isStreaming, isExtractionReady]);
+  }, [isStreaming, extractionAttempted]);
 
   let filePath: string | null = null;
   let oldStr: string | null = null;
@@ -208,8 +206,10 @@ export function StrReplaceToolView({
   let assistantNewFormat: ExtractedData = { filePath: null, oldStr: null, newStr: null };
   let toolNewFormat: ExtractedData = { filePath: null, oldStr: null, newStr: null };
   
-  // Only attempt extraction when ready (not streaming + small delay passed)
-  if (isExtractionReady) {
+  // Always attempt extraction when not streaming (with or without delay)
+  const shouldExtract = !isStreaming && (extractionAttempted || !isStreaming);
+  
+  if (shouldExtract) {
     // Wrap the main logic in a try-catch to prevent crashes
     try {
       assistantNewFormat = extractFromNewFormat(assistantContent);
@@ -254,24 +254,11 @@ export function StrReplaceToolView({
         newStr = newStr || assistantStrReplace.newStr || toolStrReplace.newStr;
       }
 
-      // Retry logic - if we still have partial data and haven't exhausted retries
-      if ((!oldStr || !newStr) && retryCount < 3 && (assistantContent || toolContent)) {
-        console.debug('StrReplaceToolView: Partial data detected, scheduling retry', { retryCount, oldStr: !!oldStr, newStr: !!newStr });
-        
-        // Schedule another extraction attempt after a short delay
-        setTimeout(() => {
-          setRetryCount(prev => prev + 1);
-        }, 200 * retryCount); // Exponential backoff: 200ms, 400ms, 600ms
-        
-        // Show loading state during retry
-        setIsExtractionReady(false);
-      }
-
     } catch (error) {
       console.error('StrReplaceToolView: Extraction error:', error);
     }
   } else {
-    // When not ready for extraction, try to get at least filePath for display
+    // When streaming, try to get at least filePath for display
     try {
       assistantNewFormat = extractFromNewFormat(assistantContent);
       toolNewFormat = extractFromNewFormat(toolContent);
@@ -290,8 +277,8 @@ export function StrReplaceToolView({
   // Calculate stats on changes
   const stats: DiffStats = calculateDiffStats(lineDiff);
 
-  // Check if we should show error state (only when not streaming and we have content but can't extract strings)
-  const shouldShowError = !isStreaming && isExtractionReady && (!oldStr || !newStr) && (assistantContent || toolContent);
+  // Check if we should show error state
+  const shouldShowError = !isStreaming && extractionAttempted && (!oldStr || !newStr) && (assistantContent || toolContent);
   
   // Enhanced logging for debugging
   if (shouldShowError) {
@@ -307,12 +294,12 @@ export function StrReplaceToolView({
   // More lenient error condition - only show error if we have content but no data at all
   const hasAnyContent = assistantContent || toolContent;
   const hasAnyExtractedData = filePath || oldStr || newStr;
-  const shouldShowErrorState = !isStreaming && isExtractionReady && hasAnyContent && !hasAnyExtractedData;
+  const shouldShowErrorState = !isStreaming && extractionAttempted && hasAnyContent && !hasAnyExtractedData;
 
   // Determine the overall state for consistent UI
   const hasPartialData = hasAnyExtractedData && (!oldStr || !newStr);
   const showMainContent = hasAnyExtractedData && oldStr && newStr;
-  const showLoadingState = isStreaming || !isExtractionReady;
+  const showLoadingState = isStreaming || (!extractionAttempted && !isStreaming);
   
   // Override success state if we have backend success but parsing failed
   const displaySuccess = actualIsSuccess && (showMainContent || hasPartialData);
