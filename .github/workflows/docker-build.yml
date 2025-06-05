@@ -67,7 +67,7 @@ jobs:
           file: ./backend/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ghcr.io/${{ github.repository }}/operator-backend:${{ steps.tag_info.outputs.image_tag }}
+          tags: ghcr.io/omniscience-labs/operator/operator-backend:${{ steps.tag_info.outputs.image_tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -97,14 +97,14 @@ jobs:
             git pull --ff-only
             docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 
-      # ────────── (Optional) Notify on Failure ──────────
-      - name: Notify Slack on failure
-        if: ${{ failure() }}
-        uses: slackapi/slack-github-action@v1
-        with:
-          payload: |
-            {
-              "text": ":x: Build/deploy failed on branch `${{ github.ref_name }}`. <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Logs>."
-            }
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      # # ────────── (Optional) Notify on Failure ──────────
+      # - name: Notify Slack on failure
+      #   if: ${{ failure() }}
+      #   uses: slackapi/slack-github-action@v1
+      #   with:
+      #     payload: |
+      #       {
+      #         "text": ":x: Build/deploy failed on branch `${{ github.ref_name }}`. <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Logs>."
+      #       }
+      #   env:
+      #     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
