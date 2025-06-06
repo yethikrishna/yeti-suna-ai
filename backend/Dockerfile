@@ -32,11 +32,12 @@ COPY --chown=appuser:appuser . .
 # Expose the port the app runs on
 EXPOSE 8000
 
-# Calculate optimal worker count based on 16 vCPUs
-# Using (2*CPU)+1 formula for CPU-bound applications
-ENV WORKERS=33
-ENV THREADS=2
-ENV WORKER_CONNECTIONS=2000
+# Calculate optimal worker count based on available resources
+# Default to more reasonable values for production
+ENV WORKERS=${WORKERS:-16}
+ENV THREADS=${THREADS:-2}
+ENV WORKER_CONNECTIONS=${WORKER_CONNECTIONS:-1000}
+ENV REDIS_MAX_CONNECTIONS=${REDIS_MAX_CONNECTIONS:-100}
 
 EXPOSE 8000
 
