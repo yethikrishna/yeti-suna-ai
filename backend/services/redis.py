@@ -37,7 +37,7 @@ class RedisConnectionManager:
         redis_ssl = redis_ssl_str.lower() == 'true'
         
         # Connection pool configuration
-        max_connections = int(os.getenv('REDIS_MAX_CONNECTIONS', '50'))
+        max_connections = int(os.getenv('REDIS_MAX_CONNECTIONS', '100'))
         
         logger.info(f"Creating Redis connection pool to {redis_host}:{redis_port} with max_connections={max_connections}")
         
