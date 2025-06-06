@@ -39,14 +39,14 @@ class RedisConnectionManager:
         # Connection pool configuration
         max_connections = int(os.getenv('REDIS_MAX_CONNECTIONS', '100'))
         
-        logger.info(f"Creating Redis connection pool to {redis_host}:{redis_port} with max_connections={max_connections}")
+        logger.info(f"Creating Redis connection pool to {redis_host}:{redis_port} with max_connections={max_connections}, SSL={redis_ssl}")
         
-        # Create connection pool
+        # Simple connection pool creation (like the original)
         self._connection_pool = redis.ConnectionPool(
             host=redis_host,
             port=redis_port,
             password=redis_password,
-            ssl=redis_ssl,
+            ssl=redis_ssl,  # Just pass the boolean directly - this is what was working before!
             decode_responses=True,
             max_connections=max_connections,
             socket_timeout=10.0,
@@ -55,8 +55,6 @@ class RedisConnectionManager:
             socket_keepalive_options={},
             retry_on_timeout=True,
             health_check_interval=30,
-            # Connection pool specific settings
-            connection_class=redis.Connection,
         )
 
     def _create_client(self):
@@ -154,8 +152,6 @@ def initialize():
     global client, _initialized
     
     if not _initialized:
-        # For backward compatibility, create a basic client
-        # This will be replaced by the async initialization
         load_dotenv()
         
         redis_host = os.getenv('REDIS_HOST', 'redis')
@@ -166,12 +162,12 @@ def initialize():
         
         logger.info(f"Initializing Redis connection to {redis_host}:{redis_port} (legacy method)")
         
-        # Create a simple client for backward compatibility
+        # Simple client creation (like the original)
         client = redis.Redis(
             host=redis_host,
             port=redis_port,
             password=redis_password,
-            ssl=redis_ssl,
+            ssl=redis_ssl,  # Just pass the boolean directly
             decode_responses=True,
             socket_timeout=5.0,
             socket_connect_timeout=5.0,
