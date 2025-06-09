@@ -25,6 +25,7 @@ export const AgentMCPConfiguration = ({ mcps, customMcps = [], onMCPsChange, onC
       });
     });
     
+    
     return combined;
   }, [mcps, customMcps]);
 
