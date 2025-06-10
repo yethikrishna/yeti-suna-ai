@@ -11,7 +11,7 @@ email-validator>=2.0.0
 exa-py>=1.9.1
 fastapi==0.110.0
 httpx>=0.24.0
-langfuse==2.60.5
+langfuse==2.60.8
 litellm==1.66.1
 mailtrap>=2.0.1
 mcp>=1.0.0
