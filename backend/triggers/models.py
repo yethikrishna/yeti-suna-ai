@@ -32,6 +32,7 @@ class TriggerResponse(TriggerBase):
     id: str
     account_id: str
     project_id: Optional[str]
+    secret: Optional[str] = Field(None, description="Secret for webhook authentication (only for webhook triggers)")
     created_at: str
     updated_at: str
 
