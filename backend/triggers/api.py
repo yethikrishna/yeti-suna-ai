@@ -53,7 +53,7 @@ async def _get_project_and_account(user_id: str) -> Dict[str, str]:
 # Webhook helper utilities
 # ---------------------------------------------------------------------------
 
-async def _parse_preview_link(link):
+def _parse_preview_link(link):
     """Return (url, token) tuple from a preview link produced by Sandbox."""
     # Fast path – modern sandbox returns an object with url / token attributes.
     url = getattr(link, "url", None) or str(link)
