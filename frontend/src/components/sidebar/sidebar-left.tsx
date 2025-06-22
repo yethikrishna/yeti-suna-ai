@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { Bot, Menu, Store } from 'lucide-react';
+import { Bot, Menu, Store, Scale } from 'lucide-react';
 
 import { NavAgents } from '@/components/sidebar/nav-agents';
 import { NavUserWithTeams } from '@/components/sidebar/nav-user-with-teams';
@@ -170,6 +170,19 @@ export function SidebarLeft({
                 </SidebarMenuButton>
               </Link>
             )}
+            <Link href="/immigration">
+              <SidebarMenuButton className={cn({
+                'bg-primary/10 font-medium': pathname === '/immigration',
+              })}>
+                <Scale className="h-4 w-4 mr-2" />
+                <span className="flex items-center justify-between w-full">
+                  H2A Immigration
+                  <Badge variant="new">
+                    Demo
+                  </Badge>
+                </span>
+              </SidebarMenuButton>
+            </Link>
           </SidebarGroup>
         )}
         <NavAgents />
