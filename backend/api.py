@@ -25,6 +25,7 @@ from services import transcription as transcription_api
 from services.mcp_custom import discover_custom_tools
 import sys
 from services import email_api
+from triggers import api as triggers_api
 
 
 load_dotenv()
@@ -52,6 +53,7 @@ async def lifespan(app: FastAPI):
         )
         
         sandbox_api.initialize(db)
+        triggers_api.initialize(db)
         
         # Initialize Redis connection
         from services import redis
@@ -154,6 +156,9 @@ app.include_router(mcp_api.router, prefix="/api")
 app.include_router(transcription_api.router, prefix="/api")
 
 app.include_router(email_api.router, prefix="/api")
+
+# Triggers subsystem
+app.include_router(triggers_api.router, prefix="/api")
 
 @app.get("/api/health")
 async def health_check():
