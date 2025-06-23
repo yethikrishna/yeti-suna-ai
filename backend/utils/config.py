@@ -141,6 +141,13 @@ class Configuration:
     DAYTONA_SERVER_URL: str
     DAYTONA_TARGET: str
     
+    # E2B sandbox configuration
+    E2B_API_KEY: Optional[str] = None
+    E2B_TEMPLATE_ID: Optional[str] = "base"
+    
+    # Runtime provider selection
+    SANDBOX_RUNTIME: Optional[str] = "daytona"  # Options: "daytona", "e2b"
+    
     # Search and other API keys
     TAVILY_API_KEY: str
     RAPID_API_KEY: str

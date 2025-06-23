@@ -4,7 +4,7 @@ from typing import Optional
 from agentpress.thread_manager import ThreadManager
 from agentpress.tool import Tool
 from daytona_sdk import Sandbox
-from sandbox.sandbox import get_or_start_sandbox
+from sandbox.runtime_manager import get_or_start_sandbox
 from utils.logger import logger
 from utils.files_utils import clean_path
 

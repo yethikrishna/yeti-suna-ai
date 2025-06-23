@@ -203,12 +203,23 @@ class SandboxShellTool(SandboxToolsBase):
         session_id = await self._ensure_session("raw_commands")
         
         # Execute command in session
-        from sandbox.sandbox import SessionExecuteRequest
+        # Import SessionExecuteRequest from the appropriate module based on runtime
+        try:
+            from sandbox.runtime_manager import runtime_manager
+            if runtime_manager.runtime == 'e2b':
+                from sandbox.e2b_sandbox import SessionExecuteRequest
+            else:
+                from sandbox.sandbox import SessionExecuteRequest
+        except ImportError:
+            from sandbox.sandbox import SessionExecuteRequest
+        
         req = SessionExecuteRequest(
             command=command,
-            var_async=False,
-            cwd=self.workspace_path
+            var_async=False
         )
+        # Add cwd if supported (Daytona specific)
+        if hasattr(req, 'cwd'):
+            req.cwd = self.workspace_path
         
         response = self.sandbox.process.execute_session_command(
             session_id=session_id,
