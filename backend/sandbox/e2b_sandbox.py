@@ -27,9 +27,9 @@ else:
 class E2BSandboxWrapper:
     """Wrapper class to provide a consistent interface for E2B sandboxes."""
     
-    def __init__(self, sandbox: E2BSandbox, sandbox_id: str):
+    def __init__(self, sandbox: E2BSandbox, sandbox_id: str = None):
         self._sandbox = sandbox
-        self.id = sandbox_id
+        self.id = sandbox_id or sandbox.sandbox_id
         self.state = "RUNNING"  # E2B sandboxes are running when created
         
     @property
@@ -69,19 +69,27 @@ class E2BProcessWrapper:
         is_async = getattr(request, 'var_async', False)
         
         try:
-            if is_async:
-                # For async commands, start in background
-                result = self._sandbox.process.start(command)
-                logger.info(f"Started async command in session {session_id}: {command}")
-                return result
-            else:
-                # For sync commands, wait for completion
-                result = self._sandbox.process.start_and_wait(command)
-                logger.info(f"Executed command in session {session_id}: {command}")
-                return result
+            # Use E2B's commands.run method
+            result = self._sandbox.commands.run(command)
+            logger.info(f"Executed command in session {session_id}: {command}")
+            
+            # Create a response object that matches expected interface
+            class CommandResponse:
+                def __init__(self, result):
+                    self.exit_code = result.exit_code
+                    self.stdout = result.stdout
+                    self.stderr = result.stderr
+                    self.cmd_id = getattr(result, 'id', session_id)
+            
+            return CommandResponse(result)
         except Exception as e:
             logger.error(f"Error executing command in session {session_id}: {str(e)}")
             raise e
+    
+    def get_session_command_logs(self, session_id: str, command_id: str):
+        """Get logs for a command (simplified for E2B)."""
+        # E2B doesn't have separate log retrieval, return empty for now
+        return ""
 
 class E2BFilesystemWrapper:
     """Wrapper for E2B filesystem operations to match Daytona interface."""
@@ -92,15 +100,14 @@ class E2BFilesystemWrapper:
     def upload_file(self, content: bytes, path: str):
         """Upload file content to the sandbox."""
         try:
-            # E2B expects string content for text files, bytes for binary
+            # E2B expects string content for text files
             if isinstance(content, bytes):
                 # Try to decode as text first
                 try:
                     text_content = content.decode('utf-8')
                     self._sandbox.files.write(path, text_content)
                 except UnicodeDecodeError:
-                    # If it's binary content, we need to handle it differently
-                    # E2B doesn't directly support binary uploads, so we'll base64 encode
+                    # For binary content, use base64 encoding
                     import base64
                     encoded_content = base64.b64encode(content).decode('utf-8')
                     # Write a script to decode and write the binary file
@@ -110,7 +117,7 @@ with open('{path}', 'wb') as f:
     f.write(base64.b64decode('{encoded_content}'))
 """
                     self._sandbox.files.write('/tmp/upload_binary.py', script)
-                    self._sandbox.process.start_and_wait('python /tmp/upload_binary.py')
+                    self._sandbox.commands.run('python /tmp/upload_binary.py')
                     self._sandbox.files.remove('/tmp/upload_binary.py')
             else:
                 self._sandbox.files.write(path, content)
@@ -176,7 +183,7 @@ async def get_or_start_e2b_sandbox(sandbox_id: str):
         # Wrap the E2B sandbox to provide consistent interface
         wrapped_sandbox = E2BSandboxWrapper(sandbox, sandbox_id)
         
-        logger.info(f"E2B sandbox {sandbox_id} is ready")
+        logger.info(f"E2B sandbox {wrapped_sandbox.id} is ready")
         return wrapped_sandbox
         
     except Exception as e:
@@ -218,12 +225,12 @@ def create_e2b_sandbox(password: str, project_id: str = None):
         
         # Set environment variables in the sandbox
         for key, value in env_vars.items():
-            sandbox.process.start_and_wait(f'export {key}="{value}"')
+            sandbox.commands.run(f'export {key}="{value}"')
         
         # Wrap the sandbox
-        wrapped_sandbox = E2BSandboxWrapper(sandbox, sandbox.id)
+        wrapped_sandbox = E2BSandboxWrapper(sandbox)
         
-        logger.debug(f"E2B sandbox created with ID: {sandbox.id}")
+        logger.debug(f"E2B sandbox created with ID: {wrapped_sandbox.id}")
         logger.debug(f"E2B sandbox environment successfully initialized")
         
         return wrapped_sandbox
