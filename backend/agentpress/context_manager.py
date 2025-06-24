@@ -9,7 +9,7 @@ import json
 from typing import List, Dict, Any, Optional
 
 from litellm import token_counter, completion_cost
-from services.supabase import DBConnection
+from services.database import DBConnection # Updated import
 from services.llm import make_llm_api_call
 from utils.logger import logger
 

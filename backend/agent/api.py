@@ -12,7 +12,7 @@ import tempfile
 import os
 
 from agentpress.thread_manager import ThreadManager
-from services.supabase import DBConnection
+from services.database import DBConnection # Updated import
 from services import redis
 from utils.auth_utils import get_current_user_id_from_jwt, get_user_id_from_stream_auth, verify_thread_access
 from utils.logger import logger, structlog

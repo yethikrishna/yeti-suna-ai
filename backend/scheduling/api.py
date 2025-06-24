@@ -11,7 +11,7 @@ from .models import (
 )
 from .qstash_service import QStashService
 from workflows.executor import WorkflowExecutor
-from services.supabase import DBConnection
+from services.database import DBConnection # Updated import
 from flags.flags import is_enabled
 
 logger = logging.getLogger(__name__)
