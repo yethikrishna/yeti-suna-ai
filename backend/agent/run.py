@@ -91,7 +91,7 @@ async def run_agent(
     if is_agent_builder:
         logger.info("Agent builder mode - registering only update agent tool")
         from agent.tools.update_agent_tool import UpdateAgentTool
-        from services.supabase import DBConnection
+        from services.database import DBConnection # Updated import
         db = DBConnection()
         thread_manager.add_tool(UpdateAgentTool, thread_manager=thread_manager, db_connection=db, agent_id=target_agent_id)
 
@@ -584,7 +584,7 @@ async def run_agent(
 # async def test_agent():
 #     """Test function to run the agent with a sample query"""
 #     from agentpress.thread_manager import ThreadManager
-#     from services.supabase import DBConnection
+#     from services.database import DBConnection # Updated import
 
 #     # Initialize ThreadManager
 #     thread_manager = ThreadManager()

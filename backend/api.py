@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 import sentry # Keep this import here, right after fastapi imports
 from contextlib import asynccontextmanager
 from agentpress.thread_manager import ThreadManager
-from services.supabase import DBConnection
+from services.database import DBConnection  # Updated import
 from datetime import datetime, timezone
 from dotenv import load_dotenv
 from utils.config import config, EnvMode
