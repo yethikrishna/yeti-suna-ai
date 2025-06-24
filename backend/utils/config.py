@@ -123,7 +123,7 @@ class Configuration:
     AWS_REGION_NAME: Optional[str] = None
     
     # Model configuration
-    MODEL_TO_USE: Optional[str] = "anthropic/claude-3-7-sonnet-latest"
+    MODEL_TO_USE: Optional[str] = "groq/llama3-8b-8192" # Changed to Groq model
     
     # Supabase configuration
     SUPABASE_URL: str

@@ -18,20 +18,17 @@ class SandboxWebSearchTool(SandboxToolsBase):
 
     def __init__(self, project_id: str, thread_manager: ThreadManager):
         super().__init__(project_id, thread_manager)
-        # Load environment variables
         load_dotenv()
-        # Use API keys from config
-        self.tavily_api_key = config.TAVILY_API_KEY
+        self.search1_api_key = config.SEARCH1_API_KEY # New
         self.firecrawl_api_key = config.FIRECRAWL_API_KEY
         self.firecrawl_url = config.FIRECRAWL_URL
-        
-        if not self.tavily_api_key:
-            raise ValueError("TAVILY_API_KEY not found in configuration")
+
+        if not self.search1_api_key:
+            raise ValueError("SEARCH1_API_KEY not found in configuration")
         if not self.firecrawl_api_key:
             raise ValueError("FIRECRAWL_API_KEY not found in configuration")
 
-        # Tavily asynchronous search client
-        self.tavily_client = AsyncTavilyClient(api_key=self.tavily_api_key)
+        self.http_client = httpx.AsyncClient() # New
 
     @openapi_schema({
         "type": "function",
@@ -87,58 +84,66 @@ class SandboxWebSearchTool(SandboxToolsBase):
         Search the web using the Tavily API to find relevant and up-to-date information.
         """
         try:
-            # Ensure we have a valid query
             if not query or not isinstance(query, str):
                 return self.fail_response("A valid search query is required.")
-            
-            # Normalize num_results
+
             if num_results is None:
-                num_results = 20
+                num_results = 10 # Default for SearchApi.ai, can be adjusted
             elif isinstance(num_results, int):
-                num_results = max(1, min(num_results, 50))
+                num_results = max(1, min(num_results, 50)) # Keep similar constraints
             elif isinstance(num_results, str):
                 try:
                     num_results = max(1, min(int(num_results), 50))
                 except ValueError:
-                    num_results = 20
+                    num_results = 10
             else:
-                num_results = 20
+                num_results = 10
 
-            # Execute the search with Tavily
-            logging.info(f"Executing web search for query: '{query}' with {num_results} results")
-            search_response = await self.tavily_client.search(
-                query=query,
-                max_results=num_results,
-                include_images=True,
-                include_answer="advanced",
-                search_depth="advanced",
-            )
+            logging.info(f"Executing web search with SearchApi.ai for query: '{query}' with {num_results} results")
             
-            # Check if we have actual results or an answer
-            results = search_response.get('results', [])
-            answer = search_response.get('answer', '')
+            api_url = "https://api.search1api.com/search"
+            headers = {
+                "Authorization": f"Bearer {self.search1_api_key}",
+                "Content-Type": "application/json"
+            }
+            payload = {
+                "query": query,
+                "max_results": num_results,
+                # "search_service": "google", # Optional: defaults to google
+                # "crawl_results": 0,       # Optional: we use Firecrawl separately
+                # "image": False,           # Optional
+            }
+
+            response = await self.http_client.post(api_url, headers=headers, json=payload)
+            response.raise_for_status()  # Raise an exception for bad status codes
             
-            # Return the complete Tavily response 
-            # This includes the query, answer, results, images and more
-            logging.info(f"Retrieved search results for query: '{query}' with answer and {len(results)} results")
+            search_data = response.json()
             
-            # Consider search successful if we have either results OR an answer
-            if len(results) > 0 or (answer and answer.strip()):
+            results = search_data.get('results', [])
+            logging.info(f"Retrieved {len(results)} search results for query: '{query}' from SearchApi.ai")
+
+            if results:
+                # We return just the 'results' array, similar to how Tavily's results might be used.
+                # The agent can then process this list of {title, link, snippet, content}.
                 return ToolResult(
                     success=True,
-                    output=json.dumps(search_response, ensure_ascii=False)
+                    output=json.dumps(results, ensure_ascii=False)
                 )
             else:
-                # No results or answer found
-                logging.warning(f"No search results or answer found for query: '{query}'")
+                logging.warning(f"No search results found for query: '{query}' from SearchApi.ai")
+                # Return the full response from SearchApi.ai if no results, for context
                 return ToolResult(
                     success=False,
-                    output=json.dumps(search_response, ensure_ascii=False)
+                    output=json.dumps(search_data, ensure_ascii=False)
                 )
-        
+
+        except httpx.HTTPStatusError as e:
+            error_message = f"SearchApi.ai request failed: {e.response.status_code} - {e.response.text}"
+            logging.error(error_message)
+            return self.fail_response(f"Search API request error: {e.response.status_code}")
         except Exception as e:
             error_message = str(e)
-            logging.error(f"Error performing web search for '{query}': {error_message}")
+            logging.error(f"Error performing web search for '{query}' with SearchApi.ai: {error_message}")
             simplified_message = f"Error performing web search: {error_message[:200]}"
             if len(error_message) > 200:
                 simplified_message += "..."
